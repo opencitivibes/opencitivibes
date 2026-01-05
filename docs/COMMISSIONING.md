@@ -350,26 +350,25 @@ sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem ssl/
 sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem ssl/
 sudo chown ubuntu:ubuntu ssl/*
 
-# 3. Update docker-compose.yml for local SSL
-sed -i 's|ssl_certs:/etc/nginx/ssl:ro|./ssl:/etc/nginx/ssl:ro|g' docker-compose.yml
-
-# 4. Login to GitHub Container Registry
+# 3. Login to GitHub Container Registry
 echo $GITHUB_TOKEN | docker login ghcr.io -u your-username --password-stdin
 
-# 5. Upload instance assets
+# 4. Upload instance assets
 scp hero.png logo.svg ubuntu@your-vps:~/opencitivibes/instance-assets/
 
-# 6. Pull and start containers
+# 5. Pull and start containers
 docker compose pull
 docker compose up -d
 
-# 7. Deploy instance assets to frontend
+# 6. Deploy instance assets and seed admin
 ./deploy-instance-assets.sh
-
-# 8. Initialize database and seed admin
-docker exec your-prefix-backend alembic upgrade head
 ./seed-admin.sh
 ```
+
+Note: The setup script automatically patches docker-compose.yml to:
+- Use local `./ssl` directory instead of Docker volume
+- Add `HOSTNAME=0.0.0.0` for frontend health checks
+- Fix health check URL for IPv4 compatibility
 
 ### Configuration
 
@@ -389,12 +388,13 @@ docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f nginx
 
-# If backend shows migration errors
+# Check container health status
+docker compose ps
+
+# If backend shows migration errors, seed-admin.sh handles this automatically
+# For manual fix:
 docker exec your-prefix-backend alembic stamp head
 docker compose restart backend
-
-# If frontend health check fails (before image rebuild)
-# Add HOSTNAME=0.0.0.0 to frontend environment in docker-compose.yml
 ```
 
 ## Security Considerations
