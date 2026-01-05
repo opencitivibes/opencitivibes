@@ -16,16 +16,16 @@ ENV UV_LINK_MODE=copy
 WORKDIR /app
 
 # Install dependencies first (better layer caching)
+# Cache bust arg - change to force dependency reinstall
+ARG CACHE_BUST=1
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .
 
 # Install the project
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev
 
 # ============================================
 # Stage 2: Production stage
