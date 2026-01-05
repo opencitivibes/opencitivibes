@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 # Define forbidden imports for each layer
-LAYER_RULES: dict[str, dict[str, list[str]]] = {
+LAYER_RULES: dict[str, dict[str, list[str] | str]] = {
     "routers": {
         "forbidden": ["repositories"],
         "reason": "Routers must use services, not repositories directly",

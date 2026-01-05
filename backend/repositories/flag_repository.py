@@ -387,7 +387,7 @@ class FlagRepository(BaseRepository[ContentFlag]):
         """
         return self.db.query(func.count(ContentFlag.id)).scalar() or 0
 
-    def get_flags_by_day(self, start_date: datetime) -> list[tuple]:
+    def get_flags_by_day(self, start_date: datetime) -> list:  # type: ignore[type-arg]
         """
         Get flag counts grouped by day.
 

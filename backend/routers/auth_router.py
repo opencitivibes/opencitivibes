@@ -243,7 +243,7 @@ async def export_my_data(
     if format == "csv":
         from fastapi.responses import StreamingResponse
 
-        return StreamingResponse(  # type: ignore[return-value]
+        return StreamingResponse(  # type: ignore[return-value, arg-type]
             iter([data]),
             media_type="text/csv",
             headers={
@@ -260,7 +260,7 @@ async def export_my_data(
         comments=[schemas.CommentExport(**comment) for comment in data["comments"]],  # type: ignore[arg-type]
         votes=[schemas.VoteExport(**vote) for vote in data["votes"]],  # type: ignore[arg-type]
         consent_history=[
-            schemas.ConsentLogExport(**log)
+            schemas.ConsentLogExport(**log)  # type: ignore[arg-type]
             for log in data["consent_history"]  # type: ignore[arg-type]
         ],
     )

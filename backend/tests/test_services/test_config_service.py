@@ -129,14 +129,18 @@ class TestPlatformConfigModels:
 
     def test_branding_config_border_radius_values(self):
         """Test BrandingConfig accepts valid border_radius values."""
+        from typing import cast, Any
+
         for radius in ["none", "sm", "md", "lg", "full"]:
-            config = BrandingConfig(border_radius=radius)
+            config = BrandingConfig(border_radius=cast(Any, radius))
             assert config.border_radius == radius
 
     def test_branding_config_border_radius_invalid(self):
         """Test BrandingConfig rejects invalid border_radius."""
+        from typing import cast, Any
+
         with pytest.raises(ValueError):
-            BrandingConfig(border_radius="extra-large")
+            BrandingConfig(border_radius=cast(Any, "extra-large"))
 
     def test_localization_config_defaults(self):
         """Test LocalizationConfig default values."""
