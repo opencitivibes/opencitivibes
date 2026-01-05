@@ -47,6 +47,7 @@ class SMTPProvider(EmailProvider):
         self.from_email = settings.SMTP_FROM_EMAIL
         self.from_name = settings.SMTP_FROM_NAME
         self.use_tls = settings.SMTP_USE_TLS
+        self.use_ssl = settings.SMTP_USE_SSL
 
     def send(
         self,
@@ -55,7 +56,12 @@ class SMTPProvider(EmailProvider):
         html_body: str,
         text_body: str,
     ) -> bool:
-        """Send email via SMTP."""
+        """Send email via SMTP.
+
+        Supports both:
+        - Implicit SSL (port 465): use SMTP_USE_SSL=true
+        - STARTTLS (port 587): use SMTP_USE_TLS=true
+        """
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
@@ -65,10 +71,15 @@ class SMTPProvider(EmailProvider):
             msg.attach(MIMEText(text_body, "plain", "utf-8"))
             msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-            if self.use_tls:
+            if self.use_ssl:
+                # Implicit SSL (port 465) - connection is encrypted from start
+                server = smtplib.SMTP_SSL(self.host, self.port)
+            elif self.use_tls:
+                # STARTTLS (port 587) - upgrade to TLS after connection
                 server = smtplib.SMTP(self.host, self.port)
                 server.starttls()
             else:
+                # Plain SMTP (not recommended)
                 server = smtplib.SMTP(self.host, self.port)
 
             if self.user and self.password:

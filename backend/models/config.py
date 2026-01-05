@@ -184,7 +184,11 @@ class Settings(BaseSettings):
     )
     SMTP_USE_TLS: bool = Field(
         default=True,
-        description="Use TLS for SMTP connection",
+        description="Use STARTTLS for SMTP connection (port 587)",
+    )
+    SMTP_USE_SSL: bool = Field(
+        default=False,
+        description="Use implicit SSL for SMTP connection (port 465)",
     )
 
     # SendGrid (alternative provider)

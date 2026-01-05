@@ -84,6 +84,18 @@ NTFY_CACHE_DURATION=24h
 NTFY_ENABLED=true
 APP_URL=https://${DOMAIN}
 
+# SMTP Email Configuration (OVH)
+# Used for passwordless login magic links
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.mail.ovh.ca
+SMTP_PORT=465
+SMTP_USE_TLS=false
+SMTP_USE_SSL=true
+SMTP_USER=\${ADMIN_EMAIL}
+SMTP_PASSWORD=CHANGE_ME_TO_EMAIL_PASSWORD
+SMTP_FROM_EMAIL=\${ADMIN_EMAIL}
+SMTP_FROM_NAME=\${INSTANCE_NAME}
+
 # Monitoring (optional)
 SENTRY_DSN=
 NEXT_PUBLIC_SENTRY_DSN=
@@ -461,6 +473,15 @@ session.close()
 "
 
 echo "Admin seeding complete!"
+
+# Configure ntfy anonymous write access for backend
+echo "Configuring ntfy topic permissions..."
+TOPIC_PREFIX=\$(grep '^NTFY_TOPIC_PREFIX=' .env | cut -d'=' -f2)
+TOPIC_PREFIX=\${TOPIC_PREFIX:-admin}
+docker exec \${CONTAINER_PREFIX}-ntfy ntfy access '*' "\${TOPIC_PREFIX}-*" write 2>/dev/null || {
+    echo "Warning: Could not configure ntfy permissions (container may not be ready)"
+}
+echo "Ntfy configuration complete!"
 SEEDSCRIPT
 chmod +x seed-admin.sh
 echo "  - Created seed-admin.sh"
