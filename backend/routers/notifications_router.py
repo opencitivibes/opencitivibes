@@ -166,15 +166,26 @@ async def test_smtp_connection(
     host = settings.SMTP_HOST
     port = settings.SMTP_PORT
     use_tls = settings.SMTP_USE_TLS
+    use_ssl = settings.SMTP_USE_SSL
 
     try:
-        # Connect with timeout
-        server = smtplib.SMTP(host, port, timeout=10)
-        server.ehlo()
-
-        if use_tls:
+        # Connect with timeout - choose connection type based on SSL/TLS settings
+        if use_ssl:
+            # Implicit SSL (port 465) - connection is encrypted from start
+            server = smtplib.SMTP_SSL(host, port, timeout=10)
+            security_mode = "SSL"
+        elif use_tls:
+            # STARTTLS (port 587) - upgrade to TLS after connection
+            server = smtplib.SMTP(host, port, timeout=10)
+            server.ehlo()
             server.starttls()
             server.ehlo()
+            security_mode = "STARTTLS"
+        else:
+            # Plain SMTP (not recommended)
+            server = smtplib.SMTP(host, port, timeout=10)
+            server.ehlo()
+            security_mode = "none"
 
         # Check if auth is configured
         auth_configured = bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
@@ -203,7 +214,7 @@ async def test_smtp_connection(
             host=host,
             port=port,
             message=f"SMTP connection successful ({auth_status})",
-            details=f"TLS: {'enabled' if use_tls else 'disabled'}",
+            details=f"Security: {security_mode}",
         )
 
     except socket.timeout:
