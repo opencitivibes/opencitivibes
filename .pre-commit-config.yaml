@@ -1,0 +1,130 @@
+# Pre-commit hooks for security and code quality
+# Install: pip install pre-commit && pre-commit install
+# Run on all files: pre-commit run --all-files
+
+repos:
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args: ['-ll', '-ii', '-x', 'tests/']
+        files: ^backend/.*\.py$
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            package-lock\.json|
+            pnpm-lock\.yaml|
+            uv\.lock|
+            .*\.md$|
+            backend/tests/.*|
+            backend/scripts/.*|
+            backend/alembic/.*|
+            backend/\.env\..*|
+            claude-docs/.*|
+            instances/.*|
+            frontend/src/i18n/.*|
+            \.claude/.*|
+            pentest/.*|
+            \.github/workflows/security-pentest.*\.yml$
+          )$
+
+  # Python code quality
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/.*\.py$
+      - id: ruff-format
+        files: ^backend/.*\.py$
+
+  # Type checking (ty is ~17x faster than pyright)
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: Type Check (ty)
+        entry: bash -c 'cd backend && uvx ty check .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: lint-imports
+        name: Import Layer Check
+        entry: bash -c 'cd backend && uv run lint-imports'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+  # YAML and general checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: detect-private-key
+        exclude: ^claude-docs/.*\.md$
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # Architecture enforcement - layered architecture checks
+  - repo: local
+    hooks:
+      - id: check-service-db-access
+        name: Check Service DB Access
+        entry: bash -c 'cd backend && python scripts/check_service_db_access.py'
+        language: system
+        files: ^backend/services/.*\.py$
+        pass_filenames: false
+
+      - id: check-service-http-exceptions
+        name: Check Service HTTPException
+        entry: bash -c 'cd backend && python scripts/check_service_http_exceptions.py'
+        language: system
+        files: ^backend/services/.*\.py$
+        pass_filenames: false
+
+      - id: check-router-db-access
+        name: Check Router DB Access
+        entry: bash -c 'cd backend && python scripts/check_router_db_access.py'
+        language: system
+        files: ^backend/routers/.*\.py$
+        pass_filenames: false
+
+      - id: check-layer-imports
+        name: Check Layer Imports
+        entry: bash -c 'cd backend && python scripts/check_layer_imports.py'
+        language: system
+        files: ^backend/(routers|services|repositories)/.*\.py$
+        pass_filenames: false
+
+  # TypeScript/JavaScript linting and architecture
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd frontend && pnpm run lint'
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: check-frontend-api-usage
+        name: Check Frontend API Usage
+        entry: bash -c 'cd frontend && node scripts/check-api-usage.js'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      - id: check-frontend-hardcoded-urls
+        name: Check Frontend Hardcoded URLs
+        entry: bash -c 'cd frontend && node scripts/check-hardcoded-urls.js'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false

@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+*.pyc
+__pycache__
+.pytest_cache
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache
+.ruff_cache
+.venv
+venv/
+
+# Database (don't include in image)
+*.db
+data/*.db
+
+# Logs
+logs/
+*.log
+
+# Tests (not needed in production)
+tests/
+
+# Documentation
+docs/
+*.md
+
+# IDE/Editor
+.ropeproject/
+.vscode/
+.idea/
+
+# Cache
+.import_linter_cache/
+code-index.db
+
+# Temporary files
+*.tmp
+*.bak

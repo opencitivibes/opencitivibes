@@ -1,0 +1,51 @@
+# OpenCitiVibes systemd Service Template
+#
+# Installation:
+#   1. Replace {{INSTANCE_NAME}} with your instance name (e.g., montreal)
+#   2. Replace {{DEPLOY_PATH}} with deployment path (e.g., /opt/opencitivibes-montreal)
+#   3. Copy to /etc/systemd/system/opencitivibes-{{INSTANCE_NAME}}.service
+#   4. Run: systemctl daemon-reload
+#   5. Run: systemctl enable opencitivibes-{{INSTANCE_NAME}}
+#   6. Run: systemctl start opencitivibes-{{INSTANCE_NAME}}
+#
+# Example for Montreal:
+#   sed 's/{{INSTANCE_NAME}}/montreal/g; s|{{DEPLOY_PATH}}|/opt/opencitivibes-montreal|g' \
+#     opencitivibes.service.template > /etc/systemd/system/opencitivibes-montreal.service
+
+[Unit]
+Description=OpenCitiVibes Platform - {{INSTANCE_NAME}}
+Documentation=https://github.com/your-org/opencitivibes
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory={{DEPLOY_PATH}}
+
+# Load environment variables
+EnvironmentFile={{DEPLOY_PATH}}/.env
+
+# Start containers
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+
+# Stop containers gracefully
+ExecStop=/usr/bin/docker compose down
+
+# Reload (pull and restart)
+ExecReload=/usr/bin/docker compose pull
+ExecReload=/usr/bin/docker compose up -d --remove-orphans
+
+# Timeout for startup (5 minutes)
+TimeoutStartSec=300
+
+# Timeout for stop (2 minutes)
+TimeoutStopSec=120
+
+# Restart policy
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

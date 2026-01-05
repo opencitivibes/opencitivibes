@@ -1,0 +1,19 @@
+{app_name}
+====================
+
+Bonjour {display_name},
+
+Vous avez demandé à vous connecter à votre compte {app_name}.
+
+VOTRE CODE DE CONNEXION : {code}
+
+Ce code expire dans {expires_minutes} minutes.
+
+CONSEIL DE SÉCURITÉ :
+Si vous n'avez pas demandé ce code, vous pouvez ignorer ce courriel
+en toute sécurité. Quelqu'un a peut-être entré votre adresse courriel
+par erreur.
+
+---
+
+(c) {year} {app_name}. Tous droits réservés.

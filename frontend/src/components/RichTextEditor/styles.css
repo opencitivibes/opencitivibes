@@ -1,0 +1,139 @@
+/* Rich Text Editor Styles */
+
+/* Editor container */
+.rich-text-editor {
+  @apply border border-gray-300 dark:border-gray-600 rounded-lg transition-colors duration-150;
+}
+
+.rich-text-editor:focus-within {
+  @apply ring-2 ring-primary-500 border-transparent;
+}
+
+.rich-text-editor.error {
+  @apply border-2 border-error-500;
+}
+
+.rich-text-editor.error:focus-within {
+  @apply ring-2 ring-error-500 border-transparent;
+}
+
+.rich-text-editor.success {
+  @apply border-2 border-success-500;
+}
+
+.rich-text-editor.success:focus-within {
+  @apply ring-2 ring-success-500 border-transparent;
+}
+
+.rich-text-editor.disabled {
+  @apply bg-gray-100 dark:bg-gray-700 cursor-not-allowed;
+}
+
+/* ProseMirror editor */
+.rich-text-editor .ProseMirror {
+  @apply p-4 outline-none bg-white dark:bg-gray-800;
+}
+
+.rich-text-editor .ProseMirror-focused {
+  @apply outline-none;
+}
+
+/* Placeholder */
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400 dark:text-gray-500 pointer-events-none float-left h-0;
+  content: attr(data-placeholder);
+}
+
+/* Typography */
+.rich-text-editor .ProseMirror {
+  @apply text-gray-900 dark:text-gray-100 leading-relaxed;
+}
+
+.rich-text-editor .ProseMirror p {
+  @apply mb-3 last:mb-0;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  @apply text-xl font-bold text-gray-900 dark:text-gray-100 mt-6 mb-3 first:mt-0;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  @apply text-lg font-semibold text-gray-900 dark:text-gray-100 mt-4 mb-2;
+}
+
+.rich-text-editor .ProseMirror strong {
+  @apply font-bold;
+}
+
+.rich-text-editor .ProseMirror em {
+  @apply italic;
+}
+
+.rich-text-editor .ProseMirror u {
+  @apply underline;
+}
+
+.rich-text-editor .ProseMirror s {
+  @apply line-through;
+}
+
+/* Lists */
+.rich-text-editor .ProseMirror ul {
+  @apply list-disc pl-6 mb-3;
+}
+
+.rich-text-editor .ProseMirror ol {
+  @apply list-decimal pl-6 mb-3;
+}
+
+.rich-text-editor .ProseMirror li {
+  @apply mb-1;
+}
+
+.rich-text-editor .ProseMirror li p {
+  @apply mb-0;
+}
+
+/* Blockquote */
+.rich-text-editor .ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-600 dark:text-gray-400 my-4;
+}
+
+/* Code */
+.rich-text-editor .ProseMirror code {
+  @apply bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200;
+}
+
+.rich-text-editor .ProseMirror pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+/* Links */
+.rich-text-editor .ProseMirror a {
+  @apply text-primary-600 dark:text-primary-400 underline hover:text-primary-700 dark:hover:text-primary-300;
+}
+
+/* Selection */
+.rich-text-editor .ProseMirror ::selection {
+  @apply bg-primary-100;
+}
+
+[data-theme="dark"] .rich-text-editor .ProseMirror ::selection {
+  background-color: rgba(var(--color-primary-900-rgb, 88, 28, 135), 0.5);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .rich-text-editor,
+  .rich-text-editor *,
+  .rich-text-editor *::before,
+  .rich-text-editor *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

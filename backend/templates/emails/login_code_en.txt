@@ -1,0 +1,18 @@
+{app_name}
+====================
+
+Hello {display_name},
+
+You requested to log in to your {app_name} account.
+
+YOUR LOGIN CODE: {code}
+
+This code expires in {expires_minutes} minutes.
+
+SECURITY TIP:
+If you didn't request this code, you can safely ignore this email.
+Someone may have entered your email address by mistake.
+
+---
+
+(c) {year} {app_name}. All rights reserved.

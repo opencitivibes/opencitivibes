@@ -1,0 +1,124 @@
+# docker-compose.dev.yml
+# OpenCitiVibes Development Configuration
+# Standalone development configuration (does not require docker-compose.yml)
+name: ${COMPOSE_PROJECT_NAME:-opencitivibes}-dev
+
+services:
+  # ============================================
+  # Ntfy - Push Notifications (Development)
+  # ============================================
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ${CONTAINER_PREFIX:-ocv}-ntfy-dev
+    restart: unless-stopped
+    command:
+      - serve
+    environment:
+      - TZ=${TZ:-America/Montreal}
+      # No auth for dev - open access
+      - NTFY_AUTH_DEFAULT_ACCESS=read-write
+      - NTFY_BEHIND_PROXY=false
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_ENABLE_SIGNUP=false
+      - NTFY_ENABLE_LOGIN=false
+    volumes:
+      - ntfy_dev_cache:/var/cache/ntfy
+    ports:
+      - "8080:80"
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+
+  # ============================================
+  # Backend (Development)
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    image: ${IMAGE_NAME:-opencitivibes}-backend:dev
+    container_name: ${CONTAINER_PREFIX:-ocv}-backend-dev
+    # Run as current user to avoid root-owned files on host
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    volumes:
+      - ./backend:/app
+      # Mount instances directory for config access
+      - ./instances:/instances
+      # Exclude virtual environment from sync
+      - /app/.venv
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/opencitivibes_dev.db}
+      - PLATFORM_CONFIG_PATH=${PLATFORM_CONFIG_PATH:-./config/platform.config.json}
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      # CORS: localhost + local network access for mobile testing
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000","http://${HOST_IP:-localhost}:3000"]
+      # Ntfy notifications (no auth in dev)
+      - NTFY_URL=http://ntfy:80
+      - NTFY_TOPIC_PREFIX=${NTFY_TOPIC_PREFIX:-dev-admin}
+      - NTFY_ENABLED=${NTFY_ENABLED:-true}
+      - APP_URL=http://${HOST_IP:-localhost}:3000
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+    networks:
+      - dev-network
+
+  # ============================================
+  # Frontend (Development)
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    image: ${IMAGE_NAME:-opencitivibes}-frontend:dev
+    container_name: ${CONTAINER_PREFIX:-ocv}-frontend-dev
+    # Note: runs as root initially, entrypoint fixes permissions then drops to DOCKER_UID:DOCKER_GID
+    volumes:
+      - ./frontend:/app
+      # Exclude node_modules and .next from sync (uses container's installed packages)
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      # UID/GID for entrypoint to drop privileges (avoids root-owned files)
+      - DOCKER_UID=${DOCKER_UID:-1000}
+      - DOCKER_GID=${DOCKER_GID:-1000}
+      # Use HOST_IP for mobile testing, defaults to localhost
+      - NEXT_PUBLIC_API_URL=http://${HOST_IP:-localhost}:8000/api
+      # Server-side API URL (uses Docker service name for SSR)
+      - API_URL_INTERNAL=http://backend:8000/api
+      - NEXT_PUBLIC_ENVIRONMENT=development
+      - WATCHPACK_POLLING=true
+    ports:
+      - "3000:3000"
+    # Command is set in Dockerfile.dev (entrypoint + cmd)
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - dev-network
+
+networks:
+  dev-network:
+    driver: bridge
+    name: ${NETWORK_NAME:-ocv}-dev-network
+
+volumes:
+  ntfy_dev_cache:
+    name: ${VOLUME_PREFIX:-ocv}-ntfy-dev-cache

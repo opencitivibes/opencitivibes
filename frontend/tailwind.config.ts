@@ -1,0 +1,211 @@
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  darkMode: ['selector', '[data-theme="dark"]'],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      colors: {
+        // Shadcn/UI Color Mappings
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+          // Dynamic color scale from theme (set by JS at runtime)
+          // Using rgb() with CSS variables for opacity modifier support
+          50: 'rgb(var(--color-primary-50-rgb, 250 245 255) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100-rgb, 243 232 255) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200-rgb, 233 213 255) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300-rgb, 216 180 254) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400-rgb, 192 132 252) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500-rgb, 168 85 247) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600-rgb, 147 51 234) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700-rgb, 126 34 206) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800-rgb, 107 33 168) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900-rgb, 88 28 135) / <alpha-value>)',
+          950: 'rgb(var(--color-primary-950-rgb, 59 7 100) / <alpha-value>)',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        // Teal (Secondary - Call to Action)
+        teal: {
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
+        },
+        // Pink (Accent - Highlights)
+        pink: {
+          50: '#fdf2f8',
+          100: '#fce7f3',
+          200: '#fbcfe8',
+          300: '#f9a8d4',
+          400: '#f472b6',
+          500: '#ec4899',
+          600: '#db2777',
+          700: '#be185d',
+          800: '#9f1239',
+          900: '#831843',
+        },
+        // Purple aliased to primary theme colors (for compatibility)
+        purple: {
+          50: 'rgb(var(--color-primary-50-rgb, 250 245 255) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100-rgb, 243 232 255) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200-rgb, 233 213 255) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300-rgb, 216 180 254) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400-rgb, 192 132 252) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500-rgb, 168 85 247) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600-rgb, 147 51 234) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700-rgb, 126 34 206) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800-rgb, 107 33 168) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900-rgb, 88 28 135) / <alpha-value>)',
+          950: 'rgb(var(--color-primary-950-rgb, 59 7 100) / <alpha-value>)',
+        },
+        // Dynamic Theme Colors (from platform config)
+        theme: {
+          primary: 'var(--color-theme-primary, #a855f7)',
+          'primary-dark': 'var(--color-theme-primary-dark, #7e22ce)',
+          secondary: 'var(--color-theme-secondary, #1a1a2e)',
+          accent: 'var(--color-theme-accent, #14b8a6)',
+          success: 'var(--color-theme-success, #22c55e)',
+          warning: 'var(--color-theme-warning, #eab308)',
+          error: 'var(--color-theme-error, #ef4444)',
+        },
+        // Semantic Colors
+        success: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
+        },
+        warning: {
+          50: '#fefce8',
+          100: '#fef9c3',
+          200: '#fef08a',
+          300: '#fde047',
+          400: '#facc15',
+          500: '#eab308',
+          600: '#ca8a04',
+          700: '#a16207',
+          800: '#854d0e',
+          900: '#713f12',
+        },
+        error: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+        },
+        info: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+      },
+      fontFamily: {
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif',
+        ],
+        // Theme-configurable fonts
+        heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],
+        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'purple-md':
+          '0 4px 6px -1px rgba(168, 85, 247, 0.2), 0 2px 4px -2px rgba(168, 85, 247, 0.2)',
+        'purple-lg':
+          '0 10px 15px -3px rgba(168, 85, 247, 0.2), 0 4px 6px -4px rgba(168, 85, 247, 0.2)',
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+};
+
+export default config;

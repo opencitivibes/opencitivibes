@@ -1,0 +1,33 @@
+# Ntfy server configuration
+# See: https://docs.ntfy.sh/config/
+
+# Authentication
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"
+
+# Server settings
+base-url: "https://ntfy.localhost"
+behind-proxy: true
+
+# Cache settings
+cache-file: "/var/cache/ntfy/cache.db"
+cache-duration: "24h"
+
+# Attachment settings (optional)
+attachment-cache-dir: "/var/cache/ntfy/attachments"
+attachment-total-size-limit: "100M"
+attachment-file-size-limit: "5M"
+attachment-expiry-duration: "24h"
+
+# Rate limiting (adjust as needed)
+visitor-subscription-limit: 30
+visitor-request-limit-burst: 60
+visitor-request-limit-replenish: "5s"
+
+# Disable public features
+enable-signup: false
+enable-login: true
+
+# Logging
+log-level: "info"
+log-format: "json"

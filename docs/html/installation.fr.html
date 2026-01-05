@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide d'installation - OpenCitiVibes</title>
+    <meta name="description" content="Guide étape par étape pour déployer OpenCitiVibes pour votre ville ou organisation.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.fr.html" class="logo">
+                <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2.5"/>
+                    <path d="M12 20C12 15.5817 15.5817 12 20 12V12C24.4183 12 28 15.5817 28 20V28H12V20Z" fill="currentColor"/>
+                    <circle cx="20" cy="18" r="4" fill="white"/>
+                </svg>
+                <span>OpenCitiVibes</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.fr.html#features">Fonctionnalités</a>
+                <a href="index.fr.html#screenshots">Captures</a>
+                <a href="index.fr.html#instances">Instances</a>
+                <a href="installation.fr.html">Installation</a>
+                <div class="lang-switcher">
+                    <a href="installation.html" class="lang-btn" title="English">EN</a>
+                    <a href="installation.fr.html" class="lang-btn active" title="Français">FR</a>
+                </div>
+                <a href="https://github.com/opencitivibes/opencitivibes" class="btn btn-outline" target="_blank">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    GitHub
+                </a>
+            </div>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <!-- Sidebar -->
+        <aside class="docs-sidebar">
+            <h4>Pour commencer</h4>
+            <ul>
+                <li><a href="#prerequisites" class="active">Prérequis</a></li>
+                <li><a href="#quick-start">Démarrage rapide</a></li>
+                <li><a href="#verify">Vérification</a></li>
+            </ul>
+
+            <h4>Configuration</h4>
+            <ul>
+                <li><a href="#environment">Variables d'environnement</a></li>
+                <li><a href="#platform-config">Config plateforme</a></li>
+                <li><a href="#branding">Personnalisation visuelle</a></li>
+            </ul>
+
+            <h4>Personnalisation</h4>
+            <ul>
+                <li><a href="#languages">Ajouter des langues</a></li>
+                <li><a href="#categories">Catégories</a></li>
+                <li><a href="#legal">Contenu légal</a></li>
+            </ul>
+
+            <h4>Opérations</h4>
+            <ul>
+                <li><a href="#ssl">Certificats SSL</a></li>
+                <li><a href="#backups">Sauvegardes</a></li>
+                <li><a href="#updates">Mises à jour</a></li>
+                <li><a href="#notifications">Notifications push</a></li>
+            </ul>
+
+            <h4>Dépannage</h4>
+            <ul>
+                <li><a href="#common-issues">Problèmes courants</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="docs-content">
+            <h1>Guide d'installation</h1>
+            <p class="lead">Déployez OpenCitiVibes pour votre ville ou organisation en moins de 5 minutes.</p>
+
+            <div class="callout callout-info">
+                <div class="callout-title">Prérequis</div>
+                <p>Serveur Linux (Ubuntu 22.04+ recommandé), Docker et Docker Compose v2, nom de domaine avec DNS configuré, 2 Go+ RAM, 20 Go+ stockage.</p>
+            </div>
+
+            <h2 id="prerequisites">Prérequis</h2>
+
+            <h3>1. Installer Docker</h3>
+            <p>Si Docker n'est pas encore installé sur votre serveur :</p>
+            <pre><code># Installer Docker
+curl -fsSL https://get.docker.com | sh
+
+# Ajouter votre utilisateur au groupe docker
+sudo usermod -aG docker $USER
+
+# Vérifier l'installation
+docker --version
+docker compose version</code></pre>
+
+            <h3>2. Configurer le DNS</h3>
+            <p>Pointez votre domaine vers l'adresse IP de votre serveur :</p>
+            <ul>
+                <li><code>votredomaine.com</code> → IP de votre serveur (enregistrement A)</li>
+                <li><code>www.votredomaine.com</code> → IP de votre serveur (A ou CNAME)</li>
+                <li><code>ntfy.votredomaine.com</code> → IP de votre serveur (pour les notifications admin)</li>
+            </ul>
+
+            <h2 id="quick-start">Démarrage rapide</h2>
+
+            <h3>Étape 1 : Cloner le dépôt</h3>
+            <pre><code>git clone https://github.com/opencitivibes/opencitivibes.git
+cd opencitivibes</code></pre>
+
+            <h3>Étape 2 : Exécuter le script de configuration</h3>
+            <pre><code># Créer une nouvelle instance
+./scripts/setup-instance.sh montreal idees-montreal.ca
+
+# Cette commande crée /opt/opencitivibes-montreal avec tous les fichiers nécessaires</code></pre>
+
+            <h3>Étape 3 : Configurer l'environnement</h3>
+            <pre><code>cd /opt/opencitivibes-montreal
+
+# Modifier les variables d'environnement
+nano .env</code></pre>
+
+            <p>Variables requises :</p>
+            <pre><code># Sécurité - VOUS DEVEZ changer ces valeurs!
+SECRET_KEY=votre-cle-aleatoire-securisee-ici
+ADMIN_EMAIL=admin@votredomaine.com
+ADMIN_PASSWORD=votre-mot-de-passe-admin-securise
+
+# Domaine
+DOMAIN=votredomaine.com
+
+# Base de données (SQLite pour commencer, PostgreSQL pour la production)
+DATABASE_URL=sqlite:///./data/opencitivibes.db</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Important</div>
+                <p>Générez une SECRET_KEY sécurisée : <code>openssl rand -hex 32</code></p>
+            </div>
+
+            <h3>Étape 4 : Configurer les informations de la plateforme</h3>
+            <pre><code>nano backend/config/platform.config.json</code></pre>
+
+            <p>Configuration minimale :</p>
+            <pre><code>{
+  "platform": {
+    "name": "OpenCitiVibes"
+  },
+  "instance": {
+    "name": {
+      "en": "Ideas for Montreal",
+      "fr": "Idées pour Montréal"
+    },
+    "entity": {
+      "type": "city",
+      "name": {
+        "en": "Montreal",
+        "fr": "Montréal"
+      }
+    }
+  },
+  "contact": {
+    "email": "contact@votredomaine.com"
+  },
+  "localization": {
+    "default_locale": "fr",
+    "supported_locales": ["fr", "en"]
+  }
+}</code></pre>
+
+            <h3>Étape 5 : Déployer</h3>
+            <pre><code># Démarrer tous les services
+docker compose up -d
+
+# Initialiser la base de données
+docker compose exec backend python init_db.py
+
+# Vérifier le statut
+docker compose ps</code></pre>
+
+            <h2 id="verify">Vérification de l'installation</h2>
+
+            <p>Après le déploiement, vérifiez que tout fonctionne :</p>
+            <pre><code># Vérifier que tous les services sont sains
+docker compose ps
+
+# Voir les logs
+docker compose logs -f
+
+# Tester l'API
+curl http://localhost:8000/api/health
+
+# Tester le frontend
+curl http://localhost:3000</code></pre>
+
+            <p>Ensuite, visitez votre domaine dans un navigateur. Vous devriez voir la page d'accueil OpenCitiVibes!</p>
+
+            <h2 id="environment">Variables d'environnement</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                        <th>Requis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>SECRET_KEY</code></td>
+                        <td>Clé de signature JWT (32+ caractères)</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td><code>DATABASE_URL</code></td>
+                        <td>Chaîne de connexion base de données</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td><code>ADMIN_EMAIL</code></td>
+                        <td>Courriel admin initial</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td><code>ADMIN_PASSWORD</code></td>
+                        <td>Mot de passe admin initial</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td><code>DOMAIN</code></td>
+                        <td>Domaine de production</td>
+                        <td>Oui</td>
+                    </tr>
+                    <tr>
+                        <td><code>CORS_ORIGINS</code></td>
+                        <td>Origines CORS autorisées</td>
+                        <td>Non</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 id="platform-config">Configuration de la plateforme</h2>
+
+            <p>Le fichier <code>platform.config.json</code> définit les caractéristiques de votre instance :</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Champ</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>instance.name</code></td>
+                        <td>Nom d'affichage de votre plateforme</td>
+                    </tr>
+                    <tr>
+                        <td><code>instance.entity.type</code></td>
+                        <td>ville, région, organisation, communauté</td>
+                    </tr>
+                    <tr>
+                        <td><code>instance.entity.name</code></td>
+                        <td>Nom de votre ville/organisation</td>
+                    </tr>
+                    <tr>
+                        <td><code>branding.primary_color</code></td>
+                        <td>Couleur principale (hex)</td>
+                    </tr>
+                    <tr>
+                        <td><code>branding.hero_image</code></td>
+                        <td>Chemin vers l'image hero</td>
+                    </tr>
+                    <tr>
+                        <td><code>features.*</code></td>
+                        <td>Activer/désactiver des fonctionnalités</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 id="branding">Personnalisation visuelle</h2>
+
+            <pre><code>{
+  "branding": {
+    "primary_color": "#1D4ED8",
+    "secondary_color": "#1E3A8A",
+    "hero_image": "/images/hero/montreal-skyline.jpg",
+    "logo": "/images/logo.svg",
+    "favicon": "/favicon.ico"
+  }
+}</code></pre>
+
+            <p>Placez vos images dans <code>frontend/public/images/</code> et utilisez des chemins qui commencent par <code>/images/</code>.</p>
+
+            <h2 id="languages">Ajouter des langues</h2>
+
+            <ol>
+                <li>Créer le fichier de traduction : <code>frontend/src/i18n/locales/es.json</code></li>
+                <li>Copier la structure de <code>en.json</code></li>
+                <li>Traduire toutes les clés</li>
+                <li>Ajouter à <code>supported_locales</code> dans la config</li>
+            </ol>
+
+            <pre><code>{
+  "localization": {
+    "default_locale": "fr",
+    "supported_locales": ["fr", "en", "es"]
+  }
+}</code></pre>
+
+            <h2 id="categories">Catégories personnalisées</h2>
+
+            <p>Les catégories se gèrent depuis le panneau d'administration ou par l'API :</p>
+            <pre><code># Créer une catégorie via l'API
+curl -X POST http://localhost:8000/api/categories \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Environnement",
+    "description": "Idées pour la durabilité environnementale",
+    "icon": "leaf",
+    "color": "#10B981"
+  }'</code></pre>
+
+            <h2 id="legal">Contenu légal</h2>
+
+            <p>Personnalisez les conditions d'utilisation et la politique de confidentialité :</p>
+            <pre><code>nano backend/config/legal.config.json</code></pre>
+
+            <p>Le fichier supporte la localisation complète pour toutes les sections.</p>
+
+            <h2 id="ssl">Certificats SSL</h2>
+
+            <h3>Utiliser Let's Encrypt (recommandé)</h3>
+            <pre><code># Installer certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Obtenir le certificat
+sudo certbot --nginx -d votredomaine.com -d www.votredomaine.com
+
+# Le renouvellement automatique est configuré</code></pre>
+
+            <h2 id="backups">Sauvegardes</h2>
+
+            <pre><code># Sauvegarde manuelle
+./scripts/backup.sh
+
+# Sauvegardes stockées dans /opt/opencitivibes-instance/backups/
+
+# Restaurer depuis une sauvegarde
+./scripts/restore.sh backups/backup-2024-01-15.tar.gz</code></pre>
+
+            <h2 id="updates">Mises à jour</h2>
+
+            <pre><code># Télécharger les dernières images
+docker compose pull
+
+# Redémarrer avec les nouvelles images
+docker compose up -d
+
+# Exécuter les migrations si nécessaire
+docker compose exec backend alembic upgrade head</code></pre>
+
+            <h2 id="notifications">Notifications push</h2>
+
+            <p>OpenCitiVibes inclut un serveur ntfy hébergé localement pour les notifications push admin.</p>
+
+            <h3>Activer les notifications</h3>
+            <pre><code># Ajouter au .env
+NTFY_URL=http://ntfy:80
+NTFY_TOPIC_PREFIX=admin
+NTFY_ENABLED=true
+APP_URL=https://votredomaine.com
+NTFY_BASE_URL=https://ntfy.votredomaine.com</code></pre>
+
+            <h3>Configurer l'accès admin</h3>
+            <pre><code># Créer un utilisateur admin pour les notifications
+docker exec ${CONTAINER_PREFIX}-ntfy ntfy user add admin1
+
+# Accorder l'accès en lecture aux topics admin
+docker exec ${CONTAINER_PREFIX}-ntfy ntfy access admin1 "admin-*" read</code></pre>
+
+            <h3>Applications mobiles</h3>
+            <p>Recevez des notifications push instantanées sur votre appareil mobile avec les applications officielles ntfy :</p>
+
+            <div class="callout callout-info">
+                <div class="callout-title">Télécharger ntfy</div>
+                <p>
+                    <strong>iOS :</strong> <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank">App Store</a><br>
+                    <strong>Android :</strong> <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank">Google Play</a> ou <a href="https://f-droid.org/packages/io.heckel.ntfy/" target="_blank">F-Droid</a>
+                </p>
+            </div>
+
+            <h4>Configuration de l'application</h4>
+            <ol>
+                <li>Ouvrez l'app ntfy et appuyez sur <strong>Paramètres</strong> (icône d'engrenage)</li>
+                <li>Appuyez sur <strong>Ajouter un serveur par défaut</strong> ou <strong>Gérer les serveurs</strong></li>
+                <li>Entrez l'URL de votre serveur hébergé localement : <code>https://ntfy.votredomaine.com</code></li>
+                <li>Si l'authentification est activée, entrez votre nom d'utilisateur et mot de passe admin</li>
+                <li>Revenez à l'écran principal et appuyez sur <strong>+</strong> pour vous abonner à un topic</li>
+            </ol>
+
+            <h4>Topics recommandés</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Topic</th>
+                        <th>Notifications</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>admin-ideas</code></td>
+                        <td>Nouvelles soumissions d'idées à modérer</td>
+                    </tr>
+                    <tr>
+                        <td><code>admin-appeals</code></td>
+                        <td>Appels des utilisateurs pour contenu rejeté</td>
+                    </tr>
+                    <tr>
+                        <td><code>admin-reports</code></td>
+                        <td>Signalements de contenu</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Fonctionnalités de l'application</h4>
+            <ul>
+                <li><strong>Livraison instantanée :</strong> Les notifications push arrivent immédiatement via Firebase (Android) ou APNs (iOS)</li>
+                <li><strong>Synchronisation en arrière-plan :</strong> Recevez les notifications même quand l'app est fermée</li>
+                <li><strong>Boutons d'action :</strong> Appuyez sur les actions de notification pour approuver/rejeter directement (si configuré)</li>
+                <li><strong>Support hors ligne :</strong> Les notifications manquées sont livrées à la reconnexion</li>
+                <li><strong>Serveurs multiples :</strong> Connectez-vous à plusieurs instances ntfy depuis une seule app</li>
+            </ul>
+
+            <h2 id="common-issues">Dépannage</h2>
+
+            <h3>Services qui ne démarrent pas</h3>
+            <pre><code># Vérifier le statut des conteneurs
+docker compose ps
+
+# Voir les logs détaillés
+docker compose logs backend
+docker compose logs frontend</code></pre>
+
+            <h3>Erreurs de connexion base de données</h3>
+            <pre><code># Vérifier DATABASE_URL dans .env
+# S'assurer que le répertoire data existe
+ls -la data/
+
+# Vérifier les permissions
+chmod 755 data/</code></pre>
+
+            <h3>Problèmes de certificat SSL</h3>
+            <pre><code># Vérifier la config nginx
+docker compose exec nginx nginx -t
+
+# Renouveler le certificat
+sudo certbot renew</code></pre>
+
+            <h3>Notifications push qui ne fonctionnent pas</h3>
+            <pre><code># Vérifier le conteneur ntfy
+docker compose ps ntfy
+
+# Tester la connectivité
+docker exec ${CONTAINER_PREFIX}-backend curl -s http://ntfy:80/v1/health
+
+# Vérifier les variables d'environnement
+docker exec ${CONTAINER_PREFIX}-backend env | grep NTFY</code></pre>
+
+            <div class="callout callout-success">
+                <div class="callout-title">Besoin d'aide?</div>
+                <p>Ouvrez un ticket sur <a href="https://github.com/opencitivibes/opencitivibes/issues" target="_blank">GitHub</a> ou rejoignez nos <a href="https://github.com/opencitivibes/opencitivibes/discussions" target="_blank">Discussions</a>.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024-2025 OpenCitiVibes. Publié sous licence MIT.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

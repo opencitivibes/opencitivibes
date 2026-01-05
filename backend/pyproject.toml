@@ -1,0 +1,108 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic==1.17.2",
+    "fastapi==0.121.3",
+    "pydantic[email]==2.12.4",
+    "pydantic-settings==2.12.0",
+    "python-multipart==0.0.20",
+    "sqlalchemy==2.0.44",
+    "uvicorn[standard]==0.38.0",
+    "slowapi>=0.1.9",
+    "python-magic>=0.4.27",
+    "annotated-doc==0.0.4",
+    "annotated-types==0.7.0",
+    "anyio==4.11.0",
+    "bcrypt==4.3.0",
+    "cffi==2.0.0",
+    "click==8.3.1",
+    "colorama==0.4.6",
+    "cryptography==46.0.3",
+    "dnspython==2.8.0",
+    "email-validator==2.3.0",
+    "greenlet==3.2.4",
+    "h11==0.16.0",
+    "httptools==0.7.1",
+    "idna==3.11",
+    "mako==1.3.10",
+    "markupsafe==3.0.3",
+    "pyasn1==0.6.1",
+    "pycparser==2.23",
+    "pydantic-core==2.41.5",
+    "python-dotenv==1.2.1",
+    "pyyaml==6.0.3",
+    "rsa==4.9.1",
+    "six==1.17.0",
+    "sniffio==1.3.1",
+    "starlette==0.50.0",
+    "typing-inspection==0.4.2",
+    "typing-extensions==4.15.0",
+    "watchfiles==1.1.1",
+    "websockets==15.0.1",
+    "sentry-sdk[fastapi]>=2.48.0",
+    "loguru>=0.7.3",
+    "gunicorn>=23.0.0",
+    "markdown>=3.10",
+    "pyotp>=2.9.0",
+    "bleach>=6.3.0",
+    "pyjwt[crypto]>=2.10.1",  # CVE-2024-53861 fixed in 2.10.1
+    "apscheduler>=3.11.2",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.2",
+    "coverage>=7.13.0",
+    "detect-secrets>=1.5.0",
+    "factory-boy>=3.3.3",
+    "faker>=39.0.0",
+    "httpx>=0.28.1",
+    "import-linter>=2.9",
+    "pip-audit>=2.10.0",
+    "pre-commit>=4.5.1",
+    "pyright>=1.1.407",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "pytest-html>=4.1.1",
+    "radon>=6.0.1",
+    "rope<2",
+    "ruff>=0.14.10",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", "migrations/*", "__pycache__/*", "venv/*"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
+fail_under = 60
+
+[project.scripts]
+migrate = "scripts.migrate:main"
+
+[tool.ty]
+# ty configuration - see https://docs.astral.sh/ty/reference/configuration/
+
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.src]
+# Exclude test files from type checking (test code doesn't need strict typing)
+exclude = ["tests/", "scripts/"]
+
+[tool.ty.rules]
+# Downgrade to warning: **dict patterns with Pydantic cause many false positives
+# because ty can't verify that dict keys map to correct schema field types
+invalid-argument-type = "warn"

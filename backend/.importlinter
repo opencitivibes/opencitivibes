@@ -1,0 +1,332 @@
+# Import Linter Configuration
+# =============================================================================
+# Enforces the layered architecture pattern: Router -> Service -> Repository
+#
+# This configuration ensures:
+# 1. Layer boundaries are respected (routers can't import repositories directly)
+# 2. HTTP isolation (services/repositories can't import HTTP components)
+# 3. Proper dependency direction (lower layers don't depend on higher layers)
+#
+# Reference implementations (10/10 score):
+# - backend/routers/votes_router.py
+# - backend/routers/comments_router.py
+# =============================================================================
+
+[importlinter]
+root_packages =
+    routers
+    services
+    repositories
+    models
+    authentication
+    helpers
+include_external_packages = True
+
+
+# =============================================================================
+# CONTRACT 1: Routers Cannot Import Repository Classes Directly
+# =============================================================================
+# This is the core architectural rule: routers should NEVER import
+# specific repository classes (they should go through services)
+#
+# Allowed:
+# - repositories.db_models (for type annotations)
+# - repositories.database (for get_db dependency)
+#
+# Forbidden (direct imports only):
+# - Any *_repository module
+
+[importlinter:contract:1]
+name = Routers cannot import repository classes directly
+type = forbidden
+source_modules =
+    routers.admin_router
+    routers.auth_router
+    routers.categories_router
+    routers.comments_router
+    routers.ideas_router
+    routers.tags_router
+    routers.votes_router
+    routers.legal_router
+    routers.notifications_router
+forbidden_modules =
+    repositories.base
+    repositories.category_repository
+    repositories.comment_repository
+    repositories.idea_repository
+    repositories.tag_repository
+    repositories.user_repository
+    repositories.vote_repository
+    repositories.data_export_repository
+    repositories.consent_log_repository
+    repositories.retention_repository
+    repositories.account_deletion_repository
+    repositories.privacy_repository
+    repositories.incident_repository
+    repositories.policy_repository
+    repositories.security_audit_repository
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 2: Services HTTP Isolation (Starlette)
+# =============================================================================
+# Services should be HTTP-agnostic and reusable
+# They should raise domain exceptions, not HTTP exceptions
+#
+# Starlette is the ASGI framework underlying FastAPI - services should
+# never import it directly as it contains HTTP request/response handling
+
+[importlinter:contract:2]
+name = Services cannot import starlette (HTTP isolation)
+type = forbidden
+source_modules =
+    services.vote_service
+    services.comment_service
+    services.idea_service
+    services.category_service
+    services.tag_service
+    services.content_validation
+    services.similar_ideas
+    services.user_service
+    services.data_export_service
+    services.account_deletion_service
+    services.retention_service
+    services.privacy_settings_service
+    services.incident_service
+    services.policy_service
+    services.security_audit_service
+forbidden_modules =
+    starlette
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 3: Repositories HTTP Isolation (FastAPI)
+# =============================================================================
+# Repositories are purely data access layer
+# They should never touch HTTP-related components from FastAPI
+
+[importlinter:contract:3]
+name = Repositories cannot import fastapi (HTTP isolation)
+type = forbidden
+source_modules =
+    repositories.base
+    repositories.category_repository
+    repositories.comment_repository
+    repositories.idea_repository
+    repositories.tag_repository
+    repositories.user_repository
+    repositories.vote_repository
+    repositories.data_export_repository
+    repositories.consent_log_repository
+    repositories.retention_repository
+    repositories.account_deletion_repository
+    repositories.privacy_repository
+    repositories.incident_repository
+    repositories.policy_repository
+    repositories.security_audit_repository
+forbidden_modules =
+    fastapi
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 4: Repositories HTTP Isolation (Starlette)
+# =============================================================================
+# Repositories should not import starlette either
+
+[importlinter:contract:4]
+name = Repositories cannot import starlette (HTTP isolation)
+type = forbidden
+source_modules =
+    repositories.base
+    repositories.category_repository
+    repositories.comment_repository
+    repositories.idea_repository
+    repositories.tag_repository
+    repositories.user_repository
+    repositories.vote_repository
+    repositories.data_export_repository
+    repositories.consent_log_repository
+    repositories.retention_repository
+    repositories.account_deletion_repository
+    repositories.privacy_repository
+    repositories.incident_repository
+    repositories.policy_repository
+    repositories.security_audit_repository
+forbidden_modules =
+    starlette
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 5: Authentication Module Cannot Import Services
+# =============================================================================
+# Authentication module is special - it handles HTTP concerns by design
+# But it should not import from business logic services (circular dependency risk)
+
+[importlinter:contract:5]
+name = Authentication cannot import services
+type = forbidden
+source_modules =
+    authentication.auth
+forbidden_modules =
+    services.vote_service
+    services.comment_service
+    services.idea_service
+    services.category_service
+    services.tag_service
+    services.content_validation
+    services.similar_ideas
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 6: Authentication Module Cannot Import Routers
+# =============================================================================
+# Authentication should never depend on routers (would be circular)
+
+[importlinter:contract:6]
+name = Authentication cannot import routers
+type = forbidden
+source_modules =
+    authentication.auth
+forbidden_modules =
+    routers.admin_router
+    routers.auth_router
+    routers.categories_router
+    routers.comments_router
+    routers.ideas_router
+    routers.tags_router
+    routers.votes_router
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 7: Helpers Layer Independence - No Routers
+# =============================================================================
+# Helper utilities should be independent and reusable
+# They should not depend on business logic layers
+
+[importlinter:contract:7]
+name = Helpers cannot import routers
+type = forbidden
+source_modules =
+    helpers.pagination
+forbidden_modules =
+    routers.admin_router
+    routers.auth_router
+    routers.categories_router
+    routers.comments_router
+    routers.ideas_router
+    routers.tags_router
+    routers.votes_router
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 8: Helpers Cannot Import Services
+# =============================================================================
+# Helpers should be lower-level utilities, not dependent on business logic
+
+[importlinter:contract:8]
+name = Helpers cannot import services
+type = forbidden
+source_modules =
+    helpers.pagination
+forbidden_modules =
+    services.vote_service
+    services.comment_service
+    services.idea_service
+    services.user_service
+    services.category_service
+    services.tag_service
+    services.content_validation
+    services.similar_ideas
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 9: Helpers Cannot Import Repositories
+# =============================================================================
+# Helpers should not depend on data access layer
+
+[importlinter:contract:9]
+name = Helpers cannot import repositories
+type = forbidden
+source_modules =
+    helpers.pagination
+forbidden_modules =
+    repositories.base
+    repositories.category_repository
+    repositories.comment_repository
+    repositories.idea_repository
+    repositories.tag_repository
+    repositories.user_repository
+    repositories.vote_repository
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 10: Models Cannot Import Upper Layers
+# =============================================================================
+# Domain models should not depend on routers, services, or authentication
+
+[importlinter:contract:10]
+name = Models cannot import routers
+type = forbidden
+source_modules =
+    models.schemas
+    models.exceptions
+    models.config
+forbidden_modules =
+    routers.admin_router
+    routers.auth_router
+    routers.categories_router
+    routers.comments_router
+    routers.ideas_router
+    routers.tags_router
+    routers.votes_router
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 11: Models Cannot Import Services
+# =============================================================================
+# Domain models should be independent of business logic
+
+[importlinter:contract:11]
+name = Models cannot import services
+type = forbidden
+source_modules =
+    models.schemas
+    models.exceptions
+    models.config
+forbidden_modules =
+    services.vote_service
+    services.comment_service
+    services.idea_service
+    services.user_service
+    services.category_service
+    services.tag_service
+    services.content_validation
+    services.similar_ideas
+allow_indirect_imports = True
+
+
+# =============================================================================
+# CONTRACT 12: Models Cannot Import Authentication
+# =============================================================================
+# Domain models should be independent of authentication layer
+
+[importlinter:contract:12]
+name = Models cannot import authentication
+type = forbidden
+source_modules =
+    models.schemas
+    models.exceptions
+    models.config
+forbidden_modules =
+    authentication.auth
+allow_indirect_imports = True

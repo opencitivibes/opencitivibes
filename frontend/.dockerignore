@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies (reinstalled in container)
+node_modules
+
+# Build output
+.next
+out/
+build/
+
+# Cache
+.turbo
+.cache
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output
+
+# Documentation
+*.md
+
+# Test files
+tests/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Misc
+code-index.db
+.DS_Store
+
+# Sentry
+.sentryclirc

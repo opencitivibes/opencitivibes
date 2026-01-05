@@ -1,0 +1,31 @@
+# frontend/Dockerfile.dev
+# Development build with hot-reload
+
+FROM node:20-alpine
+
+# Install su-exec for proper user switching in entrypoint
+RUN apk add --no-cache su-exec
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+# Copy dependency files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source (will be overridden by volume mount in dev)
+COPY . .
+
+# Copy entrypoint script
+COPY docker-entrypoint.dev.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh
+
+# Expose port
+EXPOSE 3000
+
+# Use entrypoint to fix permissions then run as non-root user
+ENTRYPOINT ["docker-entrypoint.dev.sh"]
+CMD ["pnpm", "dev", "--hostname", "0.0.0.0"]
