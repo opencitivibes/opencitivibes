@@ -89,9 +89,16 @@ SENTRY_DSN=
 NEXT_PUBLIC_SENTRY_DSN=
 EOF
 
-# Download docker-compose.yml from repo
-echo "[4/9] Downloading docker-compose.yml..."
+# Download docker-compose.yml from repo and patch for staging
+echo "[4/9] Downloading and configuring docker-compose.yml..."
 curl -sL -o docker-compose.yml https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/docker-compose.yml
+
+# Patch docker-compose.yml for staging:
+# 1. Use local SSL certs instead of volume
+sed -i 's|ssl_certs:/etc/nginx/ssl:ro|./ssl:/etc/nginx/ssl:ro|g' docker-compose.yml
+
+# 2. Add HOSTNAME=0.0.0.0 for frontend health checks (Next.js standalone)
+sed -i '/NEXT_PUBLIC_INSTANCE_NAME/a\      - HOSTNAME=0.0.0.0' docker-compose.yml
 
 # Download nginx.conf
 echo "[5/9] Setting up nginx configuration..."
@@ -390,8 +397,8 @@ echo "  - Created deploy-instance-assets.sh"
 echo "[9/10] Creating admin seeding script..."
 cat > seed-admin.sh << 'SEEDSCRIPT'
 #!/bin/bash
-# Seed admin user in the database
-# Run this after containers are up and database is initialized
+# Initialize database and seed admin user
+# Run this after containers are up
 
 CONTAINER_PREFIX="${CONTAINER_PREFIX:-idees-mtl}"
 
@@ -407,6 +414,13 @@ if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PASSWORD" ]; then
     echo "Error: ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env"
     exit 1
 fi
+
+# Run database migrations first
+echo "Running database migrations..."
+docker exec ${CONTAINER_PREFIX}-backend alembic upgrade head 2>/dev/null || {
+    echo "Migration failed, stamping head and retrying..."
+    docker exec ${CONTAINER_PREFIX}-backend alembic stamp head
+}
 
 echo "Creating admin user: $ADMIN_EMAIL"
 
