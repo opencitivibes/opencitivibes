@@ -303,6 +303,100 @@ docker exec ${CONTAINER_PREFIX}-backend env | grep NTFY
 - Review the [Testing Checklist](TESTING_CHECKLIST.md)
 - Open an issue on the GitHub repository
 
+## Staging Environment Setup
+
+For testing deployments before production, use the automated staging setup script.
+
+### Prerequisites
+
+- Ubuntu VPS with Docker installed (rootless or with sudo)
+- Domain name pointing to VPS (e.g., `staging.yourdomain.com`)
+- GitHub account with access to the container registry
+
+### Quick Setup
+
+```bash
+# SSH to your VPS
+ssh ubuntu@your-staging-vps
+
+# Download and run the setup script
+curl -sL https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/scripts/setup-staging-vps.sh | bash
+```
+
+The script creates:
+- `.env` with generated secrets and configurable admin email
+- `docker-compose.yml` from the repository
+- `nginx/` configuration for reverse proxy with SSL
+- `ntfy/` configuration for push notifications
+- `backend/config/platform.config.json` with correct schema
+- `deploy-instance-assets.sh` helper script
+- `seed-admin.sh` for creating the admin user
+
+### Post-Setup Steps
+
+After running the script, complete these manual steps:
+
+```bash
+cd ~/opencitivibes
+
+# 1. (Rootless Docker only) Allow privileged ports
+echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# 2. Set up SSL certificates
+sudo apt install certbot
+sudo certbot certonly --standalone -d your-domain.com
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem ssl/
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem ssl/
+sudo chown ubuntu:ubuntu ssl/*
+
+# 3. Update docker-compose.yml for local SSL
+sed -i 's|ssl_certs:/etc/nginx/ssl:ro|./ssl:/etc/nginx/ssl:ro|g' docker-compose.yml
+
+# 4. Login to GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u your-username --password-stdin
+
+# 5. Upload instance assets
+scp hero.png logo.svg ubuntu@your-vps:~/opencitivibes/instance-assets/
+
+# 6. Pull and start containers
+docker compose pull
+docker compose up -d
+
+# 7. Deploy instance assets to frontend
+./deploy-instance-assets.sh
+
+# 8. Initialize database and seed admin
+docker exec your-prefix-backend alembic upgrade head
+./seed-admin.sh
+```
+
+### Configuration
+
+Edit these files before deployment:
+
+| File | Purpose |
+|------|---------|
+| `.env` | Environment variables, admin credentials |
+| `backend/config/platform.config.json` | Instance branding, localization |
+| `instance-assets/` | Hero image, logo |
+
+### Troubleshooting Staging
+
+```bash
+# View container logs
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f nginx
+
+# If backend shows migration errors
+docker exec your-prefix-backend alembic stamp head
+docker compose restart backend
+
+# If frontend health check fails (before image rebuild)
+# Add HOSTNAME=0.0.0.0 to frontend environment in docker-compose.yml
+```
+
 ## Security Considerations
 
 1. **Always change default passwords** - Never use default admin credentials in production
