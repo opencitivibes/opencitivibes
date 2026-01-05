@@ -84,17 +84,21 @@ export function getApiUrl(): string {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
   }
 
-  // Client-side: use same host as frontend (for mobile/network access)
-  // This allows accessing from any device on the network
-  const { protocol, hostname } = window.location;
-
-  // If accessing via localhost, use localhost for API
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  // Client-side: check for baked-in env var first
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
 
-  // Otherwise, use the same hostname with backend port
-  return `${protocol}//${hostname}:8000/api`;
+  // Fallback for local development: use same host as frontend
+  const { protocol, hostname } = window.location;
+
+  // If accessing via localhost or local IP (192.168.x.x), use port 8000 for backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+    return `${protocol}//${hostname}:8000/api`;
+  }
+
+  // Production: use relative /api path (nginx proxies to backend)
+  return '/api';
 }
 
 // Get base URL (without /api) for static files like avatars

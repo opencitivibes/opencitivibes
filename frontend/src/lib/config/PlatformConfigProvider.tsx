@@ -128,14 +128,21 @@ export function PlatformConfigProvider({ children }: { children: ReactNode }) {
         let apiUrl: string;
         if (typeof window === 'undefined') {
           apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        } else if (process.env.NEXT_PUBLIC_API_URL) {
+          // Use baked-in env var if available
+          apiUrl = process.env.NEXT_PUBLIC_API_URL;
         } else {
           const { protocol, hostname } = window.location;
-          // If accessing via localhost, use localhost for API
-          if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-          } else {
-            // Otherwise, use the same hostname with backend port (mobile/network access)
+          // If accessing via localhost or local IP, use port 8000 for backend
+          if (
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.')
+          ) {
             apiUrl = `${protocol}//${hostname}:8000/api`;
+          } else {
+            // Production: use relative /api path (nginx proxies to backend)
+            apiUrl = '/api';
           }
         }
 
