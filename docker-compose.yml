@@ -103,6 +103,8 @@ services:
       - NEXT_PUBLIC_INSTANCE_NAME=${NEXT_PUBLIC_INSTANCE_NAME:-OpenCitiVibes}
       - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
       - NEXT_PUBLIC_ENVIRONMENT=${ENVIRONMENT:-production}
+    volumes:
+      - ./instance-assets:/app/public/instance:ro
     networks:
       - app-network
     healthcheck:

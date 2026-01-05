@@ -112,7 +112,10 @@ sed -i 's|ssl_certs:/etc/nginx/ssl:ro|./ssl:/etc/nginx/ssl:ro|g' docker-compose.
 # 2. Add HOSTNAME=0.0.0.0 for frontend health checks (Next.js standalone)
 sed -i '/NEXT_PUBLIC_INSTANCE_NAME/a\      - HOSTNAME=0.0.0.0' docker-compose.yml
 
-# 3. Fix frontend health check to use 127.0.0.1 (wget resolves localhost to IPv6)
+# 3. Add volume mount for instance assets (persists across container updates)
+sed -i '/NEXT_PUBLIC_ENVIRONMENT/a\    volumes:\n      - ./instance-assets:/app/public/instance:ro' docker-compose.yml
+
+# 4. Fix frontend health check to use 127.0.0.1 (wget resolves localhost to IPv6)
 sed -i 's|http://localhost:3000/api/health|http://127.0.0.1:3000/api/health|g' docker-compose.yml
 
 # Download nginx.conf
