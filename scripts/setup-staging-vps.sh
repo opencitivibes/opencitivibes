@@ -18,16 +18,16 @@ echo "Domain: $DOMAIN"
 echo ""
 
 # Create directory structure
-echo "[1/8] Creating directory structure..."
-mkdir -p "$DEPLOY_DIR"/{nginx/conf.d,config,ntfy,ssl}
+echo "[1/9] Creating directory structure..."
+mkdir -p "$DEPLOY_DIR"/{nginx/conf.d,config/images,backend/config,ntfy,ssl,instance-assets}
 cd "$DEPLOY_DIR"
 
 # Generate secret key
-echo "[2/8] Generating secret key..."
+echo "[2/9] Generating secret key..."
 SECRET_KEY=$(openssl rand -hex 32)
 
 # Create .env file
-echo "[3/8] Creating .env file..."
+echo "[3/9] Creating .env file..."
 cat > .env << EOF
 # ============================================
 # OpenCitiVibes Staging - Montreal Instance
@@ -84,11 +84,11 @@ NEXT_PUBLIC_SENTRY_DSN=
 EOF
 
 # Download docker-compose.yml from repo
-echo "[4/8] Downloading docker-compose.yml..."
+echo "[4/9] Downloading docker-compose.yml..."
 curl -sL -o docker-compose.yml https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/docker-compose.yml
 
 # Download nginx.conf
-echo "[5/8] Setting up nginx configuration..."
+echo "[5/9] Setting up nginx configuration..."
 curl -sL -o nginx/nginx.conf https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/nginx.conf
 
 # Create nginx default.conf (processed from template)
@@ -207,7 +207,7 @@ server {
 NGINXEOF
 
 # Create ntfy server.yml
-echo "[6/8] Setting up ntfy configuration..."
+echo "[6/9] Setting up ntfy configuration..."
 cat > ntfy/server.yml << EOF
 auth-file: "/var/lib/ntfy/user.db"
 auth-default-access: "deny-all"
@@ -228,12 +228,98 @@ log-level: "info"
 log-format: "json"
 EOF
 
-# Download platform config
-echo "[7/8] Downloading platform configuration..."
-curl -sL -o config/platform.config.json https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/instances/montreal/platform.config.json
+# Download platform config and instance assets
+echo "[7/9] Setting up platform configuration and instance assets..."
+
+# NOTE: Instance config and assets are NOT stored in GitHub (contain branding/secrets)
+# You must manually copy these files from a secure source or create them:
+#
+# Required files:
+#   - backend/config/platform.config.json  (backend reads this)
+#   - instance-assets/hero.png             (hero image)
+#   - instance-assets/logo.svg             (logo)
+#
+# Example platform.config.json structure:
+cat > backend/config/platform.config.json << 'CONFIGEOF'
+{
+  "instance_id": "montreal",
+  "instance_name": "Idées pour Montréal",
+  "default_locale": "fr-CA",
+  "supported_locales": ["fr-CA", "en-CA"],
+  "branding": {
+    "primary_color": "#1e3a5f",
+    "secondary_color": "#4a90d9",
+    "logo": "/instance/logo.svg",
+    "favicon": "/icons/favicon.ico",
+    "hero_image": "/instance/hero.png",
+    "hero_overlay": true
+  },
+  "features": {
+    "voting_enabled": true,
+    "comments_enabled": true,
+    "official_responses_enabled": true,
+    "anonymous_voting": false
+  },
+  "contact": {
+    "email": "contact@idees-montreal.ca",
+    "support_url": "https://idees-montreal.ca/support"
+  }
+}
+CONFIGEOF
+
+echo "  - Created default platform.config.json (customize as needed)"
+
+# Create placeholder instance assets (replace with actual branding)
+echo "  - Instance assets directory: $DEPLOY_DIR/instance-assets/"
+echo "  - Upload your hero.png and logo.svg to this directory"
+
+# Create helper script for copying instance assets into frontend container
+echo "[8/9] Creating asset deployment script..."
+cat > deploy-instance-assets.sh << 'ASSETSCRIPT'
+#!/bin/bash
+# Deploy instance assets to frontend container
+# Run this after 'docker compose up -d'
+
+CONTAINER_PREFIX="${CONTAINER_PREFIX:-idees-mtl}"
+ASSETS_DIR="./instance-assets"
+
+if [ ! -d "$ASSETS_DIR" ] || [ -z "$(ls -A $ASSETS_DIR 2>/dev/null)" ]; then
+    echo "Warning: No instance assets found in $ASSETS_DIR"
+    echo "Upload hero.png and logo.svg to this directory first"
+    exit 1
+fi
+
+echo "Deploying instance assets to frontend container..."
+
+# Create directories in frontend container
+docker exec -u root ${CONTAINER_PREFIX}-frontend mkdir -p /app/public/instance
+docker exec -u root ${CONTAINER_PREFIX}-frontend mkdir -p /app/public/static/images
+
+# Copy instance assets (hero, logo)
+for file in "$ASSETS_DIR"/*; do
+    if [ -f "$file" ]; then
+        filename=$(basename "$file")
+        echo "  - Copying $filename to /app/public/instance/"
+        docker cp "$file" ${CONTAINER_PREFIX}-frontend:/app/public/instance/
+    fi
+done
+
+# Copy logo to static/images as well (fallback location)
+if [ -f "$ASSETS_DIR/logo.svg" ]; then
+    docker cp "$ASSETS_DIR/logo.svg" ${CONTAINER_PREFIX}-frontend:/app/public/static/images/logo_tr3.svg
+fi
+
+# Restart frontend to pick up new files
+echo "Restarting frontend container..."
+docker compose restart frontend
+
+echo "Instance assets deployed successfully!"
+ASSETSCRIPT
+chmod +x deploy-instance-assets.sh
+echo "  - Created deploy-instance-assets.sh"
 
 # SSL setup instructions
-echo "[8/8] SSL Certificate Setup..."
+echo "[9/9] SSL Certificate Setup..."
 echo ""
 echo "=== MANUAL STEPS REQUIRED ==="
 echo ""
@@ -257,9 +343,15 @@ echo ""
 echo "4. Login to GitHub Container Registry:"
 echo "   echo \$GITHUB_TOKEN | docker login ghcr.io -u opencitivibes --password-stdin"
 echo ""
-echo "5. Pull and start containers:"
+echo "5. Upload instance assets to instance-assets/ directory:"
+echo "   scp hero.png logo.svg ubuntu@\${DOMAIN}:${DEPLOY_DIR}/instance-assets/"
+echo ""
+echo "6. Pull and start containers:"
 echo "   docker compose pull"
 echo "   docker compose up -d"
+echo ""
+echo "7. Deploy instance assets to frontend container:"
+echo "   ./deploy-instance-assets.sh"
 echo ""
 echo "=== Setup Complete ==="
 echo ""
