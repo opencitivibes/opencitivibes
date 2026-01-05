@@ -2,14 +2,18 @@
 Comment repository for database operations.
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
 
 import repositories.db_models as db_models
-from models.schemas import CommentSortOrder
 
 from .base import BaseRepository
+
+if TYPE_CHECKING:
+    from models.schemas import CommentSortOrder
 
 
 class CommentRepository(BaseRepository[db_models.Comment]):
@@ -30,7 +34,7 @@ class CommentRepository(BaseRepository[db_models.Comment]):
         include_moderated: bool = False,
         skip: int = 0,
         limit: int = 50,
-        sort_by: CommentSortOrder = CommentSortOrder.RELEVANCE,
+        sort_by: CommentSortOrder | None = None,
     ) -> list[Any]:
         """
         Get comments for an idea with author information.
@@ -45,6 +49,12 @@ class CommentRepository(BaseRepository[db_models.Comment]):
         Returns:
             List of tuples (comment, author_username, author_display_name)
         """
+        # Import at runtime to avoid circular import
+        from models.schemas import CommentSortOrder as SortOrder
+
+        if sort_by is None:
+            sort_by = SortOrder.RELEVANCE
+
         query = (
             self.db.query(
                 db_models.Comment,
@@ -65,11 +75,11 @@ class CommentRepository(BaseRepository[db_models.Comment]):
             query = query.filter(db_models.Comment.is_moderated == False)  # noqa: E712
 
         # Apply sorting based on sort_by parameter
-        if sort_by == CommentSortOrder.NEWEST:
+        if sort_by == SortOrder.NEWEST:
             query = query.order_by(db_models.Comment.created_at.desc())
-        elif sort_by == CommentSortOrder.OLDEST:
+        elif sort_by == SortOrder.OLDEST:
             query = query.order_by(db_models.Comment.created_at.asc())
-        elif sort_by == CommentSortOrder.MOST_LIKED:
+        elif sort_by == SortOrder.MOST_LIKED:
             query = query.order_by(
                 db_models.Comment.like_count.desc(),
                 db_models.Comment.created_at.desc(),
