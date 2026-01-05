@@ -36,9 +36,9 @@ class TestNotificationType:
         valid_priorities = {"min", "low", "default", "high", "max", "urgent"}
         for ntype in NotificationType:
             assert ntype.topic_suffix, f"{ntype.name} missing topic_suffix"
-            assert (
-                ntype.default_priority in valid_priorities
-            ), f"{ntype.name} has invalid priority: {ntype.default_priority}"
+            assert ntype.default_priority in valid_priorities, (
+                f"{ntype.name} has invalid priority: {ntype.default_priority}"
+            )
             assert ntype.tags, f"{ntype.name} missing tags"
 
     def test_topic_suffixes_unique(self) -> None:

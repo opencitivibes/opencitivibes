@@ -84,9 +84,9 @@ class TestSearchLatency:
             latencies.append((time.perf_counter() - start) * 1000)
 
         avg_latency = mean(latencies)
-        assert (
-            avg_latency < 100
-        ), f"Suggestions average latency {avg_latency:.2f}ms too high"
+        assert avg_latency < 100, (
+            f"Suggestions average latency {avg_latency:.2f}ms too high"
+        )
 
     def test_backend_info_latency(self, db_with_fts: Session) -> None:
         """Backend info should return instantly."""
@@ -99,9 +99,9 @@ class TestSearchLatency:
             latencies.append((time.perf_counter() - start) * 1000)
 
         avg_latency = mean(latencies)
-        assert (
-            avg_latency < 50
-        ), f"Backend info average latency {avg_latency:.2f}ms too high"
+        assert avg_latency < 50, (
+            f"Backend info average latency {avg_latency:.2f}ms too high"
+        )
 
 
 class TestSearchWithData:

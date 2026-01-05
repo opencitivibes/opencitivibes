@@ -162,9 +162,9 @@ class TestEmailLoginSecurity:
             for digit in "0123456789":
                 count = digit_counts.get(digit, 0)
                 # Allow 30% variance from expected (700-1300)
-                assert (
-                    700 < count < 1300
-                ), f"Digit {digit} at position {position}: {count}"
+                assert 700 < count < 1300, (
+                    f"Digit {digit} at position {position}: {count}"
+                )
 
     def test_used_code_not_reusable(self, db_session, test_user):
         """A used code should never be reusable even if not expired."""
