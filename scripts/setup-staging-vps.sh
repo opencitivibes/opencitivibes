@@ -245,30 +245,92 @@ echo "[7/9] Setting up platform configuration and instance assets..."
 #   - instance-assets/hero.png             (hero image)
 #   - instance-assets/logo.svg             (logo)
 #
-# Example platform.config.json structure:
+# Create platform config with correct schema
 cat > backend/config/platform.config.json << 'CONFIGEOF'
 {
-  "instance_id": "montreal",
-  "instance_name": "Idées pour Montréal",
-  "default_locale": "fr-CA",
-  "supported_locales": ["fr-CA", "en-CA"],
+  "platform": {
+    "name": "OpenCitiVibes",
+    "version": "1.0.0"
+  },
+  "instance": {
+    "id": "montreal",
+    "name": {
+      "en": "Ideas for Montreal",
+      "fr": "Idées pour Montréal"
+    },
+    "entity": {
+      "type": "city",
+      "name": {
+        "en": "Montreal",
+        "fr": "Montréal"
+      },
+      "region": {
+        "en": "Quebec",
+        "fr": "Québec"
+      },
+      "country": {
+        "en": "Canada",
+        "fr": "Canada"
+      }
+    },
+    "location": {
+      "display": {
+        "en": "Montreal, Quebec",
+        "fr": "Montréal, Québec"
+      },
+      "coordinates": {
+        "lat": 45.5017,
+        "lng": -73.5673
+      },
+      "timezone": "America/Montreal"
+    }
+  },
+  "database": {
+    "file": "idees_montreal.db"
+  },
+  "contact": {
+    "email": "contact@idees-montreal.ca",
+    "support_email": "support@idees-montreal.ca"
+  },
+  "legal": {
+    "jurisdiction": {
+      "en": "Quebec and Canada",
+      "fr": "Québec et Canada"
+    },
+    "courts": {
+      "en": "competent courts of Quebec",
+      "fr": "tribunaux compétents du Québec"
+    },
+    "privacy_authority": {
+      "name": {
+        "en": "Commission d'accès à l'information du Québec",
+        "fr": "Commission d'accès à l'information du Québec"
+      },
+      "acronym": "CAI",
+      "url": "https://www.cai.gouv.qc.ca"
+    }
+  },
   "branding": {
-    "primary_color": "#1e3a5f",
-    "secondary_color": "#4a90d9",
-    "logo": "/instance/logo.svg",
-    "favicon": "/icons/favicon.ico",
+    "primary_color": "#9333ea",
+    "secondary_color": "#6b21a8",
     "hero_image": "/instance/hero.png",
-    "hero_overlay": true
+    "logo": "/instance/logo.svg"
   },
   "features": {
     "voting_enabled": true,
     "comments_enabled": true,
-    "official_responses_enabled": true,
-    "anonymous_voting": false
+    "tags_enabled": true,
+    "quality_feedback_enabled": true,
+    "moderation_enabled": true,
+    "analytics_public": false
   },
-  "contact": {
-    "email": "contact@idees-montreal.ca",
-    "support_url": "https://idees-montreal.ca/support"
+  "localization": {
+    "default_locale": "fr",
+    "supported_locales": ["fr", "en"],
+    "date_format": {
+      "fr": "DD/MM/YYYY",
+      "en": "MM/DD/YYYY"
+    }
   }
 }
 CONFIGEOF
