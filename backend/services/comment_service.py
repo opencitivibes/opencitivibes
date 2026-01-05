@@ -14,7 +14,8 @@ from models.exceptions import (
     IdeaNotFoundException,
     InsufficientPermissionsException,
 )
-from repositories.comment_repository import CommentRepository, CommentSortOrder
+from models.schemas import CommentSortOrder
+from repositories.comment_repository import CommentRepository
 from repositories.idea_repository import IdeaRepository
 
 
