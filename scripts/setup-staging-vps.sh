@@ -8,13 +8,18 @@
 
 set -e
 
+# Configuration - customize these for your instance
 DEPLOY_DIR="/home/ubuntu/opencitivibes"
 DOMAIN="ideespourmontreal.opencitivibes.ovh"
 CONTAINER_PREFIX="idees-mtl"
+ADMIN_EMAIL="ideespourmontreal@opencitivibes.ovh"
+INSTANCE_NAME="Idées pour Montréal"
 
 echo "=== OpenCitiVibes Staging Setup ==="
 echo "Deploy directory: $DEPLOY_DIR"
 echo "Domain: $DOMAIN"
+echo "Admin email: $ADMIN_EMAIL"
+echo "Instance: $INSTANCE_NAME"
 echo ""
 
 # Create directory structure
@@ -49,7 +54,7 @@ IMAGE_TAG=latest
 DOMAIN=${DOMAIN}
 NEXT_PUBLIC_SITE_URL=https://${DOMAIN}
 NEXT_PUBLIC_API_URL=https://${DOMAIN}/api
-NEXT_PUBLIC_INSTANCE_NAME=Idées pour Montréal
+NEXT_PUBLIC_INSTANCE_NAME=${INSTANCE_NAME}
 
 # CORS
 CORS_ORIGINS=["https://${DOMAIN}"]
@@ -63,8 +68,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 LOG_LEVEL=INFO
 ENVIRONMENT=staging
 
-# Admin - CHANGE THIS PASSWORD!
-ADMIN_EMAIL=admin@idees-montreal.ca
+# Admin credentials (used on first startup to seed the database)
+# IMPORTANT: Change the password before deploying!
+ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=ChangeThisPassword2024!
 
 # Timezone
