@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { generateStaticMetadata, siteConfig } from '@/lib/seo/metadata';
+import { generateStaticMetadata, getSiteConfig } from '@/lib/seo/metadata';
 import { generateWebPageSchema, generateBreadcrumbSchema } from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/StructuredData';
 import ContactPageClient from '@/components/pages/ContactPageClient';
+
+const siteConfig = getSiteConfig();
 
 export const metadata: Metadata = generateStaticMetadata(
   {
@@ -10,8 +12,8 @@ export const metadata: Metadata = generateStaticMetadata(
     en: 'Contact Us',
   },
   {
-    fr: 'Contactez Idées pour Montréal. Questions, suggestions ou signalement de problèmes.',
-    en: 'Contact Ideas for Montreal. Questions, suggestions, or report issues.',
+    fr: `Contactez ${siteConfig.name.fr}. Questions, suggestions ou signalement de problèmes.`,
+    en: `Contact ${siteConfig.name.en}. Questions, suggestions, or report issues.`,
   },
   'fr',
   '/contact'
@@ -19,7 +21,7 @@ export const metadata: Metadata = generateStaticMetadata(
 
 const pageSchema = generateWebPageSchema(
   'Nous contacter',
-  'Contactez Idées pour Montréal.',
+  `Contactez ${siteConfig.name.fr}.`,
   `${siteConfig.url}/contact`,
   'ContactPage',
   'fr'

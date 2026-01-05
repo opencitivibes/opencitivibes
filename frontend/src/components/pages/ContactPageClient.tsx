@@ -4,9 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
+import { usePlatformConfig } from '@/lib/config/PlatformConfigProvider';
 
 export default function ContactPageClient() {
   const { t } = useTranslation();
+  const { config } = usePlatformConfig();
+  const contactEmail = config?.contact.email || 'contact@opencitivibes.local';
   const [formState, setFormState] = useState({
     name: '',
     email: '',
@@ -202,9 +205,12 @@ export default function ContactPageClient() {
                   <h3 className="font-medium text-gray-900 dark:text-gray-100">
                     {t('contactPage.email')}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    contact@idees-montreal.ca
-                  </p>
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="text-primary-600 dark:text-primary-400 hover:underline text-sm"
+                  >
+                    {contactEmail}
+                  </a>
                 </div>
               </div>
               <div className="flex items-start space-x-4">
