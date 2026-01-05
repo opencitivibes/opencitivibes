@@ -178,7 +178,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
     environment:
       name: staging
-      url: ${{ secrets.STAGING_URL }}
     steps:
       - name: Deploy to staging server
         uses: appleboy/ssh-action@master
@@ -220,7 +219,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     environment:
       name: production
-      url: ${{ secrets.PRODUCTION_URL }}
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@master
