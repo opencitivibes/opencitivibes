@@ -347,7 +347,7 @@ app.add_middleware(
 
 # Mount static files directory for avatars
 uploads_dir = Path("data/uploads")
-uploads_dir.mkdir(exist_ok=True)
+uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/data/uploads", StaticFiles(directory="data/uploads"), name="uploads")
 
 
