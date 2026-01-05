@@ -96,9 +96,9 @@ SMTP_PASSWORD=CHANGE_ME_TO_EMAIL_PASSWORD
 SMTP_FROM_EMAIL=\${ADMIN_EMAIL}
 SMTP_FROM_NAME=\${INSTANCE_NAME}
 
-# Monitoring (optional)
-SENTRY_DSN=
-NEXT_PUBLIC_SENTRY_DSN=
+# Monitoring - Sentry error tracking
+SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
+NEXT_PUBLIC_SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
 EOF
 
 # Download docker-compose.yml from repo and patch for staging
