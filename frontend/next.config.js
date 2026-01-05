@@ -42,7 +42,7 @@ const securityHeaders = [
       // Allow API connections: in dev mode allow all http/https, in prod restrict to known domains
       process.env.NODE_ENV === 'development'
         ? "connect-src 'self' http: https:"
-        : "connect-src 'self' https://*.idees-montreal.ca https://*.idees-quebec.ca https://*.ideas-calgary.ca https://*.sentry.io",
+        : "connect-src 'self' https://*.idees-montreal.ca https://*.idees-quebec.ca https://*.ideas-calgary.ca https://*.opencitivibes.ovh https://*.sentry.io",
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",
       "form-action 'self'",
