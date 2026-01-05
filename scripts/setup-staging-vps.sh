@@ -324,8 +324,70 @@ ASSETSCRIPT
 chmod +x deploy-instance-assets.sh
 echo "  - Created deploy-instance-assets.sh"
 
+# Create admin seeding script
+echo "[9/10] Creating admin seeding script..."
+cat > seed-admin.sh << 'SEEDSCRIPT'
+#!/bin/bash
+# Seed admin user in the database
+# Run this after containers are up and database is initialized
+
+CONTAINER_PREFIX="${CONTAINER_PREFIX:-idees-mtl}"
+
+# Read from .env file if not set
+if [ -z "$ADMIN_EMAIL" ]; then
+    ADMIN_EMAIL=$(grep '^ADMIN_EMAIL=' .env | cut -d'=' -f2)
+fi
+if [ -z "$ADMIN_PASSWORD" ]; then
+    ADMIN_PASSWORD=$(grep '^ADMIN_PASSWORD=' .env | cut -d'=' -f2)
+fi
+
+if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PASSWORD" ]; then
+    echo "Error: ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env"
+    exit 1
+fi
+
+echo "Creating admin user: $ADMIN_EMAIL"
+
+docker exec ${CONTAINER_PREFIX}-backend python3 -c "
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from repositories.db_models import User
+from authentication.auth import get_password_hash
+import os
+
+engine = create_engine('sqlite:///./data/idees_montreal.db')
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Check if user already exists
+existing = session.query(User).filter_by(email='$ADMIN_EMAIL').first()
+if existing:
+    print(f'Admin user already exists: $ADMIN_EMAIL')
+    session.close()
+    exit(0)
+
+# Create admin user
+admin = User(
+    email='$ADMIN_EMAIL',
+    username='$ADMIN_EMAIL'.split('@')[0],
+    hashed_password=get_password_hash('$ADMIN_PASSWORD'),
+    display_name='Admin',
+    is_active=True,
+    is_global_admin=True
+)
+session.add(admin)
+session.commit()
+print(f'Created admin user: $ADMIN_EMAIL')
+session.close()
+"
+
+echo "Admin seeding complete!"
+SEEDSCRIPT
+chmod +x seed-admin.sh
+echo "  - Created seed-admin.sh"
+
 # SSL setup instructions
-echo "[9/9] SSL Certificate Setup..."
+echo "[10/10] SSL Certificate Setup..."
 echo ""
 echo "=== MANUAL STEPS REQUIRED ==="
 echo ""
@@ -358,6 +420,9 @@ echo "   docker compose up -d"
 echo ""
 echo "7. Deploy instance assets to frontend container:"
 echo "   ./deploy-instance-assets.sh"
+echo ""
+echo "8. Seed the admin user:"
+echo "   ./seed-admin.sh"
 echo ""
 echo "=== Setup Complete ==="
 echo ""
