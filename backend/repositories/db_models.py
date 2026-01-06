@@ -1078,6 +1078,44 @@ class SecurityAuditLog(Base):
     )
 
 
+class SharePlatform(str, enum.Enum):
+    """Platform for social media sharing."""
+
+    TWITTER = "twitter"
+    FACEBOOK = "facebook"
+    LINKEDIN = "linkedin"
+    WHATSAPP = "whatsapp"
+    COPY_LINK = "copy_link"
+
+
+class ShareEvent(Base):
+    """
+    Tracks share events for analytics.
+
+    Records when users share ideas on social media platforms.
+    Fire-and-forget tracking (no authentication required).
+    """
+
+    __tablename__ = "share_events"
+    __table_args__ = (
+        Index("ix_share_events_idea_platform", "idea_id", "platform"),
+        Index("ix_share_events_created_at", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    idea_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("ideas.id", ondelete="CASCADE"), nullable=False
+    )
+    platform: Mapped[SharePlatform] = mapped_column(Enum(SharePlatform), nullable=False)
+    referrer_url: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="URL where share was initiated"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+
+    # Relationships
+    idea: Mapped["Idea"] = relationship("Idea", backref="share_events")
+
+
 class PrivacyIncident(Base):
     """
     Privacy incident register for Law 25 compliance.

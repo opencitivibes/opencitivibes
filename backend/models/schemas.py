@@ -1972,3 +1972,74 @@ class ContactFormResponse(BaseModel):
 
     success: bool
     message: str
+
+
+# ============================================================================
+# Social Media Sharing Schemas
+# ============================================================================
+
+
+class SharePlatform(str, Enum):
+    """Supported social media platforms for sharing."""
+
+    TWITTER = "twitter"
+    FACEBOOK = "facebook"
+    LINKEDIN = "linkedin"
+    WHATSAPP = "whatsapp"
+    COPY_LINK = "copy_link"
+
+
+class ShareEventCreate(BaseModel):
+    """Request schema for recording a share event."""
+
+    platform: SharePlatform
+    referrer_url: Optional[str] = Field(
+        None, max_length=500, description="URL where share was initiated"
+    )
+
+
+class ShareEventResponse(BaseModel):
+    """Response schema for a share event."""
+
+    id: int
+    idea_id: int
+    platform: SharePlatform
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SharePlatformCount(BaseModel):
+    """Share count for a single platform."""
+
+    platform: str
+    count: int
+
+
+class ShareAnalyticsResponse(BaseModel):
+    """Response schema for share analytics per idea."""
+
+    idea_id: int
+    total_shares: int
+    by_platform: dict[str, int]
+    last_7_days: int
+
+
+class TopSharedIdea(BaseModel):
+    """Idea with share statistics."""
+
+    idea_id: int
+    title: str
+    total_shares: int
+    by_platform: dict[str, int]
+
+
+class AdminShareAnalyticsResponse(BaseModel):
+    """Response schema for admin share analytics overview."""
+
+    total_shares: int
+    platform_distribution: dict[str, int]
+    top_shared_ideas: List[TopSharedIdea]
+    shares_last_7_days: int
+    shares_last_30_days: int
+    generated_at: datetime

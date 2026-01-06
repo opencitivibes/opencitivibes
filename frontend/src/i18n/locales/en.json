@@ -181,6 +181,16 @@
     "signInToVote": "Sign in to vote",
     "cannotVoteOwnIdea": "You cannot vote on your own idea"
   },
+  "share": {
+    "title": "Share this idea",
+    "twitter": "Share on X",
+    "facebook": "Share on Facebook",
+    "linkedin": "Share on LinkedIn",
+    "whatsapp": "Share on WhatsApp",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied!",
+    "shareIdea": "Share"
+  },
   "qualities": {
     "title": "What makes this idea stand out?",
     "hint": "Optional - helps officials prioritize",

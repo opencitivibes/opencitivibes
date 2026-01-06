@@ -156,6 +156,16 @@ export type IdeaStatus = 'pending' | 'approved' | 'rejected';
 export type VoteType = 'upvote' | 'downvote';
 export type QualityType = 'community_benefit' | 'quality_of_life' | 'urgent' | 'would_volunteer';
 
+// Share types
+export type SharePlatform = 'twitter' | 'facebook' | 'linkedin' | 'whatsapp' | 'copy_link';
+
+export interface ShareAnalyticsResponse {
+  idea_id: number;
+  total_shares: number;
+  by_platform: Record<SharePlatform, number>;
+  last_7_days: number;
+}
+
 export interface QualityCounts {
   community_benefit: number;
   quality_of_life: number;

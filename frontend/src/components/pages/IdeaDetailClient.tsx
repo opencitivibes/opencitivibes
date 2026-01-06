@@ -19,6 +19,7 @@ import { DeleteIdeaDialog } from '@/components/DeleteIdeaDialog';
 import { DeleteCommentDialog } from '@/components/DeleteCommentDialog';
 import { VotingButtons } from '@/components/VotingButtons';
 import { QualityBreakdown } from '@/components/QualityBreakdown';
+import { ShareButtons } from '@/components/ShareButtons';
 import { FlagButton } from '@/components/moderation';
 import { CommentLikeButton, CommentSortSelector } from '@/components/comments';
 import type { CommentSortOrder } from '@/components/comments';
@@ -294,6 +295,9 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
             {idea.quality_counts && (
               <QualityBreakdown counts={idea.quality_counts} totalUpvotes={idea.upvotes} />
             )}
+
+            {/* Share Buttons */}
+            <ShareButtons ideaId={idea.id} ideaTitle={idea.title} className="mt-6" />
           </div>
         )}
 

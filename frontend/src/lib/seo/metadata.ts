@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 
+import { OG_WIDTH, OG_HEIGHT } from './og-constants';
+
 /**
  * Site configuration interface for SEO metadata.
  * All instance-specific values are pulled from platform configuration.
@@ -147,9 +149,9 @@ export function getBaseMetadata(locale: string = 'fr'): Metadata {
       siteName: siteName,
       images: [
         {
-          url: config.images.og,
-          width: 1200,
-          height: 630,
+          url: `/api/og?locale=${locale}`,
+          width: OG_WIDTH,
+          height: OG_HEIGHT,
           alt: siteName,
         },
       ],
@@ -159,9 +161,12 @@ export function getBaseMetadata(locale: string = 'fr'): Metadata {
           card: 'summary_large_image',
           site: config.twitter.handle,
           creator: config.twitter.handle,
-          images: [config.images.twitter],
+          images: [`/api/og?locale=${locale}`],
         }
-      : undefined,
+      : {
+          card: 'summary_large_image',
+          images: [`/api/og?locale=${locale}`],
+        },
     icons: {
       icon: config.images.icon,
       apple: config.images.appleTouchIcon,
@@ -258,6 +263,9 @@ export function generateIdeaMetadata(
   const base = getBaseMetadata(locale);
   const url = `${config.url}/ideas/${idea.id}`;
 
+  // Dynamic OG image URL for this specific idea
+  const ogImageUrl = `/api/og/ideas/${idea.id}?locale=${locale}`;
+
   // Truncate description for meta (max 160 chars)
   const plainDescription = stripHtml(idea.description);
   const truncatedDescription =
@@ -290,11 +298,21 @@ export function generateIdeaMetadata(
       publishedTime: idea.created_at,
       authors: [idea.author_display_name],
       tags: keywords as string[],
+      images: [
+        {
+          url: ogImageUrl,
+          width: OG_WIDTH,
+          height: OG_HEIGHT,
+          alt: idea.title,
+        },
+      ],
     },
     twitter: {
       ...base.twitter,
+      card: 'summary_large_image',
       title: idea.title,
       description: truncatedDescription,
+      images: [ogImageUrl],
     },
     alternates: {
       canonical: url,

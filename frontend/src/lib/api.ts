@@ -59,6 +59,8 @@ import type {
   ConsentLogEntry,
   DatabaseDiagnosticsResponse,
   SystemResourcesResponse,
+  SharePlatform,
+  ShareAnalyticsResponse,
 } from '@/types';
 import type {
   FlagCreate,
@@ -1389,6 +1391,31 @@ export const errorAPI = {
       // Silent fail - don't block error handling
       console.warn('Failed to report error to admin');
     }
+  },
+};
+
+// =============================================================================
+// Share Tracking API
+// =============================================================================
+
+export const shareAPI = {
+  /**
+   * Record a share event for analytics tracking.
+   * Fire-and-forget - failures are logged but don't block.
+   */
+  recordShare: async (ideaId: number, platform: SharePlatform): Promise<void> => {
+    await api.post(`/shares/${ideaId}`, {
+      platform,
+      referrer_url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+  },
+
+  /**
+   * Get share analytics for an idea.
+   */
+  getShareAnalytics: async (ideaId: number): Promise<ShareAnalyticsResponse> => {
+    const response = await api.get<ShareAnalyticsResponse>(`/shares/${ideaId}/analytics`);
+    return response.data;
   },
 };
 

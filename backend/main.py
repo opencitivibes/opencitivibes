@@ -89,9 +89,7 @@ def check_schema_version() -> None:
     from repositories.database import SessionLocal
 
     # Expected latest migration revision (update when adding new migrations)
-    EXPECTED_REVISION = (
-        "a5ch44e31f6c"  # add_retention_fields  # pragma: allowlist secret
-    )
+    EXPECTED_REVISION = "d7fj66g53h8e"  # add_share_events  # pragma: allowlist secret
 
     db = SessionLocal()
     try:
@@ -1167,6 +1165,12 @@ app.include_router(security_router.router, prefix="/api")
 from routers import users_router
 
 app.include_router(users_router.router, prefix="/api")
+
+# Import share_router for social media share tracking analytics
+from routers import share_router
+
+app.include_router(share_router.router, prefix="/api")
+app.include_router(share_router.admin_router, prefix="/api")
 
 
 @app.get("/")

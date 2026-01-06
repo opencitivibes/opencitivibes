@@ -181,6 +181,16 @@
     "signInToVote": "Connectez-vous pour voter",
     "cannotVoteOwnIdea": "Vous ne pouvez pas voter pour votre propre idée"
   },
+  "share": {
+    "title": "Partager cette idée",
+    "twitter": "Partager sur X",
+    "facebook": "Partager sur Facebook",
+    "linkedin": "Partager sur LinkedIn",
+    "whatsapp": "Partager sur WhatsApp",
+    "copyLink": "Copier le lien",
+    "linkCopied": "Lien copié!",
+    "shareIdea": "Partager"
+  },
   "qualities": {
     "title": "Qu'est-ce qui distingue cette idée?",
     "hint": "Optionnel - aide à prioriser",
