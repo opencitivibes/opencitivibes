@@ -12,13 +12,48 @@ OpenCitiVibes is a white-label citizen engagement platform. Each deployment (ins
 - Custom legal content (Terms, Privacy Policy)
 - Configurable features
 
+## Deployment Profiles
+
+OpenCitiVibes uses Docker Compose profiles to manage different deployment environments:
+
+| Profile | Email Service | Database | Use Case |
+|---------|--------------|----------|----------|
+| `dev` | Mailpit (email capture) | SQLite | Local development, testing email flows |
+| `staging` | Postfix (SMTP relay) | SQLite | Pre-production testing with real emails |
+| `prod` | Postfix (SMTP relay) | PostgreSQL | Production deployment |
+
+### Quick Reference
+
+```bash
+# Development - emails captured in Mailpit web UI
+docker compose --profile dev up -d
+
+# Staging - real emails via Postfix, SQLite database
+docker compose --profile staging up -d
+
+# Production - real emails via Postfix, PostgreSQL database
+docker compose --profile prod up -d
+```
+
+### Profile Components
+
+| Service | dev | staging | prod |
+|---------|-----|---------|------|
+| nginx | ✓ | ✓ | ✓ |
+| backend | ✓ | ✓ | ✓ |
+| frontend | ✓ | ✓ | ✓ |
+| ntfy | ✓ | ✓ | ✓ |
+| mailpit | ✓ | - | - |
+| postfix | - | ✓ | ✓ |
+| postgres | - | - | ✓ |
+
 ## Prerequisites
 
 - Linux server (Ubuntu 22.04+ recommended)
 - Docker & Docker Compose v2
 - Domain name with DNS configured
 - HTTPS certificate (Let's Encrypt recommended)
-- 2GB+ RAM, 20GB+ storage
+- 2GB+ RAM, 20GB+ storage (4GB+ RAM for prod profile with PostgreSQL)
 
 ## Docker Setup
 
@@ -97,13 +132,26 @@ nano backend/config/legal.config.json
 
 ### 4. Deploy
 
+Choose the appropriate profile for your environment:
+
 ```bash
-docker compose up -d
+# Development (Mailpit + SQLite)
+docker compose --profile dev up -d
+
+# Staging (Postfix + SQLite)
+docker compose --profile staging up -d
+
+# Production (Postfix + PostgreSQL)
+docker compose --profile prod up -d
 ```
 
 ### 5. Initialize Database
 
 ```bash
+# For dev/staging (SQLite)
+docker compose exec backend python init_db.py
+
+# For prod (PostgreSQL) - ensure DATABASE_URL is set correctly
 docker compose exec backend python init_db.py
 ```
 
@@ -133,9 +181,25 @@ docker compose exec backend python init_db.py
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `SECRET_KEY` | JWT signing key | `openssl rand -hex 32` |
-| `DATABASE_URL` | Database connection | `sqlite:///./data/opencitivibes.db` |
+| `DATABASE_URL` | Database connection | See below |
 | `ADMIN_EMAIL` | Initial admin email | `admin@example.com` |
 | `DOMAIN` | Production domain | `ideas-example.com` |
+
+**Database URL by Profile:**
+
+| Profile | DATABASE_URL |
+|---------|-------------|
+| `dev` | `sqlite:///./data/opencitivibes.db` |
+| `staging` | `sqlite:///./data/opencitivibes.db` |
+| `prod` | `postgresql://user:pass@postgres:5432/opencitivibes` |
+
+**PostgreSQL Configuration (prod profile):**
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `POSTGRES_USER` | PostgreSQL username | `opencitivibes` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | Generated secret |
+| `POSTGRES_DB` | Database name | `opencitivibes` |
 
 See `.env.example` for complete list.
 
@@ -217,34 +281,26 @@ See [Ntfy Notification System](../claude-docs/plans/ntfy-notification-system.md)
 
 ### Transactional Email (Passwordless Login)
 
-OpenCitiVibes supports passwordless authentication via email codes. Three email providers are available:
+OpenCitiVibes supports passwordless authentication via email codes. Email configuration is determined by the deployment profile:
 
-| Provider | Use Case | Configuration |
-|----------|----------|---------------|
-| `console` | Development | Logs emails to stdout |
-| `smtp` (Mailpit) | Local testing | Visual email inbox at `/mailpit/` |
-| `smtp` (Postfix) | Production | Self-hosted SMTP relay with DKIM |
+| Profile | Email Service | Configuration |
+|---------|---------------|---------------|
+| `dev` | Mailpit | Visual email inbox at `/mailpit/` - no actual delivery |
+| `staging` | Postfix | Self-hosted SMTP relay with DKIM - real emails |
+| `prod` | Postfix | Self-hosted SMTP relay with DKIM - real emails |
 
-#### Development: Console Provider
+#### Development Profile: Mailpit
 
-No configuration needed. Emails are logged to the backend console:
-
-```bash
-docker compose logs -f backend | grep EMAIL
-```
-
-#### Local Testing: Mailpit
-
-Mailpit provides a web UI to view sent emails without actual delivery.
+The `dev` profile includes Mailpit, which captures all outgoing emails for testing.
 
 ```bash
-# Start with staging profile
-docker compose --profile staging up -d
+# Start with dev profile
+docker compose --profile dev up -d
 
-# Access inbox at http://localhost:8025/mailpit/
+# Access inbox at https://yourdomain.com/mailpit/
 ```
 
-Environment variables:
+Environment variables for dev:
 ```bash
 EMAIL_PROVIDER=smtp
 SMTP_HOST=mailpit
@@ -255,13 +311,9 @@ SMTP_FROM_EMAIL=noreply@yourdomain.com
 SMTP_FROM_NAME=OpenCitiVibes
 ```
 
-#### Production: Postfix SMTP Relay
+#### Staging/Production Profiles: Postfix SMTP Relay
 
-For production, the Postfix container provides a self-hosted SMTP relay with automatic DKIM signing.
-
-##### Enable Postfix
-
-The setup script automatically configures Postfix. For manual setup:
+The `staging` and `prod` profiles include Postfix, a self-hosted SMTP relay with automatic DKIM signing.
 
 ```bash
 # Environment variables in .env
@@ -274,8 +326,10 @@ SMTP_FROM_EMAIL=admin@yourdomain.com
 SMTP_FROM_NAME=Your Instance Name
 MAIL_DOMAIN=yourdomain.com
 
-# Start with production profile (or remove profile restriction)
-docker compose --profile production up -d
+# Start with staging or prod profile
+docker compose --profile staging up -d
+# or
+docker compose --profile prod up -d
 ```
 
 ##### DNS Records for Email Deliverability
@@ -513,9 +567,9 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u your-username --password-stdin
 # 4. Upload instance assets
 scp hero.png logo.svg ubuntu@your-vps:~/opencitivibes/instance-assets/
 
-# 5. Pull and start containers
-docker compose pull
-docker compose up -d
+# 5. Pull and start containers (staging profile)
+docker compose --profile staging pull
+docker compose --profile staging up -d
 
 # 6. Deploy instance assets and seed admin
 ./deploy-instance-assets.sh
@@ -540,18 +594,18 @@ Edit these files before deployment:
 ### Troubleshooting Staging
 
 ```bash
-# View container logs
-docker compose logs -f backend
-docker compose logs -f frontend
-docker compose logs -f nginx
+# View container logs (use correct profile)
+docker compose --profile staging logs -f backend
+docker compose --profile staging logs -f frontend
+docker compose --profile staging logs -f nginx
 
 # Check container health status
-docker compose ps
+docker compose --profile staging ps
 
 # If backend shows migration errors, seed-admin.sh handles this automatically
 # For manual fix:
 docker exec your-prefix-backend alembic stamp head
-docker compose restart backend
+docker compose --profile staging restart backend
 ```
 
 ## Security Considerations

@@ -1,11 +1,21 @@
 # docker-compose.yml
-# OpenCitiVibes Production Configuration
-# Instance-specific values loaded from environment variables
+# OpenCitiVibes Multi-Environment Configuration
+#
+# PROFILES:
+#   dev      - Development: Mailpit email capture + SQLite
+#   staging  - Staging: Postfix SMTP relay + SQLite
+#   prod     - Production: Postfix SMTP relay + PostgreSQL
+#
+# USAGE:
+#   docker compose --profile dev up -d
+#   docker compose --profile staging up -d
+#   docker compose --profile prod up -d
+#
 name: ${COMPOSE_PROJECT_NAME:-opencitivibes}
 
 services:
   # ============================================
-  # Reverse Proxy
+  # Reverse Proxy (all profiles)
   # ============================================
   nginx:
     image: nginx:alpine
@@ -32,9 +42,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    profiles:
+      - dev
+      - staging
+      - prod
 
   # ============================================
-  # Backend API
+  # Backend API (all profiles)
   # ============================================
   backend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_REPOSITORY:-opencitivibes}/backend:${IMAGE_TAG:-latest}
@@ -88,9 +102,13 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+    profiles:
+      - dev
+      - staging
+      - prod
 
   # ============================================
-  # Frontend
+  # Frontend (all profiles)
   # ============================================
   frontend:
     image: ${REGISTRY:-ghcr.io}/${IMAGE_REPOSITORY:-opencitivibes}/frontend:${IMAGE_TAG:-latest}
@@ -121,9 +139,13 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+    profiles:
+      - dev
+      - staging
+      - prod
 
   # ============================================
-  # Ntfy - Push Notifications
+  # Ntfy - Push Notifications (all profiles)
   # ============================================
   ntfy:
     image: binwiederhier/ntfy:latest
@@ -162,18 +184,22 @@ services:
         reservations:
           cpus: '0.05'
           memory: 32M
+    profiles:
+      - dev
+      - staging
+      - prod
 
   # ============================================
-  # Mailpit - Local SMTP Server (development/staging)
-  # Enable with --profile staging
-  # Access at /mailpit/ via nginx reverse proxy
+  # Mailpit - Email Capture (dev profile only)
+  # Web UI at /mailpit/ via nginx reverse proxy
+  # Captures all outgoing emails for testing
   # ============================================
   mailpit:
     image: axllent/mailpit:latest
     container_name: ${CONTAINER_PREFIX:-ocv}-mailpit
     restart: unless-stopped
     profiles:
-      - staging
+      - dev
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true
       - MP_SMTP_AUTH_ALLOW_INSECURE=true
@@ -192,16 +218,16 @@ services:
           memory: 64M
 
   # ============================================
-  # Postfix SMTP Relay - Production mail sender
-  # Enable with --profile production
-  # Lightweight mail relay with DKIM support
+  # Postfix SMTP Relay (staging & prod profiles)
+  # Self-hosted SMTP with DKIM signing
   # ============================================
   postfix:
     image: boky/postfix:latest
     container_name: ${CONTAINER_PREFIX:-ocv}-postfix
     restart: unless-stopped
     profiles:
-      - production
+      - staging
+      - prod
     environment:
       - ALLOWED_SENDER_DOMAINS=${MAIL_DOMAIN:-opencitivibes.local}
       - HOSTNAME=mail.${MAIL_DOMAIN:-opencitivibes.local}
@@ -227,14 +253,14 @@ services:
           memory: 32M
 
   # ============================================
-  # PostgreSQL (Optional - enable with --profile postgres)
+  # PostgreSQL (prod profile only)
   # ============================================
   postgres:
     image: postgres:16-alpine
     container_name: ${CONTAINER_PREFIX:-ocv}-postgres
     restart: unless-stopped
     profiles:
-      - postgres
+      - prod
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-opencitivibes}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

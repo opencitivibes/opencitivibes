@@ -171,6 +171,7 @@ jobs:
 
   # ============================================
   # Deploy to Staging
+  # Uses staging profile: Postfix + SQLite
   # ============================================
   deploy-staging:
     name: Deploy to Staging
@@ -190,18 +191,18 @@ jobs:
             cd ${{ secrets.STAGING_DEPLOY_PATH }}
 
             # Pull latest images
-            docker compose pull
+            docker compose --profile staging pull
 
-            # Deploy with zero-downtime
-            docker compose up -d --remove-orphans
+            # Deploy with staging profile (Postfix + SQLite)
+            docker compose --profile staging up -d --remove-orphans
 
             # Wait for health checks
             sleep 15
 
             # Verify deployment
-            if docker compose ps | grep -q "unhealthy"; then
+            if docker compose --profile staging ps | grep -q "unhealthy"; then
               echo "Deployment failed - unhealthy containers"
-              docker compose ps
+              docker compose --profile staging ps
               exit 1
             fi
 
@@ -212,11 +213,12 @@ jobs:
 
   # ============================================
   # Deploy to Production
+  # Uses prod profile: Postfix + PostgreSQL
   # ============================================
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend, deploy-staging]
+    needs: [build-backend, build-frontend]
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     environment:
       name: production
@@ -234,18 +236,18 @@ jobs:
             ./scripts/backup.sh
 
             # Pull latest images
-            docker compose pull
+            docker compose --profile prod pull
 
-            # Deploy with zero-downtime
-            docker compose up -d --remove-orphans
+            # Deploy with prod profile (Postfix + PostgreSQL)
+            docker compose --profile prod up -d --remove-orphans
 
             # Wait for health checks
             sleep 20
 
             # Verify deployment
-            if docker compose ps | grep -q "unhealthy"; then
+            if docker compose --profile prod ps | grep -q "unhealthy"; then
               echo "Deployment failed - unhealthy containers"
-              docker compose ps
+              docker compose --profile prod ps
               exit 1
             fi
 
