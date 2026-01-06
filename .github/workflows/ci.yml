@@ -41,9 +41,8 @@ jobs:
         run: uv run pyright --ignoreexternal --outputjson . 2>/dev/null | head -50 || uv run pyright . --outputjson 2>&1 | grep -v "tests/" | head -20 || true
         continue-on-error: true  # Temporarily allow type errors while stabilizing CI
 
-      # Temporarily disabled - enable after CI is stable
-      # - name: Run security check (bandit)
-      #   run: uv run bandit -r . -x ./tests
+      - name: Run security check (bandit)
+        run: uv run bandit -r . -x ./tests,./.venv -ll
 
       # Temporarily disabled - enable after fixing test_generate_highlights_escapes_html
       # - name: Run tests with coverage
