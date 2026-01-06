@@ -18,9 +18,10 @@ See: ARCH-2030-004 in claude-docs/mgt/BUGS.md
 from datetime import datetime, timedelta, timezone
 from typing import Any  # noqa: F401 - used in type annotations
 
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, literal_column
 from sqlalchemy.orm import Session
 
+from models.config import settings
 from repositories.db_models import (
     Category,
     Comment,
@@ -30,6 +31,37 @@ from repositories.db_models import (
     Vote,
     VoteType,
 )
+
+
+def _is_postgresql() -> bool:
+    """Check if the database is PostgreSQL."""
+    return settings.DATABASE_URL.startswith("postgresql")
+
+
+def _format_week(column: Any) -> Any:
+    """
+    Format a datetime column as year-week string (YYYY-WXX).
+
+    Uses to_char for PostgreSQL and strftime for SQLite.
+    """
+    if _is_postgresql():
+        # PostgreSQL: to_char with ISO week (IW) and year for ISO week (IYYY)
+        return func.to_char(column, literal_column("'IYYY-\"W\"IW'"))
+    else:
+        # SQLite: strftime with %W for week number
+        return func.strftime("%Y-W%W", column)
+
+
+def _format_month(column: Any) -> Any:
+    """
+    Format a datetime column as year-month string (YYYY-MM).
+
+    Uses to_char for PostgreSQL and strftime for SQLite.
+    """
+    if _is_postgresql():
+        return func.to_char(column, literal_column("'YYYY-MM'"))
+    else:
+        return func.strftime("%Y-%m", column)
 
 
 class AnalyticsRepository:
@@ -241,11 +273,15 @@ class AnalyticsRepository:
 
         Uses ISO week numbers, returns list of dicts.
         """
-        # For SQLite compatibility, use strftime
-        # Ideas per week (SQLite)
+        # Use database-agnostic date formatting (PostgreSQL to_char / SQLite strftime)
+        week_expr_idea = _format_week(Idea.created_at)
+        week_expr_vote = _format_week(Vote.created_at)
+        week_expr_comment = _format_week(Comment.created_at)
+        week_expr_user = _format_week(User.created_at)
+
         ideas_by_week = (
             db.query(
-                func.strftime("%Y-W%W", Idea.created_at).label("week"),
+                week_expr_idea.label("week"),
                 func.count(Idea.id).label("count"),
             )
             .filter(
@@ -255,39 +291,39 @@ class AnalyticsRepository:
                     Idea.deleted_at.is_(None),
                 )
             )
-            .group_by(func.strftime("%Y-W%W", Idea.created_at))
+            .group_by(week_expr_idea)
             .all()
         )
 
         votes_by_week = (
             db.query(
-                func.strftime("%Y-W%W", Vote.created_at).label("week"),
+                week_expr_vote.label("week"),
                 func.count(Vote.id).label("count"),
             )
             .filter(and_(Vote.created_at >= start_date, Vote.created_at <= end_date))
-            .group_by(func.strftime("%Y-W%W", Vote.created_at))
+            .group_by(week_expr_vote)
             .all()
         )
 
         comments_by_week = (
             db.query(
-                func.strftime("%Y-W%W", Comment.created_at).label("week"),
+                week_expr_comment.label("week"),
                 func.count(Comment.id).label("count"),
             )
             .filter(
                 and_(Comment.created_at >= start_date, Comment.created_at <= end_date)
             )
-            .group_by(func.strftime("%Y-W%W", Comment.created_at))
+            .group_by(week_expr_comment)
             .all()
         )
 
         users_by_week = (
             db.query(
-                func.strftime("%Y-W%W", User.created_at).label("week"),
+                week_expr_user.label("week"),
                 func.count(User.id).label("count"),
             )
             .filter(and_(User.created_at >= start_date, User.created_at <= end_date))
-            .group_by(func.strftime("%Y-W%W", User.created_at))
+            .group_by(week_expr_user)
             .all()
         )
 
@@ -304,9 +340,15 @@ class AnalyticsRepository:
 
         Returns list of dicts with YYYY-MM format.
         """
+        # Use database-agnostic date formatting (PostgreSQL to_char / SQLite strftime)
+        month_expr_idea = _format_month(Idea.created_at)
+        month_expr_vote = _format_month(Vote.created_at)
+        month_expr_comment = _format_month(Comment.created_at)
+        month_expr_user = _format_month(User.created_at)
+
         ideas_by_month = (
             db.query(
-                func.strftime("%Y-%m", Idea.created_at).label("month"),
+                month_expr_idea.label("month"),
                 func.count(Idea.id).label("count"),
             )
             .filter(
@@ -316,39 +358,39 @@ class AnalyticsRepository:
                     Idea.deleted_at.is_(None),
                 )
             )
-            .group_by(func.strftime("%Y-%m", Idea.created_at))
+            .group_by(month_expr_idea)
             .all()
         )
 
         votes_by_month = (
             db.query(
-                func.strftime("%Y-%m", Vote.created_at).label("month"),
+                month_expr_vote.label("month"),
                 func.count(Vote.id).label("count"),
             )
             .filter(and_(Vote.created_at >= start_date, Vote.created_at <= end_date))
-            .group_by(func.strftime("%Y-%m", Vote.created_at))
+            .group_by(month_expr_vote)
             .all()
         )
 
         comments_by_month = (
             db.query(
-                func.strftime("%Y-%m", Comment.created_at).label("month"),
+                month_expr_comment.label("month"),
                 func.count(Comment.id).label("count"),
             )
             .filter(
                 and_(Comment.created_at >= start_date, Comment.created_at <= end_date)
             )
-            .group_by(func.strftime("%Y-%m", Comment.created_at))
+            .group_by(month_expr_comment)
             .all()
         )
 
         users_by_month = (
             db.query(
-                func.strftime("%Y-%m", User.created_at).label("month"),
+                month_expr_user.label("month"),
                 func.count(User.id).label("count"),
             )
             .filter(and_(User.created_at >= start_date, User.created_at <= end_date))
-            .group_by(func.strftime("%Y-%m", User.created_at))
+            .group_by(month_expr_user)
             .all()
         )
 
