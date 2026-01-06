@@ -4,6 +4,7 @@ This module handles contact form submissions and sends emails to administrators.
 """
 
 import html
+import os
 
 from loguru import logger
 
@@ -32,7 +33,14 @@ class ContactService:
 
     @classmethod
     def _get_admin_email(cls) -> str:
-        """Get the admin contact email from platform config."""
+        """Get the admin contact email from ADMIN_EMAIL env var or platform config."""
+
+        # Prefer ADMIN_EMAIL env var (set in .env for each deployment)
+        admin_email = os.environ.get("ADMIN_EMAIL")
+        if admin_email:
+            return admin_email
+
+        # Fallback to platform config
         try:
             config = get_config()
             return config.contact.email
