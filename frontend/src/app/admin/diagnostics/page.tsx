@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { captureException, captureMessage, isSentryEnabled } from '@/lib/sentry-utils';
 import { useAuthStore } from '@/store/authStore';
 import { adminAPI } from '@/lib/api';
+import type { DatabaseDiagnosticsResponse } from '@/types';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
@@ -47,6 +48,11 @@ export default function DiagnosticsPage() {
     platform: string;
     version: string;
   } | null>(null);
+  const [dbStatus, setDbStatus] = useState<DiagnosticStatus>({
+    status: 'idle',
+    message: '',
+  });
+  const [dbInfo, setDbInfo] = useState<DatabaseDiagnosticsResponse | null>(null);
   // Initialize browser info lazily on client side
   const getBrowserInfo = () => {
     if (typeof window === 'undefined') return null;
@@ -180,6 +186,27 @@ export default function DiagnosticsPage() {
       setApiStatus({
         status: 'error',
         message: error instanceof Error ? error.message : 'Failed to connect to API',
+      });
+    }
+  };
+
+  // Database check
+  const checkDatabase = async () => {
+    setDbStatus({ status: 'loading', message: t('admin.diagnostics.checking') });
+    setDbInfo(null);
+    try {
+      const result = await adminAPI.diagnostics.checkDatabase();
+      setDbInfo(result);
+      setDbStatus({
+        status: result.connected ? 'success' : 'error',
+        message: result.connected
+          ? t('admin.diagnostics.dbConnected')
+          : result.error || t('admin.diagnostics.dbDisconnected'),
+      });
+    } catch (error) {
+      setDbStatus({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to check database',
       });
     }
   };
@@ -371,6 +398,128 @@ export default function DiagnosticsPage() {
                 </div>
               </dl>
             )}
+          </Card>
+
+          {/* Database Check */}
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.dbTests')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('admin.diagnostics.dbDescription')}
+            </p>
+
+            <div className="space-y-3">
+              <Button
+                onClick={checkDatabase}
+                variant="primary"
+                className="w-full"
+                disabled={dbStatus.status === 'loading'}
+              >
+                {dbStatus.status === 'loading'
+                  ? t('admin.diagnostics.checking')
+                  : t('admin.diagnostics.checkDb')}
+              </Button>
+            </div>
+
+            {dbStatus.message && (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(dbStatus.status)}`}>
+                {dbStatus.message}
+              </div>
+            )}
+
+            {dbInfo && (
+              <div className="mt-4 space-y-3">
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-gray-600 dark:text-gray-400 shrink-0">
+                      {t('admin.diagnostics.dbType')}
+                    </dt>
+                    <dd className="font-mono text-right uppercase">{dbInfo.database_type}</dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-gray-600 dark:text-gray-400 shrink-0">
+                      {t('admin.diagnostics.dbUrl')}
+                    </dt>
+                    <dd
+                      className="font-mono text-xs text-right truncate max-w-[180px]"
+                      title={dbInfo.database_url_masked}
+                    >
+                      {dbInfo.database_url_masked}
+                    </dd>
+                  </div>
+                </dl>
+
+                {/* Pool info for PostgreSQL */}
+                {dbInfo.pool_info && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                      {t('admin.diagnostics.poolInfo')}
+                    </h3>
+                    <dl className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          {t('admin.diagnostics.poolSize')}
+                        </dt>
+                        <dd className="font-mono">{dbInfo.pool_info.pool_size ?? 'N/A'}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          {t('admin.diagnostics.checkedIn')}
+                        </dt>
+                        <dd className="font-mono">{dbInfo.pool_info.checked_in}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          {t('admin.diagnostics.checkedOut')}
+                        </dt>
+                        <dd className="font-mono">{dbInfo.pool_info.checked_out}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-400">
+                          {t('admin.diagnostics.overflow')}
+                        </dt>
+                        <dd className="font-mono">{dbInfo.pool_info.overflow}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+
+                {/* Tables section */}
+                {dbInfo.tables.length > 0 && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                      {t('admin.diagnostics.tables')} ({dbInfo.tables.length})
+                    </h3>
+                    <div className="max-h-40 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-white dark:bg-gray-800">
+                          <tr className="text-left text-gray-500 dark:text-gray-400">
+                            <th className="pb-1">{t('admin.diagnostics.tableName')}</th>
+                            <th className="pb-1 text-right">{t('admin.diagnostics.rows')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono">
+                          {dbInfo.tables.map((table) => (
+                            <tr
+                              key={table.name}
+                              className="border-t border-gray-100 dark:border-gray-700"
+                            >
+                              <td className="py-1">{table.name}</td>
+                              <td className="py-1 text-right">
+                                {table.row_count?.toLocaleString() ?? '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+              {t('admin.diagnostics.dbNote')}
+            </p>
           </Card>
         </div>
 

@@ -57,6 +57,7 @@ import type {
   AdminNotificationCounts,
   ConsentStatus,
   ConsentLogEntry,
+  DatabaseDiagnosticsResponse,
 } from '@/types';
 import type {
   FlagCreate,
@@ -808,6 +809,14 @@ export const adminAPI = {
         message: string;
         details: string | null;
       }>('/admin/notifications/test-smtp');
+      return response.data;
+    },
+
+    /**
+     * Get database connectivity and table information
+     */
+    checkDatabase: async (): Promise<DatabaseDiagnosticsResponse> => {
+      const response = await api.get<DatabaseDiagnosticsResponse>('/admin/diagnostics/database');
       return response.data;
     },
   },

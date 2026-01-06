@@ -1865,3 +1865,36 @@ class DeleteAccountResponse(BaseModel):
     deleted_at: datetime
     data_deleted: bool
     content_anonymized: bool
+
+
+# ============================================================================
+# Diagnostics Schemas
+# ============================================================================
+
+
+class TableInfo(BaseModel):
+    """Information about a database table."""
+
+    name: str
+    row_count: Optional[int] = None
+
+
+class PoolInfo(BaseModel):
+    """Connection pool statistics (PostgreSQL only)."""
+
+    pool_size: Optional[int] = None
+    checked_in: int
+    checked_out: int
+    overflow: int
+    invalid: Optional[int] = None
+
+
+class DatabaseDiagnosticsResponse(BaseModel):
+    """Response for database diagnostics endpoint."""
+
+    connected: bool
+    database_type: str
+    database_url_masked: str
+    tables: list[TableInfo]
+    pool_info: Optional[PoolInfo] = None
+    error: Optional[str] = None

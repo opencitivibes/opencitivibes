@@ -709,3 +709,26 @@ export interface ConsentLogEntry {
   policy_version: string | null;
   created_at: string;
 }
+
+// Diagnostics Types
+export interface TableInfo {
+  name: string;
+  row_count: number | null;
+}
+
+export interface PoolInfo {
+  pool_size: number | null;
+  checked_in: number;
+  checked_out: number;
+  overflow: number;
+  invalid: number | null;
+}
+
+export interface DatabaseDiagnosticsResponse {
+  connected: boolean;
+  database_type: string;
+  database_url_masked: string;
+  tables: TableInfo[];
+  pool_info: PoolInfo | null;
+  error: string | null;
+}

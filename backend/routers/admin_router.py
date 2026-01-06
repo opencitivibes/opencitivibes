@@ -779,3 +779,33 @@ def get_scheduler_status(
     from core.scheduler import get_scheduler_status
 
     return get_scheduler_status()
+
+
+# ============================================================================
+# System Diagnostics
+# ============================================================================
+
+
+@router.get(
+    "/diagnostics/database",
+    response_model=schemas.DatabaseDiagnosticsResponse,
+)
+def get_database_diagnostics(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.DatabaseDiagnosticsResponse:
+    """
+    Get database connectivity and table information.
+
+    Admin only endpoint for checking database health,
+    especially useful for PostgreSQL deployments.
+
+    Returns:
+        - Database type (sqlite/postgresql)
+        - Connection status
+        - List of tables with row counts
+        - Connection pool stats (for PostgreSQL)
+    """
+    from services.diagnostics_service import DiagnosticsService
+
+    return DiagnosticsService.get_database_diagnostics(db)
