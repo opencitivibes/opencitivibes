@@ -84,17 +84,21 @@ NTFY_CACHE_DURATION=24h
 NTFY_ENABLED=true
 APP_URL=https://${DOMAIN}
 
-# SMTP Email Configuration (OVH)
+# SMTP Email Configuration (Postfix container)
 # Used for passwordless login magic links
+# Uses local Postfix container as SMTP relay (no authentication needed)
 EMAIL_PROVIDER=smtp
-SMTP_HOST=smtp.mail.ovh.ca
-SMTP_PORT=465
+SMTP_HOST=postfix
+SMTP_PORT=25
 SMTP_USE_TLS=false
-SMTP_USE_SSL=true
-SMTP_USER=\${ADMIN_EMAIL}
-SMTP_PASSWORD=CHANGE_ME_TO_EMAIL_PASSWORD
-SMTP_FROM_EMAIL=\${ADMIN_EMAIL}
-SMTP_FROM_NAME=\${INSTANCE_NAME}
+SMTP_USE_SSL=false
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=${ADMIN_EMAIL}
+SMTP_FROM_NAME=${INSTANCE_NAME}
+
+# Mail domain for Postfix DKIM signing
+MAIL_DOMAIN=opencitivibes.ovh
 
 # Monitoring - Sentry error tracking
 SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
@@ -117,6 +121,16 @@ sed -i '/NEXT_PUBLIC_ENVIRONMENT/a\    volumes:\n      - ./instance-assets:/app/
 
 # 4. Fix frontend health check to use 127.0.0.1 (wget resolves localhost to IPv6)
 sed -i 's|http://localhost:3000/api/health|http://127.0.0.1:3000/api/health|g' docker-compose.yml
+
+# 5. Enable Postfix for production email (remove 'production' profile so it runs by default)
+sed -i '/postfix:/,/profiles:/{/profiles:/d}' docker-compose.yml
+sed -i '/postfix:/,/- production/{/- production/d}' docker-compose.yml
+
+# 6. Add postfix_dkim volume if not already present
+if ! grep -q "postfix_dkim:" docker-compose.yml; then
+    echo "  postfix_dkim:" >> docker-compose.yml
+    echo "    name: \${VOLUME_PREFIX:-ocv}-postfix-dkim" >> docker-compose.yml
+fi
 
 # Download nginx.conf
 echo "[5/9] Setting up nginx configuration..."
@@ -526,6 +540,25 @@ echo "   ./deploy-instance-assets.sh"
 echo ""
 echo "8. Seed the admin user:"
 echo "   ./seed-admin.sh"
+echo ""
+echo "9. Configure DNS for email delivery:"
+echo "   After containers start, get DKIM key:"
+echo "   docker exec ${CONTAINER_PREFIX}-postfix cat /etc/opendkim/keys/opencitivibes.ovh/mail.txt"
+echo ""
+echo "   Add these DNS records to your domain (opencitivibes.ovh):"
+echo "   "
+echo "   SPF (TXT record for @):"
+echo "   v=spf1 ip4:YOUR_VPS_IP ~all"
+echo "   "
+echo "   DKIM (TXT record for mail._domainkey):"
+echo "   Copy the p= value from the DKIM key above"
+echo "   "
+echo "   DMARC (TXT record for _dmarc):"
+echo "   v=DMARC1; p=quarantine; rua=mailto:${ADMIN_EMAIL}"
+echo ""
+echo "10. Open firewall ports for SMTP:"
+echo "    sudo ufw allow 25/tcp comment 'SMTP'"
+echo "    sudo ufw allow 587/tcp comment 'SMTP Submission'"
 echo ""
 echo "=== Setup Complete ==="
 echo ""

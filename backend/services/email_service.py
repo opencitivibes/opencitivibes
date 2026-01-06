@@ -63,6 +63,11 @@ class SMTPProvider(EmailProvider):
         - STARTTLS (port 587): use SMTP_USE_TLS=true
         """
         try:
+            logger.info(
+                f"SMTP: Connecting to {self.host}:{self.port} "
+                f"(SSL={self.use_ssl}, TLS={self.use_tls}, user={self.user})"
+            )
+
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
             msg["From"] = f"{self.from_name} <{self.from_email}>"
@@ -82,15 +87,35 @@ class SMTPProvider(EmailProvider):
                 # Plain SMTP (not recommended)
                 server = smtplib.SMTP(self.host, self.port)
 
-            if self.user and self.password:
-                server.login(self.user, self.password)
+            # Enable debug output to capture SMTP conversation
+            server.set_debuglevel(1)
 
-            server.sendmail(self.from_email, to_email, msg.as_string())
+            if self.user and self.password:
+                logger.debug("SMTP: Authenticating...")
+                server.login(self.user, self.password)
+                logger.debug("SMTP: Authentication successful")
+
+            logger.info(f"SMTP: Sending email from {self.from_email} to {to_email}")
+            result = server.sendmail(self.from_email, to_email, msg.as_string())
+            logger.info(f"SMTP: sendmail() returned: {result}")
+
             server.quit()
 
             logger.info(f"Email sent successfully to {to_email}")
             return True
 
+        except smtplib.SMTPRecipientsRefused as e:
+            logger.error(f"SMTP: Recipients refused - {e.recipients}")
+            return False
+        except smtplib.SMTPSenderRefused as e:
+            logger.error(f"SMTP: Sender refused - {e.smtp_code}: {e.smtp_error}")
+            return False
+        except smtplib.SMTPDataError as e:
+            logger.error(f"SMTP: Data error - {e.smtp_code}: {e.smtp_error}")
+            return False
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP: Authentication failed - {e.smtp_code}: {e.smtp_error}")
+            return False
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {e}")
             return False
