@@ -12,11 +12,6 @@ upstream frontend {
     keepalive 32;
 }
 
-# Mailpit upstream (staging only)
-upstream mailpit {
-    server ${CONTAINER_PREFIX}-mailpit:8025;
-}
-
 # HTTP -> HTTPS redirect
 server {
     listen 80;
@@ -118,19 +113,6 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_cache_valid 200 60d;
-    }
-
-    # Mailpit Web UI (staging only)
-    # Requires MP_WEBROOT=/mailpit in Mailpit container
-    location /mailpit/ {
-        proxy_pass http://mailpit;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Frontend (default)
