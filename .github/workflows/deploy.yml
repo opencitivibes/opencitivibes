@@ -196,6 +196,9 @@ jobs:
             # Deploy with staging profile (Postfix + SQLite)
             docker compose --profile staging up -d --remove-orphans
 
+            # Restart nginx to refresh upstream DNS resolution
+            docker compose --profile staging restart nginx
+
             # Wait for health checks
             sleep 15
 
@@ -240,6 +243,9 @@ jobs:
 
             # Deploy with prod profile (Postfix + PostgreSQL)
             docker compose --profile prod up -d --remove-orphans
+
+            # Restart nginx to refresh upstream DNS resolution
+            docker compose --profile prod restart nginx
 
             # Wait for health checks
             sleep 20
