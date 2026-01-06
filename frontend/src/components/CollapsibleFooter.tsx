@@ -5,10 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useConfigTranslation } from '@/hooks/useConfigTranslation';
+import { usePlatformConfig } from '@/lib/config/PlatformConfigProvider';
 import Footer from './Footer';
 
 export default function CollapsibleFooter() {
   const { t, instanceName } = useConfigTranslation();
+  const { config } = usePlatformConfig();
+  const logoSrc = config?.branding?.logo || '/static/images/logo_tr3.svg';
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Handle escape key to close expanded panel
@@ -88,7 +91,7 @@ export default function CollapsibleFooter() {
           {/* Left side: Logo and title */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
             <Image
-              src="/static/images/logo_tr3.svg"
+              src={logoSrc}
               alt={instanceName}
               width={24}
               height={24}
