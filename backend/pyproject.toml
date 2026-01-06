@@ -52,6 +52,7 @@ dependencies = [
     "pyjwt[crypto]>=2.10.1",  # CVE-2024-53861 fixed in 2.10.1
     "apscheduler>=3.11.2",
     "httpx>=0.28.1",
+    "psycopg2-binary>=2.9.10",  # PostgreSQL support
 ]
 
 [dependency-groups]
