@@ -51,6 +51,7 @@
             <ul>
                 <li><a href="#prerequisites" class="active">Prérequis</a></li>
                 <li><a href="#quick-start">Démarrage rapide</a></li>
+                <li><a href="#profiles">Profils de déploiement</a></li>
                 <li><a href="#verify">Vérification</a></li>
             </ul>
 
@@ -59,6 +60,7 @@
                 <li><a href="#environment">Variables d'environnement</a></li>
                 <li><a href="#platform-config">Config plateforme</a></li>
                 <li><a href="#branding">Personnalisation visuelle</a></li>
+                <li><a href="#email">Configuration courriel</a></li>
             </ul>
 
             <h4>Personnalisation</h4>
@@ -89,7 +91,7 @@
 
             <div class="callout callout-info">
                 <div class="callout-title">Prérequis</div>
-                <p>Serveur Linux (Ubuntu 22.04+ recommandé), Docker et Docker Compose v2, nom de domaine avec DNS configuré, 2 Go+ RAM, 20 Go+ stockage.</p>
+                <p>Serveur Linux (Ubuntu 22.04+ recommandé), Docker et Docker Compose v2, nom de domaine avec DNS configuré, 2 Go+ RAM (4 Go+ pour production avec PostgreSQL), 20 Go+ stockage.</p>
             </div>
 
             <h2 id="prerequisites">Prérequis</h2>
@@ -180,14 +182,78 @@ DATABASE_URL=sqlite:///./data/opencitivibes.db</code></pre>
 }</code></pre>
 
             <h3>Étape 5 : Déployer</h3>
-            <pre><code># Démarrer tous les services
-docker compose up -d
+            <p>Choisissez le profil approprié pour votre environnement :</p>
+            <pre><code># Développement (capture courriel Mailpit + SQLite)
+docker compose --profile dev up -d
+
+# Pré-production (SMTP Postfix + SQLite)
+docker compose --profile staging up -d
+
+# Production (SMTP Postfix + PostgreSQL)
+docker compose --profile prod up -d
 
 # Initialiser la base de données
 docker compose exec backend python init_db.py
 
 # Vérifier le statut
 docker compose ps</code></pre>
+
+            <h2 id="profiles">Profils de déploiement</h2>
+
+            <p>OpenCitiVibes utilise les profils Docker Compose pour gérer différents environnements de déploiement :</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Profil</th>
+                        <th>Service courriel</th>
+                        <th>Base de données</th>
+                        <th>Cas d'usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>dev</code></td>
+                        <td>Mailpit (capture courriel)</td>
+                        <td>SQLite</td>
+                        <td>Développement local, test des courriels</td>
+                    </tr>
+                    <tr>
+                        <td><code>staging</code></td>
+                        <td>Postfix (relais SMTP)</td>
+                        <td>SQLite</td>
+                        <td>Tests pré-production avec vrais courriels</td>
+                    </tr>
+                    <tr>
+                        <td><code>prod</code></td>
+                        <td>Postfix (relais SMTP)</td>
+                        <td>PostgreSQL</td>
+                        <td>Déploiement production</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Composants par profil</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>dev</th>
+                        <th>staging</th>
+                        <th>prod</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>nginx</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>backend</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>frontend</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>ntfy</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>mailpit</td><td>✓</td><td>-</td><td>-</td></tr>
+                    <tr><td>postfix</td><td>-</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>postgres</td><td>-</td><td>-</td><td>✓</td></tr>
+                </tbody>
+            </table>
 
             <h2 id="verify">Vérification de l'installation</h2>
 
@@ -303,6 +369,64 @@ curl http://localhost:3000</code></pre>
 
             <p>Placez vos images dans <code>frontend/public/images/</code> et utilisez des chemins qui commencent par <code>/images/</code>.</p>
 
+            <h2 id="email">Configuration courriel</h2>
+
+            <p>OpenCitiVibes supporte l'authentification sans mot de passe via codes courriel. La configuration dépend de votre profil de déploiement :</p>
+
+            <h3>Développement : Mailpit</h3>
+            <p>Le profil <code>dev</code> inclut Mailpit, qui capture tous les courriels sortants pour les tests sans les envoyer réellement.</p>
+            <pre><code># Accéder à la boîte de réception à https://votredomaine.com/mailpit/
+EMAIL_PROVIDER=smtp
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=noreply@votredomaine.com
+SMTP_FROM_NAME=OpenCitiVibes</code></pre>
+
+            <h3>Pré-production/Production : SMTP Postfix</h3>
+            <p>Les profils <code>staging</code> et <code>prod</code> incluent Postfix, un relais SMTP auto-hébergé avec signature DKIM automatique.</p>
+            <pre><code>EMAIL_PROVIDER=smtp
+SMTP_HOST=postfix
+SMTP_PORT=25
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=admin@votredomaine.com
+SMTP_FROM_NAME=Nom de votre instance
+MAIL_DOMAIN=votredomaine.com</code></pre>
+
+            <h3>Enregistrements DNS pour la délivrabilité</h3>
+            <p>Configurez ces enregistrements DNS pour éviter que les courriels soient marqués comme spam :</p>
+
+            <h4>1. Enregistrement SPF (TXT sur le domaine racine)</h4>
+            <pre><code>v=spf1 ip4:VOTRE_IP_SERVEUR -all</code></pre>
+
+            <h4>2. Enregistrement DKIM</h4>
+            <pre><code># Obtenir la clé publique DKIM du conteneur
+docker exec ${CONTAINER_PREFIX}-postfix cat /etc/opendkim/keys/votredomaine.com/mail.txt
+
+# Ajouter la sortie comme enregistrement TXT pour mail._domainkey.votredomaine.com</code></pre>
+
+            <h4>3. Enregistrement DMARC (TXT sur _dmarc)</h4>
+            <pre><code>v=DMARC1; p=quarantine; rua=mailto:admin@votredomaine.com</code></pre>
+
+            <h3>Services SMTP externes</h3>
+            <p>Vous pouvez aussi utiliser des services SMTP externes comme SendGrid, Mailgun, etc. :</p>
+            <pre><code>EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+SMTP_USER=apikey
+SMTP_PASSWORD=votre-cle-api-sendgrid
+SMTP_FROM_EMAIL=noreply@votredomaine.com
+SMTP_FROM_NAME=Nom de votre instance</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Note pare-feu</div>
+                <p>Plusieurs fournisseurs cloud bloquent le port sortant 25 par défaut. Vérifiez auprès de votre fournisseur VPS si les courriels ne sont pas livrés. Assurez-vous que <code>sudo ufw allow out 25/tcp</code> est configuré.</p>
+            </div>
+
             <h2 id="languages">Ajouter des langues</h2>
 
             <ol>
@@ -363,11 +487,11 @@ sudo certbot --nginx -d votredomaine.com -d www.votredomaine.com
 
             <h2 id="updates">Mises à jour</h2>
 
-            <pre><code># Télécharger les dernières images
-docker compose pull
+            <pre><code># Télécharger les dernières images (utilisez votre profil)
+docker compose --profile prod pull
 
 # Redémarrer avec les nouvelles images
-docker compose up -d
+docker compose --profile prod up -d
 
 # Exécuter les migrations si nécessaire
 docker compose exec backend alembic upgrade head</code></pre>
@@ -478,6 +602,25 @@ docker exec ${CONTAINER_PREFIX}-backend curl -s http://ntfy:80/v1/health
 
 # Vérifier les variables d'environnement
 docker exec ${CONTAINER_PREFIX}-backend env | grep NTFY</code></pre>
+
+            <h3>Courriels/codes de connexion qui ne fonctionnent pas</h3>
+            <pre><code># Vérifier la configuration courriel
+docker exec ${CONTAINER_PREFIX}-backend env | grep -E "EMAIL|SMTP"
+
+# Vérifier le conteneur Postfix (staging/prod)
+docker compose ps postfix
+docker logs ${CONTAINER_PREFIX}-postfix --tail 50
+
+# Tester la connectivité SMTP
+docker exec ${CONTAINER_PREFIX}-backend python -c "
+import smtplib
+s = smtplib.SMTP('postfix', 25)
+print(s.noop())
+s.quit()
+"
+
+# Vérifier si le port 25 est bloqué
+nc -zv smtp.gmail.com 25 || echo "Port 25 bloqué par le fournisseur"</code></pre>
 
             <div class="callout callout-success">
                 <div class="callout-title">Besoin d'aide?</div>

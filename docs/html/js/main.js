@@ -45,8 +45,8 @@
             image: 'images/screenshot-idea.png'
         },
         submit: {
-            title: 'Submit Idea',
-            description: 'User-friendly form for submitting new ideas',
+            title: 'Explorer',
+            description: 'Browse and search through all submitted ideas',
             image: 'images/screenshot-submit.png'
         },
         admin: {

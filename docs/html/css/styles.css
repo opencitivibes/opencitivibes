@@ -839,6 +839,7 @@ ul {
 .instance-card.coming-soon {
     border-style: dashed;
     opacity: 0.8;
+    grid-column: span 2;
 }
 
 .instance-flag {

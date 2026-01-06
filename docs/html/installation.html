@@ -51,6 +51,7 @@
             <ul>
                 <li><a href="#prerequisites" class="active">Prerequisites</a></li>
                 <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#profiles">Deployment Profiles</a></li>
                 <li><a href="#verify">Verify Installation</a></li>
             </ul>
 
@@ -59,6 +60,7 @@
                 <li><a href="#environment">Environment Variables</a></li>
                 <li><a href="#platform-config">Platform Config</a></li>
                 <li><a href="#branding">Custom Branding</a></li>
+                <li><a href="#email">Email Configuration</a></li>
             </ul>
 
             <h4>Customization</h4>
@@ -89,7 +91,7 @@
 
             <div class="callout callout-info">
                 <div class="callout-title">Requirements</div>
-                <p>Linux server (Ubuntu 22.04+ recommended), Docker &amp; Docker Compose v2, Domain name with DNS configured, 2GB+ RAM, 20GB+ storage.</p>
+                <p>Linux server (Ubuntu 22.04+ recommended), Docker &amp; Docker Compose v2, Domain name with DNS configured, 2GB+ RAM (4GB+ for production with PostgreSQL), 20GB+ storage.</p>
             </div>
 
             <h2 id="prerequisites">Prerequisites</h2>
@@ -180,14 +182,78 @@ DATABASE_URL=sqlite:///./data/opencitivibes.db</code></pre>
 }</code></pre>
 
             <h3>Step 5: Deploy</h3>
-            <pre><code># Start all services
-docker compose up -d
+            <p>Choose the appropriate profile for your environment:</p>
+            <pre><code># Development (Mailpit email capture + SQLite)
+docker compose --profile dev up -d
+
+# Staging (Postfix SMTP + SQLite)
+docker compose --profile staging up -d
+
+# Production (Postfix SMTP + PostgreSQL)
+docker compose --profile prod up -d
 
 # Initialize the database
 docker compose exec backend python init_db.py
 
 # Check status
 docker compose ps</code></pre>
+
+            <h2 id="profiles">Deployment Profiles</h2>
+
+            <p>OpenCitiVibes uses Docker Compose profiles to manage different deployment environments:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Profile</th>
+                        <th>Email Service</th>
+                        <th>Database</th>
+                        <th>Use Case</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>dev</code></td>
+                        <td>Mailpit (email capture)</td>
+                        <td>SQLite</td>
+                        <td>Local development, testing email flows</td>
+                    </tr>
+                    <tr>
+                        <td><code>staging</code></td>
+                        <td>Postfix (SMTP relay)</td>
+                        <td>SQLite</td>
+                        <td>Pre-production testing with real emails</td>
+                    </tr>
+                    <tr>
+                        <td><code>prod</code></td>
+                        <td>Postfix (SMTP relay)</td>
+                        <td>PostgreSQL</td>
+                        <td>Production deployment</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Profile Components</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>dev</th>
+                        <th>staging</th>
+                        <th>prod</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>nginx</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>backend</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>frontend</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>ntfy</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>mailpit</td><td>✓</td><td>-</td><td>-</td></tr>
+                    <tr><td>postfix</td><td>-</td><td>✓</td><td>✓</td></tr>
+                    <tr><td>postgres</td><td>-</td><td>-</td><td>✓</td></tr>
+                </tbody>
+            </table>
 
             <h2 id="verify">Verify Installation</h2>
 
@@ -303,6 +369,64 @@ curl http://localhost:3000</code></pre>
 
             <p>Place your images in <code>frontend/public/images/</code> and reference them with paths starting with <code>/images/</code>.</p>
 
+            <h2 id="email">Email Configuration</h2>
+
+            <p>OpenCitiVibes supports passwordless authentication via email codes. Email configuration depends on your deployment profile:</p>
+
+            <h3>Development: Mailpit</h3>
+            <p>The <code>dev</code> profile includes Mailpit, which captures all outgoing emails for testing without actually sending them.</p>
+            <pre><code># Access inbox at https://yourdomain.com/mailpit/
+EMAIL_PROVIDER=smtp
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=OpenCitiVibes</code></pre>
+
+            <h3>Staging/Production: Postfix SMTP</h3>
+            <p>The <code>staging</code> and <code>prod</code> profiles include Postfix, a self-hosted SMTP relay with automatic DKIM signing.</p>
+            <pre><code>EMAIL_PROVIDER=smtp
+SMTP_HOST=postfix
+SMTP_PORT=25
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=admin@yourdomain.com
+SMTP_FROM_NAME=Your Instance Name
+MAIL_DOMAIN=yourdomain.com</code></pre>
+
+            <h3>DNS Records for Email Deliverability</h3>
+            <p>Configure these DNS records to ensure emails aren't marked as spam:</p>
+
+            <h4>1. SPF Record (TXT on root domain)</h4>
+            <pre><code>v=spf1 ip4:YOUR_SERVER_IP -all</code></pre>
+
+            <h4>2. DKIM Record</h4>
+            <pre><code># Get DKIM public key from container
+docker exec ${CONTAINER_PREFIX}-postfix cat /etc/opendkim/keys/yourdomain.com/mail.txt
+
+# Add output as TXT record for mail._domainkey.yourdomain.com</code></pre>
+
+            <h4>3. DMARC Record (TXT on _dmarc)</h4>
+            <pre><code>v=DMARC1; p=quarantine; rua=mailto:admin@yourdomain.com</code></pre>
+
+            <h3>External SMTP Services</h3>
+            <p>You can also use external SMTP services like SendGrid, Mailgun, etc.:</p>
+            <pre><code>EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+SMTP_USER=apikey
+SMTP_PASSWORD=your-sendgrid-api-key
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Your Instance Name</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Firewall Note</div>
+                <p>Many cloud providers block outbound port 25 by default. Check with your VPS provider if emails aren't being delivered. Ensure <code>sudo ufw allow out 25/tcp</code> is set.</p>
+            </div>
+
             <h2 id="languages">Adding Languages</h2>
 
             <ol>
@@ -363,11 +487,11 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 
             <h2 id="updates">Updates</h2>
 
-            <pre><code># Pull latest images
-docker compose pull
+            <pre><code># Pull latest images (use your profile)
+docker compose --profile prod pull
 
 # Restart with new images
-docker compose up -d
+docker compose --profile prod up -d
 
 # Run migrations if needed
 docker compose exec backend alembic upgrade head</code></pre>
@@ -478,6 +602,25 @@ docker exec ${CONTAINER_PREFIX}-backend curl -s http://ntfy:80/v1/health
 
 # Check environment variables
 docker exec ${CONTAINER_PREFIX}-backend env | grep NTFY</code></pre>
+
+            <h3>Email/login codes not working</h3>
+            <pre><code># Check email configuration
+docker exec ${CONTAINER_PREFIX}-backend env | grep -E "EMAIL|SMTP"
+
+# Check Postfix container (staging/prod)
+docker compose ps postfix
+docker logs ${CONTAINER_PREFIX}-postfix --tail 50
+
+# Test SMTP connectivity
+docker exec ${CONTAINER_PREFIX}-backend python -c "
+import smtplib
+s = smtplib.SMTP('postfix', 25)
+print(s.noop())
+s.quit()
+"
+
+# Check if port 25 is blocked
+nc -zv smtp.gmail.com 25 || echo "Port 25 blocked by provider"</code></pre>
 
             <div class="callout callout-success">
                 <div class="callout-title">Need Help?</div>
