@@ -254,6 +254,10 @@ class TestTask14DatabaseIndexes:
 class TestTask12SecretKeyConfiguration:
     """Test that SECRET_KEY configuration is required."""
 
+    @pytest.mark.skipif(
+        "PYTEST_XDIST_WORKER" in __import__("os").environ,
+        reason="Test manipulates env vars, incompatible with parallel execution",
+    )
     def test_settings_requires_secret_key(self):
         """Test that Settings requires SECRET_KEY to be set."""
         import os
