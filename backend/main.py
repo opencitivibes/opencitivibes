@@ -1128,6 +1128,11 @@ from services.config_service import get_config, get_instance_name
 
 app.include_router(config_router.router, prefix="/api")
 
+# Import contact_router for contact form submissions
+from routers import contact_router
+
+app.include_router(contact_router.router, prefix="/api")
+
 # Import legal_router for legal content (Terms of Service, Privacy Policy)
 from routers import legal_router
 

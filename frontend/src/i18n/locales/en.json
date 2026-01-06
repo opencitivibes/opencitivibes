@@ -948,6 +948,9 @@
     "messagePlaceholder": "Describe your question or issue in detail...",
     "requiredFields": "Required fields",
     "sendMessage": "Send Message",
+    "sending": "Sending...",
+    "errorSending": "Failed to send message. Please try again later.",
+    "errorRateLimited": "Too many requests. Please wait a while before trying again.",
     "otherWays": "Other ways to reach us",
     "responseTime": "Response Time",
     "responseTimeValue": "Within 48 business hours"

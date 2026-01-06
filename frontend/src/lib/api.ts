@@ -1323,6 +1323,43 @@ export const legalAPI = {
 };
 
 // =============================================================================
+// Contact Form API
+// =============================================================================
+
+export type ContactSubject =
+  | 'general'
+  | 'account'
+  | 'idea'
+  | 'bug'
+  | 'feedback'
+  | 'privacy'
+  | 'other';
+
+export interface ContactFormRequest {
+  name: string;
+  email: string;
+  subject: ContactSubject;
+  message: string;
+  language: 'en' | 'fr';
+}
+
+export interface ContactFormResponse {
+  success: boolean;
+  message: string;
+}
+
+export const contactAPI = {
+  /**
+   * Submit a contact form message.
+   * Sends email to admin and confirmation to user.
+   */
+  submit: async (form: ContactFormRequest): Promise<ContactFormResponse> => {
+    const response = await api.post<ContactFormResponse>('/contact', form);
+    return response.data;
+  },
+};
+
+// =============================================================================
 // Error Reporting API
 // =============================================================================
 

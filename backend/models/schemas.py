@@ -1898,3 +1898,37 @@ class DatabaseDiagnosticsResponse(BaseModel):
     tables: list[TableInfo]
     pool_info: Optional[PoolInfo] = None
     error: Optional[str] = None
+
+
+# ============================================================================
+# Contact Form Schemas
+# ============================================================================
+
+
+class ContactSubject(str, Enum):
+    """Contact form subject options."""
+
+    GENERAL = "general"
+    ACCOUNT = "account"
+    IDEA = "idea"
+    BUG = "bug"
+    FEEDBACK = "feedback"
+    PRIVACY = "privacy"
+    OTHER = "other"
+
+
+class ContactFormRequest(BaseModel):
+    """Request schema for contact form submission."""
+
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    subject: ContactSubject
+    message: str = Field(..., min_length=10, max_length=5000)
+    language: str = Field(default="en", pattern="^(en|fr)$")
+
+
+class ContactFormResponse(BaseModel):
+    """Response schema for contact form submission."""
+
+    success: bool
+    message: str

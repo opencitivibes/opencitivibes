@@ -948,6 +948,9 @@
     "messagePlaceholder": "Décrivez votre question ou problème en détail...",
     "requiredFields": "Champs obligatoires",
     "sendMessage": "Envoyer le message",
+    "sending": "Envoi en cours...",
+    "errorSending": "Échec de l'envoi du message. Veuillez réessayer plus tard.",
+    "errorRateLimited": "Trop de demandes. Veuillez patienter avant de réessayer.",
     "otherWays": "Autres moyens de nous joindre",
     "responseTime": "Temps de réponse",
     "responseTimeValue": "Sous 48 heures ouvrables"

@@ -5,23 +5,59 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { usePlatformConfig } from '@/lib/config/PlatformConfigProvider';
+import { contactAPI, type ContactSubject } from '@/lib/api';
 
 export default function ContactPageClient() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { config } = usePlatformConfig();
   const contactEmail = config?.contact.email || 'contact@opencitivibes.local';
   const [formState, setFormState] = useState({
     name: '',
     email: '',
-    subject: '',
+    subject: '' as ContactSubject | '',
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder - would integrate with backend in real implementation
-    setSubmitted(true);
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const language = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+      await contactAPI.submit({
+        name: formState.name,
+        email: formState.email,
+        subject: formState.subject as ContactSubject,
+        message: formState.message,
+        language,
+      });
+      setSubmitted(true);
+      setFormState({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      // Handle specific error cases using type casting (avoids direct axios import)
+      const axiosError = err as import('axios').AxiosError<{ detail?: string }>;
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        if (status === 429) {
+          // Rate limited
+          setError(t('contactPage.errorRateLimited'));
+        } else if (axiosError.response.data?.detail) {
+          // Server provided error message
+          setError(axiosError.response.data.detail);
+        } else {
+          setError(t('contactPage.errorSending'));
+        }
+      } else {
+        setError(t('contactPage.errorSending'));
+      }
+      console.error('Contact form submission failed:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (
@@ -168,12 +204,18 @@ export default function ContactPageClient() {
                 />
               </div>
 
+              {error && (
+                <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 rounded-lg p-4">
+                  <p className="text-danger-700 dark:text-danger-300 text-sm">{error}</p>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   * {t('contactPage.requiredFields')}
                 </p>
-                <Button type="submit" variant="primary" size="lg">
-                  {t('contactPage.sendMessage')}
+                <Button type="submit" variant="primary" size="lg" disabled={isSubmitting}>
+                  {isSubmitting ? t('contactPage.sending') : t('contactPage.sendMessage')}
                 </Button>
               </div>
             </form>
