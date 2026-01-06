@@ -401,6 +401,47 @@ SMTP_FROM_NAME=Your Instance Name
 
 ## Maintenance
 
+### Automated Cleanup (Cron Jobs)
+
+To prevent disk exhaustion, install the maintenance scripts on your VPS:
+
+```bash
+# Copy scripts to VPS
+scp scripts/vps-maintenance.sh scripts/vps-disk-alert.sh scripts/setup-vps-maintenance.sh \
+    ubuntu@your-vps:/home/ubuntu/maintenance/
+
+# SSH and run setup
+ssh ubuntu@your-vps
+chmod +x /home/ubuntu/maintenance/*.sh
+bash /home/ubuntu/maintenance/setup-vps-maintenance.sh
+```
+
+**Installed cron jobs:**
+
+| Schedule | Task | Description |
+|----------|------|-------------|
+| Sunday 3 AM | `vps-maintenance.sh` | Full cleanup (Docker, logs, kernels, apt cache) |
+| Daily 4 AM | `docker image prune` | Remove unused images older than 72h |
+| Every 6 hours | `vps-disk-alert.sh` | Alert via ntfy if disk >80% |
+| Daily 5 AM | `logrotate` | Rotate system logs |
+
+**What gets cleaned:**
+- Docker: unused images, build cache, dangling volumes (>7 days old)
+- System: old kernels, apt cache, temp files
+- Logs: journald (capped at 100MB/7 days), large log files (>100MB)
+
+**Monitor:**
+```bash
+# View maintenance logs
+tail -f /var/log/vps-maintenance.log
+
+# Check disk usage
+df -h /
+
+# Check Docker usage
+docker system df
+```
+
 ### Backups
 
 ```bash

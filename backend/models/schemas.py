@@ -1900,6 +1900,46 @@ class DatabaseDiagnosticsResponse(BaseModel):
     error: Optional[str] = None
 
 
+class DiskUsageInfo(BaseModel):
+    """Disk usage statistics."""
+
+    total_gb: float
+    used_gb: float
+    free_gb: float
+    used_percent: float
+
+
+class DockerUsageInfo(BaseModel):
+    """Docker disk usage statistics."""
+
+    images_size_gb: float
+    images_reclaimable_gb: float
+    containers_size_mb: float
+    volumes_size_mb: float
+    build_cache_gb: float
+    build_cache_reclaimable_gb: float
+
+
+class DatabaseSizeInfo(BaseModel):
+    """Database size information."""
+
+    database_type: str
+    size_mb: float
+    file_path: Optional[str] = None  # For SQLite
+
+
+class SystemResourcesResponse(BaseModel):
+    """Response for system resources diagnostics endpoint."""
+
+    disk: Optional[DiskUsageInfo] = None
+    docker: Optional[DockerUsageInfo] = None
+    database_size: Optional[DatabaseSizeInfo] = None
+    uptime_seconds: Optional[int] = None
+    load_average: Optional[list[float]] = None
+    memory_used_percent: Optional[float] = None
+    error: Optional[str] = None
+
+
 # ============================================================================
 # Contact Form Schemas
 # ============================================================================

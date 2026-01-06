@@ -732,3 +732,35 @@ export interface DatabaseDiagnosticsResponse {
   pool_info: PoolInfo | null;
   error: string | null;
 }
+
+export interface DiskUsageInfo {
+  total_gb: number;
+  used_gb: number;
+  free_gb: number;
+  used_percent: number;
+}
+
+export interface DockerUsageInfo {
+  images_size_gb: number;
+  images_reclaimable_gb: number;
+  containers_size_mb: number;
+  volumes_size_mb: number;
+  build_cache_gb: number;
+  build_cache_reclaimable_gb: number;
+}
+
+export interface DatabaseSizeInfo {
+  database_type: string;
+  size_mb: number;
+  file_path: string | null;
+}
+
+export interface SystemResourcesResponse {
+  disk: DiskUsageInfo | null;
+  docker: DockerUsageInfo | null;
+  database_size: DatabaseSizeInfo | null;
+  uptime_seconds: number | null;
+  load_average: number[] | null;
+  memory_used_percent: number | null;
+  error: string | null;
+}

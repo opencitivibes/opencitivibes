@@ -809,3 +809,28 @@ def get_database_diagnostics(
     from services.diagnostics_service import DiagnosticsService
 
     return DiagnosticsService.get_database_diagnostics(db)
+
+
+@router.get(
+    "/diagnostics/system",
+    response_model=schemas.SystemResourcesResponse,
+)
+def get_system_resources(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.SystemResourcesResponse:
+    """
+    Get system resource usage information.
+
+    Admin only endpoint for monitoring server health:
+        - Disk usage (total, used, free, percentage)
+        - Docker usage (images, containers, volumes, build cache)
+        - Database size (SQLite file or PostgreSQL database)
+        - System metrics (uptime, load average, memory usage)
+
+    Note: Docker metrics require the backend to have access to the Docker socket.
+    Some metrics may not be available on all platforms.
+    """
+    from services.diagnostics_service import DiagnosticsService
+
+    return DiagnosticsService.get_system_resources(db)

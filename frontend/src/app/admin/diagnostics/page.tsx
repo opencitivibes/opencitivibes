@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { captureException, captureMessage, isSentryEnabled } from '@/lib/sentry-utils';
 import { useAuthStore } from '@/store/authStore';
 import { adminAPI } from '@/lib/api';
-import type { DatabaseDiagnosticsResponse } from '@/types';
+import type { DatabaseDiagnosticsResponse, SystemResourcesResponse } from '@/types';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
@@ -53,6 +53,11 @@ export default function DiagnosticsPage() {
     message: '',
   });
   const [dbInfo, setDbInfo] = useState<DatabaseDiagnosticsResponse | null>(null);
+  const [systemStatus, setSystemStatus] = useState<DiagnosticStatus>({
+    status: 'idle',
+    message: '',
+  });
+  const [systemInfo, setSystemInfo] = useState<SystemResourcesResponse | null>(null);
   // Initialize browser info lazily on client side
   const getBrowserInfo = () => {
     if (typeof window === 'undefined') return null;
@@ -209,6 +214,42 @@ export default function DiagnosticsPage() {
         message: error instanceof Error ? error.message : 'Failed to check database',
       });
     }
+  };
+
+  // System resources check
+  const checkSystemResources = async () => {
+    setSystemStatus({ status: 'loading', message: t('admin.diagnostics.checking') });
+    setSystemInfo(null);
+    try {
+      const result = await adminAPI.diagnostics.getSystemResources();
+      setSystemInfo(result);
+      setSystemStatus({
+        status: result.error ? 'error' : 'success',
+        message: result.error || t('admin.diagnostics.systemResourcesLoaded'),
+      });
+    } catch (error) {
+      setSystemStatus({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to check system resources',
+      });
+    }
+  };
+
+  // Format uptime as human-readable string
+  const formatUptime = (seconds: number): string => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
+
+  // Get color for disk/memory usage percentage
+  const getUsageColor = (percent: number): string => {
+    if (percent >= 90) return 'text-red-600 dark:text-red-400';
+    if (percent >= 75) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-green-600 dark:text-green-400';
   };
 
   const getStatusColor = (status: DiagnosticStatus['status']) => {
@@ -519,6 +560,214 @@ export default function DiagnosticsPage() {
 
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
               {t('admin.diagnostics.dbNote')}
+            </p>
+          </Card>
+
+          {/* System Resources */}
+          <Card className="p-6 sm:col-span-2">
+            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.systemResources')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t('admin.diagnostics.systemResourcesDescription')}
+            </p>
+
+            <div className="space-y-3">
+              <Button
+                onClick={checkSystemResources}
+                variant="primary"
+                className="w-full sm:w-auto"
+                disabled={systemStatus.status === 'loading'}
+              >
+                {systemStatus.status === 'loading'
+                  ? t('admin.diagnostics.checking')
+                  : t('admin.diagnostics.checkSystemResources')}
+              </Button>
+            </div>
+
+            {systemStatus.message && systemStatus.status !== 'success' && (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(systemStatus.status)}`}>
+                {systemStatus.message}
+              </div>
+            )}
+
+            {systemInfo && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Disk Usage */}
+                {systemInfo.disk && (
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('admin.diagnostics.diskUsage')}
+                    </h3>
+                    <div className="mb-2">
+                      <span
+                        className={`text-2xl font-bold ${getUsageColor(systemInfo.disk.used_percent)}`}
+                      >
+                        {systemInfo.disk.used_percent}%
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+                        {t('admin.diagnostics.used')}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          systemInfo.disk.used_percent >= 90
+                            ? 'bg-red-500'
+                            : systemInfo.disk.used_percent >= 75
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${systemInfo.disk.used_percent}%` }}
+                      />
+                    </div>
+                    <dl className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.total')}</dt>
+                        <dd className="font-mono">{systemInfo.disk.total_gb} GB</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.free')}</dt>
+                        <dd className="font-mono">{systemInfo.disk.free_gb} GB</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+
+                {/* Memory Usage */}
+                {systemInfo.memory_used_percent !== null && (
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('admin.diagnostics.memoryUsage')}
+                    </h3>
+                    <div className="mb-2">
+                      <span
+                        className={`text-2xl font-bold ${getUsageColor(systemInfo.memory_used_percent)}`}
+                      >
+                        {systemInfo.memory_used_percent}%
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">
+                        {t('admin.diagnostics.used')}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          systemInfo.memory_used_percent >= 90
+                            ? 'bg-red-500'
+                            : systemInfo.memory_used_percent >= 75
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${systemInfo.memory_used_percent}%` }}
+                      />
+                    </div>
+                    {systemInfo.load_average && (
+                      <dl className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                        <div className="flex justify-between">
+                          <dt>{t('admin.diagnostics.loadAvg')}</dt>
+                          <dd className="font-mono">{systemInfo.load_average.join(' / ')}</dd>
+                        </div>
+                      </dl>
+                    )}
+                    {systemInfo.uptime_seconds !== null && (
+                      <dl className="space-y-1 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <div className="flex justify-between">
+                          <dt>{t('admin.diagnostics.uptime')}</dt>
+                          <dd className="font-mono">{formatUptime(systemInfo.uptime_seconds)}</dd>
+                        </div>
+                      </dl>
+                    )}
+                  </div>
+                )}
+
+                {/* Database Size */}
+                {systemInfo.database_size && (
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('admin.diagnostics.databaseSize')}
+                    </h3>
+                    <div className="mb-2">
+                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {systemInfo.database_size.size_mb.toFixed(1)}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">MB</span>
+                    </div>
+                    <dl className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.dbType')}</dt>
+                        <dd className="font-mono uppercase">
+                          {systemInfo.database_size.database_type}
+                        </dd>
+                      </div>
+                      {systemInfo.database_size.file_path && (
+                        <div className="flex justify-between">
+                          <dt>{t('admin.diagnostics.file')}</dt>
+                          <dd
+                            className="font-mono truncate max-w-[100px]"
+                            title={systemInfo.database_size.file_path}
+                          >
+                            {systemInfo.database_size.file_path}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                )}
+
+                {/* Docker Usage */}
+                {systemInfo.docker && (
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('admin.diagnostics.dockerUsage')}
+                    </h3>
+                    <div className="mb-2">
+                      <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {(
+                          systemInfo.docker.images_size_gb +
+                          systemInfo.docker.build_cache_gb +
+                          systemInfo.docker.volumes_size_mb / 1024
+                        ).toFixed(1)}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">GB</span>
+                    </div>
+                    <dl className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.images')}</dt>
+                        <dd className="font-mono">{systemInfo.docker.images_size_gb} GB</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.buildCache')}</dt>
+                        <dd className="font-mono">{systemInfo.docker.build_cache_gb} GB</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>{t('admin.diagnostics.reclaimable')}</dt>
+                        <dd className="font-mono text-green-600 dark:text-green-400">
+                          {(
+                            systemInfo.docker.images_reclaimable_gb +
+                            systemInfo.docker.build_cache_reclaimable_gb
+                          ).toFixed(1)}{' '}
+                          GB
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+
+                {/* No Docker available message */}
+                {!systemInfo.docker && systemInfo.disk && (
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('admin.diagnostics.dockerUsage')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('admin.diagnostics.dockerNotAvailable')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+              {t('admin.diagnostics.systemResourcesNote')}
             </p>
           </Card>
         </div>

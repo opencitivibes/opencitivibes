@@ -58,6 +58,7 @@ import type {
   ConsentStatus,
   ConsentLogEntry,
   DatabaseDiagnosticsResponse,
+  SystemResourcesResponse,
 } from '@/types';
 import type {
   FlagCreate,
@@ -817,6 +818,14 @@ export const adminAPI = {
      */
     checkDatabase: async (): Promise<DatabaseDiagnosticsResponse> => {
       const response = await api.get<DatabaseDiagnosticsResponse>('/admin/diagnostics/database');
+      return response.data;
+    },
+
+    /**
+     * Get system resource usage (disk, docker, database size, memory)
+     */
+    getSystemResources: async (): Promise<SystemResourcesResponse> => {
+      const response = await api.get<SystemResourcesResponse>('/admin/diagnostics/system');
       return response.data;
     },
   },
