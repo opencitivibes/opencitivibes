@@ -1,0 +1,23 @@
+# Semgrep ignore patterns for OpenCitiVibes
+# https://semgrep.dev/docs/ignoring-code-and-findings
+
+# Alembic migrations use text() for DDL operations - safe as no user input
+backend/alembic/
+
+# FTS5 setup requires raw SQL for SQLite-specific FTS5 virtual tables
+backend/migrations/sqlite_fts5_setup.py
+
+# Search backends use text() for FTS queries but with proper parameterization
+# All user inputs are bound parameters (:query, :limit, :skip, etc.)
+# Table names are class constants (FTS_TABLE_NAME), not user input
+backend/services/search/
+
+# Test data generation - development only, no user input
+backend/scripts/generate_test_data.py
+
+# Common exclusions
+__pycache__/
+.venv/
+*.pyc
+node_modules/
+.next/
