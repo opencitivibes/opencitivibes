@@ -215,6 +215,136 @@ Each admin installs the ntfy app and subscribes to topics:
 
 See [Ntfy Notification System](../claude-docs/plans/ntfy-notification-system.md) for detailed configuration.
 
+### Transactional Email (Passwordless Login)
+
+OpenCitiVibes supports passwordless authentication via email codes. Three email providers are available:
+
+| Provider | Use Case | Configuration |
+|----------|----------|---------------|
+| `console` | Development | Logs emails to stdout |
+| `smtp` (Mailpit) | Local testing | Visual email inbox at `/mailpit/` |
+| `smtp` (Postfix) | Production | Self-hosted SMTP relay with DKIM |
+
+#### Development: Console Provider
+
+No configuration needed. Emails are logged to the backend console:
+
+```bash
+docker compose logs -f backend | grep EMAIL
+```
+
+#### Local Testing: Mailpit
+
+Mailpit provides a web UI to view sent emails without actual delivery.
+
+```bash
+# Start with staging profile
+docker compose --profile staging up -d
+
+# Access inbox at http://localhost:8025/mailpit/
+```
+
+Environment variables:
+```bash
+EMAIL_PROVIDER=smtp
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=OpenCitiVibes
+```
+
+#### Production: Postfix SMTP Relay
+
+For production, the Postfix container provides a self-hosted SMTP relay with automatic DKIM signing.
+
+##### Enable Postfix
+
+The setup script automatically configures Postfix. For manual setup:
+
+```bash
+# Environment variables in .env
+EMAIL_PROVIDER=smtp
+SMTP_HOST=postfix
+SMTP_PORT=25
+SMTP_USE_TLS=false
+SMTP_USE_SSL=false
+SMTP_FROM_EMAIL=admin@yourdomain.com
+SMTP_FROM_NAME=Your Instance Name
+MAIL_DOMAIN=yourdomain.com
+
+# Start with production profile (or remove profile restriction)
+docker compose --profile production up -d
+```
+
+##### DNS Records for Email Deliverability
+
+Configure these DNS records to ensure emails aren't marked as spam:
+
+**1. SPF Record** (TXT on root domain):
+```
+v=spf1 ip4:YOUR_SERVER_IP -all
+```
+
+**2. DKIM Record** (TXT on `mail._domainkey`):
+```bash
+# Get DKIM public key from container
+docker exec ${CONTAINER_PREFIX}-postfix cat /etc/opendkim/keys/yourdomain.com/mail.txt
+```
+Add the output as a TXT record for `mail._domainkey.yourdomain.com`.
+
+**3. DMARC Record** (TXT on `_dmarc`):
+```
+v=DMARC1; p=quarantine; rua=mailto:admin@yourdomain.com
+```
+
+##### Firewall Configuration
+
+Ensure outbound port 25 is open:
+```bash
+sudo ufw allow out 25/tcp
+```
+
+Note: Many cloud providers block outbound port 25 by default. Check with your VPS provider if emails aren't being delivered.
+
+##### Verify Email Delivery
+
+```bash
+# Send test email
+docker exec ${CONTAINER_PREFIX}-backend python -c "
+from services.email_service import EmailService
+EmailService.send_login_code('test@example.com', '123456', 'Test User')
+"
+
+# Check Postfix logs
+docker logs ${CONTAINER_PREFIX}-postfix --tail 50
+```
+
+#### External SMTP Services
+
+You can also use external SMTP services (SendGrid, Mailgun, etc.):
+
+```bash
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+SMTP_USER=apikey
+SMTP_PASSWORD=your-sendgrid-api-key
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Your Instance Name
+```
+
+For SendGrid API (alternative to SMTP):
+```bash
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY=your-api-key
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Your Instance Name
+```
+
 ## Maintenance
 
 ### Backups
@@ -295,6 +425,33 @@ docker exec ${CONTAINER_PREFIX}-backend curl -X POST \
 
 # Check NTFY_URL is set in backend
 docker exec ${CONTAINER_PREFIX}-backend env | grep NTFY
+```
+
+#### Email/login codes not working
+```bash
+# Check email provider configuration
+docker exec ${CONTAINER_PREFIX}-backend env | grep -E "EMAIL|SMTP"
+
+# View email logs (console provider)
+docker compose logs backend | grep -i email
+
+# Check Postfix container (production)
+docker compose ps postfix
+docker logs ${CONTAINER_PREFIX}-postfix --tail 50
+
+# Test DNS resolution to Postfix
+docker exec ${CONTAINER_PREFIX}-backend ping -c 1 postfix
+
+# Verify SMTP connectivity
+docker exec ${CONTAINER_PREFIX}-backend python -c "
+import smtplib
+s = smtplib.SMTP('postfix', 25)
+print(s.noop())
+s.quit()
+"
+
+# Check if port 25 is blocked (from VPS)
+nc -zv smtp.gmail.com 25 || echo "Port 25 blocked by provider"
 ```
 
 ### Getting Help
@@ -413,5 +570,6 @@ After deployment:
 2. [ ] Configure backup schedule
 3. [ ] Set up monitoring (optional)
 4. [ ] Configure admin push notifications (see [Admin Push Notifications](#admin-push-notifications-ntfy))
-5. [ ] Configure email for passwordless login (optional)
-6. [ ] Announce to your community
+5. [ ] Configure email for passwordless login (see [Transactional Email](#transactional-email-passwordless-login))
+6. [ ] Set up DNS records for email deliverability (SPF, DKIM, DMARC)
+7. [ ] Announce to your community
