@@ -540,7 +540,7 @@ The script creates:
 - `nginx/` configuration for reverse proxy with SSL
 - `ntfy/` configuration for push notifications
 - `backend/config/platform.config.json` with correct schema
-- `deploy-instance-assets.sh` helper script
+- `instance-assets/` directory for hero.png and logo.svg
 - `seed-admin.sh` for creating the admin user
 
 ### Post-Setup Steps
@@ -564,16 +564,21 @@ sudo chown ubuntu:ubuntu ssl/*
 # 3. Login to GitHub Container Registry
 echo $GITHUB_TOKEN | docker login ghcr.io -u your-username --password-stdin
 
-# 4. Upload instance assets
+# 4. Upload instance assets (BEFORE starting containers)
 scp hero.png logo.svg ubuntu@your-vps:~/opencitivibes/instance-assets/
 
 # 5. Pull and start containers (staging profile)
 docker compose --profile staging pull
 docker compose --profile staging up -d
 
-# 6. Deploy instance assets and seed admin
-./deploy-instance-assets.sh
+# 6. Seed admin user
 ./seed-admin.sh
+```
+
+**Important:** Instance assets (hero.png, logo.svg) are mounted via Docker volume from `./instance-assets/` to `/app/public/instance/`. Upload them **before** starting containers. If you add or update assets after containers are running, restart the frontend:
+
+```bash
+docker compose --profile staging restart frontend
 ```
 
 Note: The setup script automatically patches docker-compose.yml to:
@@ -589,7 +594,10 @@ Edit these files before deployment:
 |------|---------|
 | `.env` | Environment variables, admin credentials |
 | `backend/config/platform.config.json` | Instance branding, localization |
-| `instance-assets/` | Hero image, logo |
+| `instance-assets/hero.png` | Hero banner image (homepage) |
+| `instance-assets/logo.svg` | Platform logo (header, footer) |
+
+The `instance-assets/` directory is volume-mounted to `/app/public/instance/` in the frontend container. Files are accessible at `https://yourdomain.com/instance/hero.png` and `https://yourdomain.com/instance/logo.svg`.
 
 ### Troubleshooting Staging
 

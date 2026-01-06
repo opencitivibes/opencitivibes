@@ -371,55 +371,10 @@ CONFIGEOF
 
 echo "  - Created default platform.config.json (customize as needed)"
 echo "  - Instance assets directory: $DEPLOY_DIR/instance-assets/"
-echo "  - Upload your hero.png and logo.svg to this directory"
-
-# Create helper script for copying instance assets into frontend container
-echo "[8/10] Creating asset deployment script..."
-cat > deploy-instance-assets.sh << 'ASSETSCRIPT'
-#!/bin/bash
-# Deploy instance assets to frontend container
-# Run this after 'docker compose --profile prod up -d'
-
-CONTAINER_PREFIX="${CONTAINER_PREFIX:-idees-mtl}"
-ASSETS_DIR="./instance-assets"
-
-if [ ! -d "$ASSETS_DIR" ] || [ -z "$(ls -A $ASSETS_DIR 2>/dev/null)" ]; then
-    echo "Warning: No instance assets found in $ASSETS_DIR"
-    echo "Upload hero.png and logo.svg to this directory first"
-    exit 1
-fi
-
-echo "Deploying instance assets to frontend container..."
-
-# Create directories in frontend container
-docker exec -u root ${CONTAINER_PREFIX}-frontend mkdir -p /app/public/instance
-docker exec -u root ${CONTAINER_PREFIX}-frontend mkdir -p /app/public/static/images
-
-# Copy instance assets (hero, logo)
-for file in "$ASSETS_DIR"/*; do
-    if [ -f "$file" ]; then
-        filename=$(basename "$file")
-        echo "  - Copying $filename to /app/public/instance/"
-        docker cp "$file" ${CONTAINER_PREFIX}-frontend:/app/public/instance/
-    fi
-done
-
-# Copy logo to static/images as well (fallback location)
-if [ -f "$ASSETS_DIR/logo.svg" ]; then
-    docker cp "$ASSETS_DIR/logo.svg" ${CONTAINER_PREFIX}-frontend:/app/public/static/images/logo_tr3.svg
-fi
-
-# Restart frontend to pick up new files
-echo "Restarting frontend container..."
-docker compose --profile prod restart frontend
-
-echo "Instance assets deployed successfully!"
-ASSETSCRIPT
-chmod +x deploy-instance-assets.sh
-echo "  - Created deploy-instance-assets.sh"
+echo "  - Upload your hero.png and logo.svg to this directory BEFORE starting containers"
 
 # Create admin seeding script for PostgreSQL
-echo "[9/10] Creating admin seeding script (PostgreSQL)..."
+echo "[8/10] Creating admin seeding script (PostgreSQL)..."
 cat > seed-admin.sh << 'SEEDSCRIPT'
 #!/bin/bash
 # Initialize database and seed admin user (PostgreSQL version)
@@ -513,7 +468,7 @@ chmod +x seed-admin.sh
 echo "  - Created seed-admin.sh"
 
 # Create backup script for PostgreSQL
-echo "[10/11] Creating backup script (PostgreSQL)..."
+echo "[9/10] Creating backup script (PostgreSQL)..."
 mkdir -p scripts
 cat > scripts/backup.sh << 'BACKUPSCRIPT'
 #!/bin/bash
@@ -543,7 +498,7 @@ chmod +x scripts/backup.sh
 echo "  - Created scripts/backup.sh"
 
 # SSL setup instructions
-echo "[11/11] SSL Certificate Setup..."
+echo "[10/10] SSL Certificate Setup..."
 echo ""
 echo "=== MANUAL STEPS REQUIRED ==="
 echo ""
@@ -563,20 +518,17 @@ echo ""
 echo "3. Login to GitHub Container Registry:"
 echo "   echo \$GITHUB_TOKEN | docker login ghcr.io -u opencitivibes --password-stdin"
 echo ""
-echo "4. Upload instance assets to instance-assets/ directory:"
+echo "4. Upload instance assets BEFORE starting containers:"
 echo "   scp hero.png logo.svg ubuntu@${DOMAIN}:${DEPLOY_DIR}/instance-assets/"
 echo ""
 echo "5. Pull and start containers with PRODUCTION profile:"
 echo "   docker compose --profile prod pull"
 echo "   docker compose --profile prod up -d"
 echo ""
-echo "6. Deploy instance assets to frontend container:"
-echo "   ./deploy-instance-assets.sh"
-echo ""
-echo "7. Seed the admin user:"
+echo "6. Seed the admin user:"
 echo "   ./seed-admin.sh"
 echo ""
-echo "8. Configure DNS for email delivery:"
+echo "7. Configure DNS for email delivery:"
 echo "   After containers start, get DKIM key:"
 echo "   docker exec ${CONTAINER_PREFIX}-postfix cat /etc/opendkim/keys/opencitivibes.ovh/mail.txt"
 echo ""
@@ -591,7 +543,7 @@ echo "   "
 echo "   DMARC (TXT record for _dmarc):"
 echo "   v=DMARC1; p=quarantine; rua=mailto:${ADMIN_EMAIL}"
 echo ""
-echo "9. Open firewall ports for SMTP:"
+echo "8. Open firewall ports for SMTP:"
 echo "    sudo ufw allow 25/tcp comment 'SMTP'"
 echo "    sudo ufw allow 587/tcp comment 'SMTP Submission'"
 echo ""
