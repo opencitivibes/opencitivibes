@@ -89,7 +89,7 @@ def check_schema_version() -> None:
     from repositories.database import SessionLocal
 
     # Expected latest migration revision (update when adding new migrations)
-    EXPECTED_REVISION = "d7fj66g53h8e"  # add_share_events  # pragma: allowlist secret
+    EXPECTED_REVISION = "e8gk77h64i9f"  # add_edit_tracking  # pragma: allowlist secret
 
     db = SessionLocal()
     try:

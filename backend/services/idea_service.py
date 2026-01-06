@@ -235,12 +235,27 @@ class IdeaService:
             title, description, db, category_id, threshold, limit, language
         )
 
+    # Constants for edit rate limiting
+    MAX_EDITS_PER_MONTH = 3
+    EDIT_COOLDOWN_HOURS = 24
+
     @staticmethod
     def update_idea(
         db: Session, idea_id: int, idea_update: schemas.IdeaUpdate, user_id: int
     ) -> db_models.Idea:
         """
         Update an idea (only by owner).
+
+        Supports editing:
+        - PENDING ideas: direct edit, resets to PENDING
+        - REJECTED ideas: direct edit, resets to PENDING
+        - APPROVED ideas: edit with re-moderation (rate limited)
+
+        For APPROVED ideas:
+        - Max 3 edits per month per idea
+        - 24-hour cool-down between edits
+        - Transitions to PENDING_EDIT status
+        - Votes and comments are preserved but hidden until re-approved
 
         Args:
             db: Database session
@@ -254,8 +269,17 @@ class IdeaService:
         Raises:
             NotFoundException: If idea not found
             PermissionDeniedException: If user is not owner
-            ValidationException: If idea is approved (cannot edit)
+            EditRateLimitException: If max edits per month exceeded
+            EditCooldownException: If cool-down period not passed
+            CannotEditIdeaException: If idea in PENDING_EDIT status
         """
+        from models.exceptions import (
+            CannotEditIdeaException,
+            EditCooldownException,
+            EditRateLimitException,
+        )
+        from repositories.idea_repository import IdeaRepository
+
         db_idea = IdeaService.get_idea_by_id(db, idea_id)
         if not db_idea:
             raise NotFoundException("Idea not found")
@@ -264,9 +288,46 @@ class IdeaService:
         if int(db_idea.user_id) != user_id:  # type: ignore[arg-type]
             raise PermissionDeniedException("You can only edit your own ideas")
 
-        # Only allow editing if pending or rejected
-        if db_idea.status == db_models.IdeaStatus.APPROVED:
-            raise ValidationException("Cannot edit approved ideas")
+        idea_repo = IdeaRepository(db)
+
+        # Handle based on current status
+        is_approved_edit = db_idea.status == db_models.IdeaStatus.APPROVED
+
+        # Cannot edit ideas already in PENDING_EDIT (wait for moderation)
+        if db_idea.status == db_models.IdeaStatus.PENDING_EDIT:
+            raise CannotEditIdeaException(
+                "This idea is pending re-moderation. Please wait for admin review."
+            )
+
+        # For approved ideas, check rate limiting and cool-down
+        if is_approved_edit:
+            # Check rate limit (max 3 edits/month)
+            edits_this_month = idea_repo.get_edit_count_this_month(idea_id)
+            if edits_this_month >= IdeaService.MAX_EDITS_PER_MONTH:
+                raise EditRateLimitException(
+                    edits_this_month=edits_this_month,
+                    max_edits=IdeaService.MAX_EDITS_PER_MONTH,
+                )
+
+            # Check cool-down (24 hours between edits)
+            if db_idea.last_edit_at is not None:
+                from datetime import timedelta
+
+                last_edit = db_idea.last_edit_at
+                if hasattr(last_edit, "tzinfo") and last_edit.tzinfo is None:
+                    last_edit = last_edit.replace(tzinfo=timezone.utc)
+
+                cooldown_end = last_edit + timedelta(
+                    hours=IdeaService.EDIT_COOLDOWN_HOURS
+                )
+                now = datetime.now(timezone.utc)
+
+                if now < cooldown_end:
+                    remaining_hours = (cooldown_end - now).total_seconds() / 3600
+                    raise EditCooldownException(
+                        message=f"You must wait {remaining_hours:.1f} hours before editing again.",
+                        retry_after_hours=remaining_hours,
+                    )
 
         from helpers.sanitization import sanitize_html, sanitize_plain_text
 
@@ -291,19 +352,24 @@ class IdeaService:
             if not category:
                 raise NotFoundException("Category not found")
 
+        # Apply content updates
         for field, value in update_data.items():
             setattr(db_idea, field, value)
 
-        # Reset to pending if was rejected
-        if db_idea.status == db_models.IdeaStatus.REJECTED:
+        # Handle status transitions based on previous status
+        if is_approved_edit:
+            # Approved idea: transition to PENDING_EDIT with tracking
+            idea_repo.update_edit_tracking(db_idea, "approved")
+        elif db_idea.status == db_models.IdeaStatus.REJECTED:
+            # Reset rejected to pending
             db_idea.status = db_models.IdeaStatus.PENDING  # type: ignore[assignment]
             db_idea.admin_comment = None  # type: ignore[assignment]
-
-        from repositories.idea_repository import IdeaRepository
-
-        idea_repo = IdeaRepository(db)
-        idea_repo.commit()
-        idea_repo.refresh(db_idea)
+            idea_repo.commit()
+            idea_repo.refresh(db_idea)
+        else:
+            # PENDING status: just save
+            idea_repo.commit()
+            idea_repo.refresh(db_idea)
 
         # Update tags if provided
         if tags is not None:
@@ -473,6 +539,12 @@ class IdeaService:
         """
         Moderate an idea (approve/reject).
 
+        Handles both new ideas (PENDING) and edited ideas (PENDING_EDIT).
+        For PENDING_EDIT ideas:
+        - Approval: restores to previous status (typically APPROVED),
+          preserves votes/comments
+        - Rejection: sets to REJECTED, preserves previous_status for history
+
         Args:
             db: Database session
             idea_id: Idea ID
@@ -484,21 +556,40 @@ class IdeaService:
         Raises:
             NotFoundException: If idea not found
         """
+        from repositories.idea_repository import IdeaRepository
+
         db_idea = IdeaService.get_idea_by_id(db, idea_id)
         if not db_idea:
             raise NotFoundException("Idea not found")
 
-        db_idea.status = moderation.status  # type: ignore[assignment]
-        db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
-
-        if moderation.status == db_models.IdeaStatus.APPROVED:
-            db_idea.validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-
-        from repositories.idea_repository import IdeaRepository
-
         idea_repo = IdeaRepository(db)
-        idea_repo.commit()
-        idea_repo.refresh(db_idea)
+        was_pending_edit = db_idea.status == db_models.IdeaStatus.PENDING_EDIT
+
+        if was_pending_edit:
+            # Special handling for edited ideas awaiting re-moderation
+            if moderation.status == db_models.IdeaStatus.APPROVED:
+                # Approve edit: restore to previous status (typically APPROVED)
+                # This keeps votes and comments intact
+                idea_repo.restore_previous_status(db_idea)
+                db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+            else:
+                # Reject edit: set to REJECTED
+                # Previous_status preserved for history
+                db_idea.status = moderation.status  # type: ignore[assignment]
+                db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+                idea_repo.commit()
+                idea_repo.refresh(db_idea)
+        else:
+            # Standard moderation for new ideas (PENDING status)
+            db_idea.status = moderation.status  # type: ignore[assignment]
+            db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+
+            if moderation.status == db_models.IdeaStatus.APPROVED:
+                db_idea.validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+
+            idea_repo.commit()
+            idea_repo.refresh(db_idea)
+
         return db_idea
 
     @staticmethod

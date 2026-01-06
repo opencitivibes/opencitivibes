@@ -49,6 +49,7 @@ class IdeaStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    PENDING_EDIT = "pending_edit"  # Re-moderation after editing approved idea
 
 
 class VoteType(str, enum.Enum):
@@ -342,6 +343,24 @@ class Idea(Base):
         default="fr",
         index=True,
         doc="Language code (fr/en) of the content",
+    )
+
+    # Edit tracking fields (for edit-approved-ideas workflow)
+    edit_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+        comment="Number of times this idea has been edited after approval",
+    )
+    last_edit_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Timestamp of the last edit",
+    )
+    previous_status: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="Status before transitioning to PENDING_EDIT (for restoration)",
     )
 
     # Relationships

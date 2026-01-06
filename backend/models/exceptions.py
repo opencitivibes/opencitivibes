@@ -506,3 +506,50 @@ class TwoFactorConfigurationException(TwoFactorException):
         message: str = "Two-factor authentication is not configured. Contact administrator.",
     ):
         super().__init__(message)
+
+
+# ============================================================================
+# Idea Edit Exceptions
+# ============================================================================
+
+
+class IdeaEditException(DomainException):
+    """Base exception for idea edit-related errors."""
+
+    pass
+
+
+class EditRateLimitException(IdeaEditException):
+    """Raised when edit rate limit is exceeded (max 3 edits/month/idea)."""
+
+    def __init__(
+        self,
+        message: str = "You have reached the maximum number of edits for this idea this month (3). Please try again next month.",
+        edits_this_month: int = 0,
+        max_edits: int = 3,
+    ):
+        super().__init__(message)
+        self.edits_this_month = edits_this_month
+        self.max_edits = max_edits
+
+
+class EditCooldownException(IdeaEditException):
+    """Raised when edit cool-down period hasn't passed (24 hours between edits)."""
+
+    def __init__(
+        self,
+        message: str = "You must wait 24 hours between edits. Please try again later.",
+        retry_after_hours: float = 24.0,
+    ):
+        super().__init__(message)
+        self.retry_after_hours = retry_after_hours
+
+
+class CannotEditIdeaException(IdeaEditException):
+    """Raised when idea cannot be edited due to status constraints."""
+
+    def __init__(
+        self,
+        message: str = "This idea cannot be edited in its current state.",
+    ):
+        super().__init__(message)

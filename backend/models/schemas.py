@@ -395,6 +395,14 @@ class IdeaWithScore(BaseModel):
     tags: List["Tag"] = []  # List of tags
     quality_counts: Optional["QualityCounts"] = None  # Vote quality aggregations
     language: str = Field(default="fr", description="Content language code (fr/en)")
+    # Edit tracking fields (for edit-approved-ideas workflow)
+    edit_count: int = Field(default=0, description="Number of edits after approval")
+    last_edit_at: Optional[datetime] = Field(
+        default=None, description="Timestamp of last edit"
+    )
+    previous_status: Optional[str] = Field(
+        default=None, description="Status before PENDING_EDIT transition"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 

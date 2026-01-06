@@ -356,6 +356,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "user_vote": result.user_vote if hasattr(result, "user_vote") else None,
                 "quality_counts": quality_counts,
                 "language": result.Idea.language,
+                # Edit tracking fields
+                "edit_count": result.Idea.edit_count,
+                "last_edit_at": result.Idea.last_edit_at,
+                "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
                         id=int(tag.id),  # type: ignore[arg-type]
@@ -548,6 +552,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "comment_count": result.comment_count,
                 "quality_counts": quality_counts,
                 "language": result.Idea.language,
+                # Edit tracking fields
+                "edit_count": result.Idea.edit_count,
+                "last_edit_at": result.Idea.last_edit_at,
+                "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
                         id=int(tag.id),  # type: ignore[arg-type]
@@ -660,12 +668,13 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
             .subquery()
         )
 
-        # Status priority ordering: pending=0, approved=1, rejected=2
+        # Status priority ordering: pending=0, pending_edit=1, approved=2, rejected=3
         status_order = case(
             (db_models.Idea.status == db_models.IdeaStatus.PENDING, 0),
-            (db_models.Idea.status == db_models.IdeaStatus.APPROVED, 1),
-            (db_models.Idea.status == db_models.IdeaStatus.REJECTED, 2),
-            else_=3,
+            (db_models.Idea.status == db_models.IdeaStatus.PENDING_EDIT, 1),
+            (db_models.Idea.status == db_models.IdeaStatus.APPROVED, 2),
+            (db_models.Idea.status == db_models.IdeaStatus.REJECTED, 3),
+            else_=4,
         )
 
         # Main query - no status filter, just user filter, exclude deleted
@@ -754,6 +763,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "user_vote": result.user_vote if hasattr(result, "user_vote") else None,
                 "quality_counts": quality_counts,
                 "language": result.Idea.language,
+                # Edit tracking fields
+                "edit_count": result.Idea.edit_count,
+                "last_edit_at": result.Idea.last_edit_at,
+                "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
                         id=int(tag.id),  # type: ignore[arg-type]
@@ -926,6 +939,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "user_vote": result.user_vote if hasattr(result, "user_vote") else None,
                 "quality_counts": quality_counts,
                 "language": result.Idea.language,
+                # Edit tracking fields
+                "edit_count": result.Idea.edit_count,
+                "last_edit_at": result.Idea.last_edit_at,
+                "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
                         id=int(tag.id),  # type: ignore[arg-type]
@@ -1556,3 +1573,186 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
             )
         )
         return result
+
+    # ========================================================================
+    # Edit Tracking Methods (for edit-approved-ideas workflow)
+    # ========================================================================
+
+    def get_edit_count_this_month(self, idea_id: int) -> int:
+        """
+        Get the number of edits for an idea in the current month.
+
+        Note: We track edit_count as a running total on the idea, and
+        reset it monthly based on last_edit_at timestamp. If last_edit_at
+        is in a previous month, we return 0.
+
+        Args:
+            idea_id: Idea ID
+
+        Returns:
+            Number of edits this month (0 if never edited or last edit was last month)
+        """
+        idea = self.get_by_id(idea_id)
+        if not idea:
+            return 0
+
+        # If never edited, return 0
+        if idea.last_edit_at is None:
+            return 0
+
+        # Check if last edit was in current month
+        now = datetime.now(timezone.utc)
+        last_edit = idea.last_edit_at
+        if hasattr(last_edit, "tzinfo") and last_edit.tzinfo is None:
+            # Make naive datetime UTC-aware for comparison
+            from datetime import timezone as tz
+
+            last_edit = last_edit.replace(tzinfo=tz.utc)
+
+        if last_edit.year == now.year and last_edit.month == now.month:
+            return int(idea.edit_count)
+
+        # Last edit was in a different month, so count resets
+        return 0
+
+    def update_edit_tracking(
+        self,
+        idea: db_models.Idea,
+        previous_status: str,
+    ) -> db_models.Idea:
+        """
+        Update edit tracking fields when an approved idea is edited.
+
+        This method:
+        - Increments edit_count (or resets to 1 if new month)
+        - Updates last_edit_at to now
+        - Stores previous_status for potential restoration
+        - Transitions status to PENDING_EDIT
+
+        Args:
+            idea: Idea to update
+            previous_status: Status before edit (e.g., 'approved')
+
+        Returns:
+            Updated idea
+        """
+        now = datetime.now(timezone.utc)
+
+        # Check if we need to reset edit count (new month)
+        if idea.last_edit_at is not None:
+            last_edit = idea.last_edit_at
+            if hasattr(last_edit, "tzinfo") and last_edit.tzinfo is None:
+                from datetime import timezone as tz
+
+                last_edit = last_edit.replace(tzinfo=tz.utc)
+
+            if last_edit.year == now.year and last_edit.month == now.month:
+                # Same month, increment
+                idea.edit_count = int(idea.edit_count) + 1  # type: ignore[assignment]
+            else:
+                # New month, reset to 1
+                idea.edit_count = 1  # type: ignore[assignment]
+        else:
+            # First edit ever
+            idea.edit_count = 1  # type: ignore[assignment]
+
+        idea.last_edit_at = now  # type: ignore[assignment]
+        idea.previous_status = previous_status  # type: ignore[assignment]
+        idea.status = db_models.IdeaStatus.PENDING_EDIT  # type: ignore[assignment]
+
+        self.commit()
+        self.refresh(idea)
+        return idea
+
+    def get_pending_edits(
+        self,
+        category_ids: Optional[List[int]] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[db_models.Idea]:
+        """
+        Get ideas with PENDING_EDIT status for admin moderation queue.
+
+        Args:
+            category_ids: Optional list of category IDs to filter by
+            skip: Number of records to skip
+            limit: Maximum records to return
+
+        Returns:
+            List of ideas pending edit review
+        """
+        query = self.db.query(db_models.Idea).filter(
+            db_models.Idea.status == db_models.IdeaStatus.PENDING_EDIT,
+            db_models.Idea.deleted_at.is_(None),
+        )
+
+        if category_ids:
+            query = query.filter(db_models.Idea.category_id.in_(category_ids))
+
+        return (
+            query.order_by(db_models.Idea.last_edit_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def count_pending_edits(
+        self,
+        category_ids: Optional[List[int]] = None,
+    ) -> int:
+        """
+        Count ideas with PENDING_EDIT status.
+
+        Args:
+            category_ids: Optional list of category IDs to filter by
+
+        Returns:
+            Total count of ideas pending edit review
+        """
+        query = self.db.query(func.count(db_models.Idea.id)).filter(
+            db_models.Idea.status == db_models.IdeaStatus.PENDING_EDIT,
+            db_models.Idea.deleted_at.is_(None),
+        )
+
+        if category_ids:
+            query = query.filter(db_models.Idea.category_id.in_(category_ids))
+
+        result = query.scalar()
+        return result if result is not None else 0
+
+    def restore_previous_status(
+        self,
+        idea: db_models.Idea,
+    ) -> db_models.Idea:
+        """
+        Restore idea to its previous status after edit approval.
+
+        This method restores the status stored in previous_status
+        (typically APPROVED) and clears the previous_status field.
+
+        Args:
+            idea: Idea to restore
+
+        Returns:
+            Updated idea with restored status
+        """
+        if idea.previous_status:
+            # Map string back to enum
+            status_map = {
+                "pending": db_models.IdeaStatus.PENDING,
+                "approved": db_models.IdeaStatus.APPROVED,
+                "rejected": db_models.IdeaStatus.REJECTED,
+                "pending_edit": db_models.IdeaStatus.PENDING_EDIT,
+            }
+            restored_status = status_map.get(
+                idea.previous_status.lower(),
+                db_models.IdeaStatus.APPROVED,
+            )
+            idea.status = restored_status  # type: ignore[assignment]
+
+        idea.previous_status = None  # type: ignore[assignment]
+        idea.validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+
+        self.commit()
+        self.refresh(idea)
+        return idea
