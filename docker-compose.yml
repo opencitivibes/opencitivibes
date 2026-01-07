@@ -83,6 +83,9 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-OpenCitiVibes}
+      # Beta access gate (server-side only)
+      - BETA_MODE=${BETA_MODE:-false}
+      - BETA_PASSWORD=${BETA_PASSWORD:-}
     volumes:
       - backend_data:/app/data
       - backend_logs:/app/logs
