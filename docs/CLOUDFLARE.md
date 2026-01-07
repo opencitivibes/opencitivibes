@@ -185,6 +185,38 @@ Cloudflare doesn't proxy port 22. For SSH access:
 2. Use this hostname for SSH: `ssh user@ssh.yourdomain.com`
 3. Set this in GitHub secrets for deployments
 
+## Web Analytics & Law 25 Compliance
+
+Cloudflare Web Analytics is enabled and whitelisted in our Content Security Policy.
+
+### Privacy Features
+
+| Feature | Status |
+|---------|--------|
+| Cookies | ❌ None |
+| localStorage | ❌ None |
+| IP fingerprinting | ❌ None |
+| Browser fingerprinting | ❌ None |
+| Data sold to advertisers | ❌ No |
+
+### Law 25 / GDPR Compatibility
+
+Cloudflare Web Analytics is **privacy-friendly** and compatible with Quebec's Law 25:
+
+- **No cookies or tracking**: Does not use any client-side state (cookies, localStorage)
+- **No fingerprinting**: Does not fingerprint users via IP, User Agent, or other data
+- **No consent banner required**: Since no cookies are set, no cookie consent is needed
+
+**Note:** Cloudflare is a US company, and IP addresses pass through their servers (even if not stored). Under strict Law 25/GDPR interpretation, this could be considered cross-border data transfer. However, Cloudflare is certified under the EU-U.S. Data Privacy Framework.
+
+### CSP Configuration
+
+The analytics beacon is whitelisted in `frontend/next.config.js`:
+
+```javascript
+"script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com"
+```
+
 ## Performance Monitoring
 
 ### Cloudflare RUM (Real User Monitoring)
