@@ -275,6 +275,8 @@ class TOTPService:
         temp_token: str,
         code: str,
         is_backup_code: bool = False,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> schemas.Token:
         """
         Verify 2FA code and complete login.
@@ -284,6 +286,8 @@ class TOTPService:
             temp_token: Temporary token from initial auth
             code: TOTP code or backup code
             is_backup_code: True if using backup code
+            ip_address: Client IP address for security logging
+            user_agent: Client user agent for security logging
 
         Returns:
             Full access token
@@ -307,6 +311,21 @@ class TOTPService:
         if is_backup_code:
             backup_repo = BackupCodeRepository(db)
             if not backup_repo.verify_and_consume_code(user_id, code):
+                # Log 2FA failure
+                try:
+                    from repositories import db_models as models
+                    from services.security_audit_service import SecurityAuditService
+
+                    SecurityAuditService.log_login_failure(
+                        db=db,
+                        email=str(user.email),
+                        failure_reason=models.LoginFailureReason.TWO_FACTOR_FAILED,
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                        user_id=user_id,
+                    )
+                except Exception:
+                    pass
                 raise TwoFactorInvalidCodeException("Invalid backup code")
             backup_repo.commit()
         else:
@@ -315,6 +334,21 @@ class TOTPService:
                 totp_repo.verify_totp_code, user_id, code
             )
             if not is_valid:
+                # Log 2FA failure
+                try:
+                    from repositories import db_models as models
+                    from services.security_audit_service import SecurityAuditService
+
+                    SecurityAuditService.log_login_failure(
+                        db=db,
+                        email=str(user.email),
+                        failure_reason=models.LoginFailureReason.TWO_FACTOR_FAILED,
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                        user_id=user_id,
+                    )
+                except Exception:
+                    pass
                 raise TwoFactorInvalidCodeException("Invalid authentication code")
 
             # Update last used
@@ -322,6 +356,26 @@ class TOTPService:
             if totp_record:
                 totp_repo.update_last_used(totp_record.id)
             totp_repo.commit()
+
+        # Log successful login after 2FA verification
+        try:
+            import json
+
+            from services.security_audit_service import SecurityAuditService
+
+            metadata = json.dumps(
+                {"2fa_method": "backup_code" if is_backup_code else "totp"}
+            )
+            SecurityAuditService.log_login_success(
+                db=db,
+                user_id=user_id,
+                email=str(user.email),
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata_json=metadata,
+            )
+        except Exception:
+            pass  # Don't let logging failure break auth flow
 
         # Track login for retention policy (Law 25 Phase 3)
         from services.auth_service import AuthService
@@ -423,7 +477,11 @@ class TOTPService:
 
     @staticmethod
     def login_with_2fa_check(
-        db: Session, email: str, password: str
+        db: Session,
+        email: str,
+        password: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> Union[schemas.Token, schemas.TwoFactorRequiredResponse]:
         """
         Login with 2FA check.
@@ -435,6 +493,8 @@ class TOTPService:
             db: Database session
             email: User email
             password: User password
+            ip_address: Client IP address for security logging
+            user_agent: Client user agent for security logging
 
         Returns:
             Token or TwoFactorRequiredResponse
@@ -444,18 +504,59 @@ class TOTPService:
         """
         from authentication.auth import authenticate_user
         from models.exceptions import InvalidCredentialsException
+        from repositories import db_models as models
+        from services.security_audit_service import SecurityAuditService
 
         user = authenticate_user(db, email, password)
         if not user:
+            # Determine failure reason
+            from repositories.user_repository import UserRepository
+
+            user_repo = UserRepository(db)
+            existing_user = user_repo.get_by_email(email)
+
+            if existing_user is None:
+                failure_reason = models.LoginFailureReason.USER_NOT_FOUND
+            elif not existing_user.is_active:
+                failure_reason = models.LoginFailureReason.ACCOUNT_INACTIVE
+            else:
+                failure_reason = models.LoginFailureReason.INVALID_PASSWORD
+
+            # Log the failure
+            try:
+                SecurityAuditService.log_login_failure(
+                    db=db,
+                    email=email,
+                    failure_reason=failure_reason,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    user_id=int(existing_user.id) if existing_user else None,
+                )
+            except Exception:
+                pass  # Don't let logging failure break auth flow
+
             raise InvalidCredentialsException("Incorrect email or password")
 
         # Check if 2FA is enabled
         if TOTPService.check_requires_2fa(user):
             temp_token = TOTPService.create_temp_token(int(user.id))
+            # Note: Full login success logged after 2FA verification completes
             return schemas.TwoFactorRequiredResponse(
                 requires_2fa=True,
                 temp_token=temp_token,
             )
+
+        # Log successful login
+        try:
+            SecurityAuditService.log_login_success(
+                db=db,
+                user_id=int(user.id),
+                email=str(user.email),
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception:
+            pass  # Don't let logging failure break auth flow
 
         # Track login for retention policy (Law 25 Phase 3)
         from services.auth_service import AuthService

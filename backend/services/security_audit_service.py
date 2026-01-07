@@ -302,3 +302,584 @@ class SecurityAuditService:
             message,
             priority_override=priority,
         )
+
+    # =========================================================================
+    # Login Event Tracking Methods (Security Audit Phase 1)
+    # =========================================================================
+
+    @staticmethod
+    def log_login_success(
+        db: Session,
+        user_id: int,
+        email: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        metadata_json: Optional[str] = None,
+    ) -> db_models.LoginEvent:
+        """
+        Log a successful login event to the LoginEvent table.
+
+        Also logs to SecurityAuditLog for comprehensive audit trail.
+
+        Args:
+            db: Database session
+            user_id: ID of the user who logged in
+            email: User's email address
+            ip_address: Client IP address
+            user_agent: Browser user agent
+            metadata_json: Additional metadata (e.g., 2FA method used)
+
+        Returns:
+            Created LoginEvent entry
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        event = repo.create_event(
+            event_type=db_models.LoginEventType.LOGIN_SUCCESS,
+            user_id=user_id,
+            email=email,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata_json=metadata_json,
+        )
+
+        # Also log to general security audit log
+        SecurityAuditService.log_event(
+            db=db,
+            event_type=SecurityEventType.LOGIN_SUCCESS,
+            action="login",
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            success=True,
+        )
+
+        return event
+
+    @staticmethod
+    def log_login_failure(
+        db: Session,
+        email: str,
+        failure_reason: db_models.LoginFailureReason,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        user_id: Optional[int] = None,
+        metadata_json: Optional[str] = None,
+    ) -> db_models.LoginEvent:
+        """
+        Log a failed login attempt to the LoginEvent table.
+
+        Also logs to SecurityAuditLog for comprehensive audit trail.
+
+        Args:
+            db: Database session
+            email: Email used in the attempt
+            failure_reason: Why the login failed
+            ip_address: Client IP address
+            user_agent: Browser user agent
+            user_id: User ID if the user exists but auth failed
+            metadata_json: Additional metadata
+
+        Returns:
+            Created LoginEvent entry
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        event = repo.create_event(
+            event_type=db_models.LoginEventType.LOGIN_FAILED,
+            email=email,
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=failure_reason,
+            metadata_json=metadata_json,
+        )
+
+        # Also log to general security audit log
+        SecurityAuditService.log_event(
+            db=db,
+            event_type=SecurityEventType.LOGIN_FAILED,
+            action="login",
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            details={"email": email, "reason": failure_reason.value},
+            success=False,
+        )
+
+        return event
+
+    @staticmethod
+    def log_logout(
+        db: Session,
+        user_id: int,
+        email: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> db_models.LoginEvent:
+        """
+        Log a logout event to the LoginEvent table.
+
+        Args:
+            db: Database session
+            user_id: ID of the user who logged out
+            email: User's email address
+            ip_address: Client IP address
+            user_agent: Browser user agent
+
+        Returns:
+            Created LoginEvent entry
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        event = repo.create_event(
+            event_type=db_models.LoginEventType.LOGOUT,
+            user_id=user_id,
+            email=email,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        # Also log to general security audit log
+        SecurityAuditService.log_event(
+            db=db,
+            event_type=SecurityEventType.LOGOUT,
+            action="logout",
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            success=True,
+        )
+
+        return event
+
+    @staticmethod
+    def log_password_reset_request(
+        db: Session,
+        email: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        user_id: Optional[int] = None,
+    ) -> db_models.LoginEvent:
+        """
+        Log a password reset request to the LoginEvent table.
+
+        Args:
+            db: Database session
+            email: Email for the reset request
+            ip_address: Client IP address
+            user_agent: Browser user agent
+            user_id: User ID if user exists
+
+        Returns:
+            Created LoginEvent entry
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        event = repo.create_event(
+            event_type=db_models.LoginEventType.PASSWORD_RESET_REQUEST,
+            email=email,
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        # Also log to general security audit log
+        SecurityAuditService.log_event(
+            db=db,
+            event_type=SecurityEventType.PASSWORD_RESET_REQUESTED,
+            action="password_reset_request",
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            details={"email": email},
+            success=True,
+        )
+
+        return event
+
+    @staticmethod
+    def get_login_events_summary(db: Session) -> dict:
+        """
+        Get login event statistics for the admin dashboard.
+
+        Returns aggregated data about login events in the last 24 hours.
+
+        Args:
+            db: Database session
+
+        Returns:
+            Dictionary containing login event statistics
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+
+        # Get counts
+        total_events = repo.count()
+        successful_logins = repo.count_events_in_window(
+            window_hours=24, event_type=db_models.LoginEventType.LOGIN_SUCCESS
+        )
+        failed_logins = repo.count_events_in_window(
+            window_hours=24, event_type=db_models.LoginEventType.LOGIN_FAILED
+        )
+        unique_ips = repo.get_unique_ips_count(window_hours=24)
+
+        # Calculate failure rate
+        total_login_attempts = successful_logins + failed_logins
+        if total_login_attempts > 0:
+            failed_login_rate = (failed_logins / total_login_attempts) * 100
+        else:
+            failed_login_rate = 0.0
+
+        # Get failure reasons
+        failure_reasons = repo.get_failure_reason_counts(window_hours=24)
+        top_failure_reasons = [
+            {"reason": str(reason.value) if reason else "unknown", "count": count}
+            for reason, count in failure_reasons
+        ]
+
+        # Get suspicious IPs
+        suspicious_ip_data = repo.get_suspicious_ips(
+            window_hours=24, failure_threshold=5, limit=10
+        )
+        suspicious_ips = [
+            {"ip": ip, "failures": failures, "total": total}
+            for ip, failures, total in suspicious_ip_data
+        ]
+
+        return {
+            "total_events": total_events,
+            "successful_logins_24h": successful_logins,
+            "failed_logins_24h": failed_logins,
+            "unique_ips_24h": unique_ips,
+            "failed_login_rate": round(failed_login_rate, 2),
+            "top_failure_reasons": top_failure_reasons,
+            "suspicious_ips": suspicious_ips,
+            "generated_at": datetime.now(timezone.utc),
+        }
+
+    @staticmethod
+    def get_failed_attempts_for_email(
+        db: Session, email: str, window_minutes: int = 15
+    ) -> int:
+        """
+        Get the number of failed login attempts for an email.
+
+        Useful for rate limiting before additional lockout measures.
+
+        Args:
+            db: Database session
+            email: Email to check
+            window_minutes: Time window to check
+
+        Returns:
+            Count of failed attempts
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        return repo.get_failed_attempts_count(
+            email=email, window_minutes=window_minutes
+        )
+
+    @staticmethod
+    def get_failed_attempts_for_ip(
+        db: Session, ip_address: str, window_minutes: int = 15
+    ) -> int:
+        """
+        Get the number of failed login attempts from an IP.
+
+        Useful for IP-based rate limiting.
+
+        Args:
+            db: Database session
+            ip_address: IP address to check
+            window_minutes: Time window to check
+
+        Returns:
+            Count of failed attempts
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        return repo.get_failed_attempts_count(
+            ip_address=ip_address, window_minutes=window_minutes
+        )
+
+    @staticmethod
+    def cleanup_old_login_events(db: Session, retention_days: int = 90) -> int:
+        """
+        Remove login events older than the retention period.
+
+        Should be called periodically (e.g., daily cron job).
+
+        Args:
+            db: Database session
+            retention_days: Days to retain events
+
+        Returns:
+            Number of deleted events
+        """
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+        return repo.cleanup_old_events(retention_days=retention_days)
+
+    # =========================================================================
+    # Admin API Methods (Security Audit Phase 2)
+    # =========================================================================
+
+    @staticmethod
+    def get_security_events_list(
+        db: Session,
+        skip: int = 0,
+        limit: int = 50,
+        event_type: Optional[str] = None,
+        user_id: Optional[int] = None,
+        since: Optional[datetime] = None,
+    ) -> tuple[list[schemas.AdminSecurityEventItem], int]:
+        """
+        Get paginated list of security events for admin dashboard.
+
+        Args:
+            db: Database session
+            skip: Number of records to skip
+            limit: Maximum records to return
+            event_type: Optional filter by event type
+            user_id: Optional filter by user ID
+            since: Optional datetime filter
+
+        Returns:
+            Tuple of (events list, total count)
+        """
+        from helpers.time_utils import (
+            format_relative_time,
+            mask_ip_address,
+            truncate_user_agent,
+        )
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+
+        # Convert event_type string to enum if provided
+        event_type_enum = None
+        if event_type:
+            try:
+                event_type_enum = db_models.LoginEventType(event_type)
+            except ValueError:
+                pass  # Invalid event type, ignore filter
+
+        events = repo.get_events_with_filters(
+            skip=skip,
+            limit=limit,
+            event_type=event_type_enum,
+            user_id=user_id,
+            since=since,
+        )
+
+        total = repo.count_events_with_filters(
+            event_type=event_type_enum,
+            user_id=user_id,
+            since=since,
+        )
+
+        items = [
+            schemas.AdminSecurityEventItem(
+                id=e.id,
+                user_id=e.user_id,
+                email=e.email,
+                event_type=e.event_type.value if e.event_type else "unknown",
+                ip_address=mask_ip_address(e.ip_address),
+                user_agent_short=truncate_user_agent(e.user_agent),
+                failure_reason=(e.failure_reason.value if e.failure_reason else None),
+                created_at=e.created_at,
+                time_ago=format_relative_time(e.created_at),
+            )
+            for e in events
+        ]
+
+        return items, total
+
+    @staticmethod
+    def get_security_summary(db: Session) -> schemas.AdminSecuritySummary:
+        """
+        Get aggregated security statistics for the admin dashboard.
+
+        Includes 24h stats, suspicious IPs, and recent admin logins.
+
+        Args:
+            db: Database session
+
+        Returns:
+            AdminSecuritySummary schema with all statistics
+        """
+        from helpers.time_utils import format_relative_time, mask_ip_address
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+
+        # Get 24h counts
+        total_24h = repo.count_events_in_window(window_hours=24)
+        successful_24h = repo.count_events_in_window(
+            window_hours=24, event_type=db_models.LoginEventType.LOGIN_SUCCESS
+        )
+        failed_24h = repo.count_events_in_window(
+            window_hours=24, event_type=db_models.LoginEventType.LOGIN_FAILED
+        )
+        unique_ips_24h = repo.get_unique_ips_count(window_hours=24)
+        admin_logins_24h = repo.count_admin_logins(window_hours=24)
+
+        # Get suspicious IPs (high failure rate in last 24h)
+        suspicious_ip_data = repo.get_suspicious_ips(
+            window_hours=24, failure_threshold=5, limit=10
+        )
+        suspicious_ips = [
+            schemas.SuspiciousIPItem(
+                ip=mask_ip_address(ip) or "unknown",
+                failed_count=failures,
+                last_attempt=None,  # We'll add this in future if needed
+            )
+            for ip, failures, total in suspicious_ip_data
+        ]
+
+        # Get recent admin logins
+        admin_events = repo.get_admin_logins(window_hours=24, limit=5)
+        recent_admin_logins = [
+            schemas.RecentAdminLogin(
+                email=e.email or "unknown",
+                ip=mask_ip_address(e.ip_address) or "unknown",
+                time_ago=format_relative_time(e.created_at),
+            )
+            for e in admin_events
+        ]
+
+        return schemas.AdminSecuritySummary(
+            total_events_24h=total_24h,
+            successful_logins_24h=successful_24h,
+            failed_attempts_24h=failed_24h,
+            unique_ips_24h=unique_ips_24h,
+            admin_logins_24h=admin_logins_24h,
+            suspicious_ips=suspicious_ips,
+            recent_admin_logins=recent_admin_logins,
+        )
+
+    @staticmethod
+    def get_events_for_user(
+        db: Session,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> tuple[list[schemas.AdminSecurityEventItem], int]:
+        """
+        Get login events for a specific user.
+
+        Args:
+            db: Database session
+            user_id: User ID to filter by
+            skip: Number of records to skip
+            limit: Maximum records to return
+
+        Returns:
+            Tuple of (events list, total count)
+        """
+        return SecurityAuditService.get_security_events_list(
+            db=db,
+            skip=skip,
+            limit=limit,
+            user_id=user_id,
+        )
+
+    @staticmethod
+    def get_failed_attempts_list(
+        db: Session,
+        skip: int = 0,
+        limit: int = 50,
+        hours: int = 24,
+    ) -> tuple[list[schemas.AdminSecurityEventItem], int]:
+        """
+        Get recent failed login attempts only.
+
+        Args:
+            db: Database session
+            skip: Number of records to skip
+            limit: Maximum records to return
+            hours: Time window in hours
+
+        Returns:
+            Tuple of (events list, total count)
+        """
+        since = datetime.now(timezone.utc) - timedelta(hours=hours)
+        return SecurityAuditService.get_security_events_list(
+            db=db,
+            skip=skip,
+            limit=limit,
+            event_type=db_models.LoginEventType.LOGIN_FAILED.value,
+            since=since,
+        )
+
+    @staticmethod
+    def check_brute_force_risk(db: Session) -> list[schemas.BruteForceRiskItem]:
+        """
+        Detect potential brute force attack patterns.
+
+        Checks for IPs with multiple failures in short windows.
+
+        Args:
+            db: Database session
+
+        Returns:
+            List of IPs showing brute force patterns
+        """
+        from helpers.time_utils import format_relative_time, mask_ip_address
+        from repositories.login_event_repository import LoginEventRepository
+
+        repo = LoginEventRepository(db)
+
+        # Get IPs with 3+ failures in the last hour
+        suspicious = repo.get_failed_attempts_by_ip_in_window(
+            window_hours=1, min_failures=3, limit=20
+        )
+
+        return [
+            schemas.BruteForceRiskItem(
+                ip=mask_ip_address(ip) or "unknown",
+                failed_count=count,
+                last_attempt=(
+                    format_relative_time(last_time) if last_time else "unknown"
+                ),
+                risk_level="high" if count >= 10 else "medium",
+            )
+            for ip, count, last_time in suspicious
+        ]
+
+    @staticmethod
+    def trigger_cleanup(db: Session, retention_days: int = 90) -> dict:
+        """
+        Manually trigger cleanup of old login events.
+
+        Args:
+            db: Database session
+            retention_days: Days to retain (default 90)
+
+        Returns:
+            Dict with cleanup results
+        """
+        deleted_count = SecurityAuditService.cleanup_old_login_events(
+            db, retention_days=retention_days
+        )
+
+        logger.info(
+            f"Manual cleanup triggered: deleted {deleted_count} events "
+            f"older than {retention_days} days"
+        )
+
+        return {
+            "deleted_count": deleted_count,
+            "retention_days": retention_days,
+            "triggered_at": datetime.now(timezone.utc),
+        }

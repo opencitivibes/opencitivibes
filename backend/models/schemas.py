@@ -2051,3 +2051,151 @@ class AdminShareAnalyticsResponse(BaseModel):
     shares_last_7_days: int
     shares_last_30_days: int
     generated_at: datetime
+
+
+# ============================================================================
+# Login Event Tracking Schemas (Security Audit Phase 1)
+# ============================================================================
+
+
+class LoginEventCreate(BaseModel):
+    """Internal schema for creating login events."""
+
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    event_type: str = Field(..., description="Type of login event")
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    failure_reason: Optional[str] = None
+    metadata_json: Optional[str] = None
+
+
+class LoginEventResponse(BaseModel):
+    """Schema for login event API response."""
+
+    id: int
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    event_type: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    failure_reason: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoginEventListResponse(BaseModel):
+    """Paginated list of login events."""
+
+    items: List[LoginEventResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class SecuritySummaryResponse(BaseModel):
+    """Aggregated security statistics for dashboard."""
+
+    total_events: int
+    successful_logins_24h: int
+    failed_logins_24h: int
+    unique_ips_24h: int
+    failed_login_rate: float = Field(
+        description="Percentage of failed logins in last 24h"
+    )
+    top_failure_reasons: List[dict] = Field(
+        default_factory=list,
+        description="List of {reason: str, count: int}",
+    )
+    suspicious_ips: List[dict] = Field(
+        default_factory=list,
+        description="IPs with high failure rates",
+    )
+    generated_at: datetime
+
+
+# ============================================================================
+# Admin Security Dashboard Schemas (Security Audit Phase 2)
+# ============================================================================
+
+
+class AdminSecurityEventItem(BaseModel):
+    """Schema for a single security event in admin list."""
+
+    id: int
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    event_type: str
+    ip_address: Optional[str] = Field(
+        None, description="Masked IP address (e.g., 192.x.x.x)"
+    )
+    user_agent_short: Optional[str] = Field(
+        None, description="Truncated user agent (e.g., Chrome/120 (Windows))"
+    )
+    failure_reason: Optional[str] = None
+    created_at: datetime
+    time_ago: str = Field(description="Relative time (e.g., '2 hours ago')")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminSecurityEventsResponse(BaseModel):
+    """Paginated list of security events for admin."""
+
+    events: List[AdminSecurityEventItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class SuspiciousIPItem(BaseModel):
+    """Schema for suspicious IP in summary."""
+
+    ip: str = Field(description="Masked IP address")
+    failed_count: int
+    last_attempt: Optional[str] = None
+
+
+class RecentAdminLogin(BaseModel):
+    """Schema for recent admin login in summary."""
+
+    email: str
+    ip: str = Field(description="Masked IP address")
+    time_ago: str
+
+
+class AdminSecuritySummary(BaseModel):
+    """Aggregated security statistics for admin dashboard."""
+
+    total_events_24h: int
+    successful_logins_24h: int
+    failed_attempts_24h: int
+    unique_ips_24h: int
+    admin_logins_24h: int
+    suspicious_ips: List[SuspiciousIPItem] = Field(default_factory=list)
+    recent_admin_logins: List[RecentAdminLogin] = Field(default_factory=list)
+
+
+class BruteForceRiskItem(BaseModel):
+    """Schema for brute force risk detection."""
+
+    ip: str = Field(description="Masked IP address")
+    failed_count: int
+    last_attempt: str
+    risk_level: str = Field(description="'medium' or 'high'")
+
+
+class BruteForceRiskResponse(BaseModel):
+    """Response for brute force detection endpoint."""
+
+    risks: List[BruteForceRiskItem]
+    count: int
+
+
+class CleanupResponse(BaseModel):
+    """Response for manual cleanup trigger."""
+
+    deleted_count: int
+    retention_days: int
+    triggered_at: datetime

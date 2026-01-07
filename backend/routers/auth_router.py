@@ -58,7 +58,18 @@ def login(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    return TOTPService.login_with_2fa_check(db, form_data.username, form_data.password)
+    from helpers.request_utils import get_client_ip, get_user_agent
+
+    ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
+    return TOTPService.login_with_2fa_check(
+        db,
+        form_data.username,
+        form_data.password,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
 
 
 @router.post("/refresh", response_model=schemas.Token)

@@ -84,11 +84,18 @@ async def verify_2fa_login(
 
     Called after initial authentication returns a temp_token indicating 2FA is required.
     """
+    from helpers.request_utils import get_client_ip, get_user_agent
+
+    ip_address = get_client_ip(request)
+    user_agent = get_user_agent(request)
+
     return TOTPService.verify_2fa_login(
         db,
         request_body.temp_token,
         request_body.code,
         request_body.is_backup_code,
+        ip_address=ip_address,
+        user_agent=user_agent,
     )
 
 

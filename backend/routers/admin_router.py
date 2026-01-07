@@ -834,3 +834,203 @@ def get_system_resources(
     from services.diagnostics_service import DiagnosticsService
 
     return DiagnosticsService.get_system_resources(db)
+
+
+# ============================================================================
+# Security Audit Endpoints (Phase 2)
+# ============================================================================
+
+
+@router.get(
+    "/security/events",
+    response_model=schemas.AdminSecurityEventsResponse,
+    summary="List security events",
+    description="Get paginated list of login events with optional filtering.",
+)
+def get_security_events(
+    skip: PaginationSkip = 0,
+    limit: PaginationLimitLarge = 50,
+    event_type: Optional[str] = Query(
+        None,
+        description="Filter by event type (LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, etc.)",
+    ),
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    since: Optional[str] = Query(
+        None, description="Filter events after this datetime (ISO 8601)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.AdminSecurityEventsResponse:
+    """
+    Get paginated list of security/login events.
+
+    Supports filtering by:
+    - event_type: LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, PASSWORD_RESET_REQUEST
+    - user_id: specific user's events
+    - since: events after a specific datetime
+    """
+    from datetime import datetime as dt
+
+    from services.security_audit_service import SecurityAuditService
+
+    # Parse since datetime if provided
+    since_dt = None
+    if since:
+        since_dt = dt.fromisoformat(since.replace("Z", "+00:00"))
+
+    events, total = SecurityAuditService.get_security_events_list(
+        db=db,
+        skip=skip,
+        limit=limit,
+        event_type=event_type,
+        user_id=user_id,
+        since=since_dt,
+    )
+
+    return schemas.AdminSecurityEventsResponse(
+        events=events,
+        total=total,
+        limit=limit,
+        offset=skip,
+    )
+
+
+@router.get(
+    "/security/summary",
+    response_model=schemas.AdminSecuritySummary,
+    summary="Security statistics summary",
+    description="Get aggregated security statistics for the admin dashboard.",
+)
+def get_security_summary(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.AdminSecuritySummary:
+    """
+    Get security dashboard summary with:
+    - 24-hour event counts (total, successes, failures)
+    - Unique IP count
+    - Admin login count
+    - List of suspicious IPs (high failure rate)
+    - Recent admin logins
+    """
+    from services.security_audit_service import SecurityAuditService
+
+    return SecurityAuditService.get_security_summary(db)
+
+
+@router.get(
+    "/security/events/user/{user_id}",
+    response_model=schemas.AdminSecurityEventsResponse,
+    summary="User's security events",
+    description="Get login events for a specific user.",
+)
+def get_user_security_events(
+    user_id: int,
+    skip: PaginationSkip = 0,
+    limit: PaginationLimitLarge = 50,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.AdminSecurityEventsResponse:
+    """Get all login/security events for a specific user."""
+    from services.security_audit_service import SecurityAuditService
+
+    events, total = SecurityAuditService.get_events_for_user(
+        db=db,
+        user_id=user_id,
+        skip=skip,
+        limit=limit,
+    )
+
+    return schemas.AdminSecurityEventsResponse(
+        events=events,
+        total=total,
+        limit=limit,
+        offset=skip,
+    )
+
+
+@router.get(
+    "/security/failed-attempts",
+    response_model=schemas.AdminSecurityEventsResponse,
+    summary="Failed login attempts",
+    description="Get recent failed login attempts.",
+)
+def get_failed_attempts(
+    skip: PaginationSkip = 0,
+    limit: PaginationLimitLarge = 50,
+    hours: int = Query(
+        24, ge=1, le=168, description="Time window in hours (max 7 days)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.AdminSecurityEventsResponse:
+    """Get only failed login attempts within the specified time window."""
+    from services.security_audit_service import SecurityAuditService
+
+    events, total = SecurityAuditService.get_failed_attempts_list(
+        db=db,
+        skip=skip,
+        limit=limit,
+        hours=hours,
+    )
+
+    return schemas.AdminSecurityEventsResponse(
+        events=events,
+        total=total,
+        limit=limit,
+        offset=skip,
+    )
+
+
+@router.get(
+    "/security/brute-force-risks",
+    response_model=schemas.BruteForceRiskResponse,
+    summary="Brute force detection",
+    description="Detect potential brute force attack patterns.",
+)
+def get_brute_force_risks(
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.BruteForceRiskResponse:
+    """
+    Detect potential brute force attacks.
+
+    Returns IPs with 3+ failures in the last hour, ranked by failure count.
+    """
+    from services.security_audit_service import SecurityAuditService
+
+    risks = SecurityAuditService.check_brute_force_risk(db)
+
+    return schemas.BruteForceRiskResponse(
+        risks=risks,
+        count=len(risks),
+    )
+
+
+@router.post(
+    "/security/cleanup",
+    response_model=schemas.CleanupResponse,
+    summary="Trigger event cleanup",
+    description="Manually trigger cleanup of old login events.",
+)
+def trigger_security_cleanup(
+    retention_days: int = Query(
+        90, ge=30, le=365, description="Days to retain (30-365)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+) -> schemas.CleanupResponse:
+    """
+    Manually trigger cleanup of old login events.
+
+    Events older than retention_days will be permanently deleted.
+    """
+    from services.security_audit_service import SecurityAuditService
+
+    result = SecurityAuditService.trigger_cleanup(db, retention_days=retention_days)
+
+    return schemas.CleanupResponse(
+        deleted_count=result["deleted_count"],
+        retention_days=result["retention_days"],
+        triggered_at=result["triggered_at"],
+    )
