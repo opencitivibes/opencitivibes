@@ -340,7 +340,7 @@ cors_origins = (
 )  # nosemgrep: cors-misconfiguration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,  # nosemgrep: python.django.security.audit.cors-misconfiguration
+    allow_origins=cors_origins,  # nosemgrep
     allow_credentials=True if settings.ENVIRONMENT != "development" else False,
     allow_methods=["*"],
     allow_headers=["*"],

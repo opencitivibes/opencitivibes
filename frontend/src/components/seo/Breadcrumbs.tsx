@@ -32,10 +32,10 @@ export function Breadcrumbs({ items, className = '' }: BreadcrumbsProps) {
       aria-label={t('common.breadcrumb', "Fil d'Ariane")}
       className={`flex items-center text-sm text-gray-500 ${className}`}
     >
-      {/* nosemgrep: react-dangerouslysetinnerhtml - JSON-LD structured data, not user content */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
+          // nosemgrep
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',

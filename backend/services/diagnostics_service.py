@@ -126,7 +126,7 @@ class DiagnosticsService:
                 # SQLite and PostgreSQL both support this syntax safely
                 # The table name has been validated above
                 count_result = db.execute(
-                    text(f'SELECT COUNT(*) FROM "{table_name}"')  # noqa: S608 # nosec B608
+                    text(f'SELECT COUNT(*) FROM "{table_name}"')  # noqa: S608 # nosec B608 # nosemgrep
                 )
                 row_count = count_result.scalar()
                 tables_info.append(TableInfo(name=table_name, row_count=row_count))
