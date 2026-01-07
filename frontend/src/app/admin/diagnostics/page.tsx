@@ -273,543 +273,537 @@ export default function DiagnosticsPage() {
         description={t('admin.diagnostics.description')}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left: Test Panels */}
-        <div className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Sentry Tests */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.sentryTests')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('admin.diagnostics.sentryDescription')}
-            </p>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Sentry Tests */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.sentryTests')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('admin.diagnostics.sentryDescription')}
+          </p>
 
-            <div className="space-y-3">
-              <Button onClick={captureManually} variant="primary" className="w-full">
-                {t('admin.diagnostics.captureError')}
-              </Button>
+          <div className="space-y-3">
+            <Button onClick={captureManually} variant="primary" className="w-full">
+              {t('admin.diagnostics.captureError')}
+            </Button>
 
-              <Button onClick={sendTestMessage} variant="secondary" className="w-full">
-                {t('admin.diagnostics.sendMessage')}
-              </Button>
+            <Button onClick={sendTestMessage} variant="secondary" className="w-full">
+              {t('admin.diagnostics.sendMessage')}
+            </Button>
 
-              <Button
-                onClick={triggerError}
-                variant="secondary"
-                className="w-full !bg-red-600 !text-white hover:!bg-red-700 dark:!bg-red-700 dark:hover:!bg-red-800"
-              >
-                {t('admin.diagnostics.triggerCrash')}
-              </Button>
+            <Button
+              onClick={triggerError}
+              variant="secondary"
+              className="w-full !bg-red-600 !text-white hover:!bg-red-700 dark:!bg-red-700 dark:hover:!bg-red-800"
+            >
+              {t('admin.diagnostics.triggerCrash')}
+            </Button>
+          </div>
+
+          {sentryStatus.message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(sentryStatus.status)}`}>
+              {sentryStatus.message}
             </div>
+          )}
 
-            {sentryStatus.message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(sentryStatus.status)}`}>
-                {sentryStatus.message}
-              </div>
-            )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            {t('admin.diagnostics.checkDashboard')}
+          </p>
+        </Card>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-              {t('admin.diagnostics.checkDashboard')}
-            </p>
-          </Card>
+        {/* ntfy Tests */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.ntfyTests')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('admin.diagnostics.ntfyDescription')}
+          </p>
 
-          {/* ntfy Tests */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.ntfyTests')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('admin.diagnostics.ntfyDescription')}
-            </p>
+          <div className="space-y-3">
+            <Button
+              onClick={testNtfy}
+              variant="primary"
+              className="w-full"
+              disabled={ntfyStatus.status === 'loading'}
+            >
+              {ntfyStatus.status === 'loading'
+                ? t('admin.diagnostics.sending')
+                : t('admin.diagnostics.sendTestNotification')}
+            </Button>
+          </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={testNtfy}
-                variant="primary"
-                className="w-full"
-                disabled={ntfyStatus.status === 'loading'}
-              >
-                {ntfyStatus.status === 'loading'
-                  ? t('admin.diagnostics.sending')
-                  : t('admin.diagnostics.sendTestNotification')}
-              </Button>
+          {ntfyStatus.message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(ntfyStatus.status)}`}>
+              {ntfyStatus.message}
             </div>
+          )}
 
-            {ntfyStatus.message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(ntfyStatus.status)}`}>
-                {ntfyStatus.message}
-              </div>
-            )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            {t('admin.diagnostics.ntfyNote')}
+          </p>
+        </Card>
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-              {t('admin.diagnostics.ntfyNote')}
-            </p>
-          </Card>
+        {/* SMTP Test */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.smtpTests')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('admin.diagnostics.smtpDescription')}
+          </p>
 
-          {/* SMTP Test */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.smtpTests')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('admin.diagnostics.smtpDescription')}
-            </p>
+          <div className="space-y-3">
+            <Button
+              onClick={testSmtp}
+              variant="primary"
+              className="w-full"
+              disabled={smtpStatus.status === 'loading'}
+            >
+              {smtpStatus.status === 'loading'
+                ? t('admin.diagnostics.testing')
+                : t('admin.diagnostics.testSmtp')}
+            </Button>
+          </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={testSmtp}
-                variant="primary"
-                className="w-full"
-                disabled={smtpStatus.status === 'loading'}
-              >
-                {smtpStatus.status === 'loading'
-                  ? t('admin.diagnostics.testing')
-                  : t('admin.diagnostics.testSmtp')}
-              </Button>
+          {smtpStatus.message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(smtpStatus.status)}`}>
+              {smtpStatus.message}
             </div>
+          )}
 
-            {smtpStatus.message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(smtpStatus.status)}`}>
-                {smtpStatus.message}
+          {smtpInfo && (
+            <dl className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-600 dark:text-gray-400 shrink-0">
+                  {t('admin.diagnostics.provider')}
+                </dt>
+                <dd className="font-mono text-right">{smtpInfo.provider}</dd>
               </div>
-            )}
-
-            {smtpInfo && (
-              <dl className="mt-4 space-y-2 text-sm">
+              {smtpInfo.host && (
                 <div className="flex justify-between gap-2">
                   <dt className="text-gray-600 dark:text-gray-400 shrink-0">
-                    {t('admin.diagnostics.provider')}
+                    {t('admin.diagnostics.host')}
                   </dt>
-                  <dd className="font-mono text-right">{smtpInfo.provider}</dd>
+                  <dd className="font-mono text-right">
+                    {smtpInfo.host}:{smtpInfo.port}
+                  </dd>
                 </div>
-                {smtpInfo.host && (
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-gray-600 dark:text-gray-400 shrink-0">
-                      {t('admin.diagnostics.host')}
-                    </dt>
-                    <dd className="font-mono text-right">
-                      {smtpInfo.host}:{smtpInfo.port}
-                    </dd>
-                  </div>
-                )}
-                {smtpInfo.details && (
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <dd className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                      {smtpInfo.details}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            )}
+              )}
+              {smtpInfo.details && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <dd className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                    {smtpInfo.details}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
 
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-              {t('admin.diagnostics.smtpNote')}
-            </p>
-          </Card>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            {t('admin.diagnostics.smtpNote')}
+          </p>
+        </Card>
 
-          {/* API Health Check */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.apiHealth')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('admin.diagnostics.apiDescription')}
-            </p>
+        {/* API Health Check */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.apiHealth')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('admin.diagnostics.apiDescription')}
+          </p>
 
-            <div className="space-y-3">
-              <Button
-                onClick={checkApiHealth}
-                variant="primary"
-                className="w-full"
-                disabled={apiStatus.status === 'loading'}
-              >
-                {apiStatus.status === 'loading'
-                  ? t('admin.diagnostics.checking')
-                  : t('admin.diagnostics.checkApi')}
-              </Button>
+          <div className="space-y-3">
+            <Button
+              onClick={checkApiHealth}
+              variant="primary"
+              className="w-full"
+              disabled={apiStatus.status === 'loading'}
+            >
+              {apiStatus.status === 'loading'
+                ? t('admin.diagnostics.checking')
+                : t('admin.diagnostics.checkApi')}
+            </Button>
+          </div>
+
+          {apiStatus.message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(apiStatus.status)}`}>
+              {apiStatus.message}
             </div>
+          )}
 
-            {apiStatus.message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(apiStatus.status)}`}>
-                {apiStatus.message}
+          {platformInfo && (
+            <dl className="mt-4 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-gray-600 dark:text-gray-400">Platform</dt>
+                <dd className="font-mono">{platformInfo.platform}</dd>
               </div>
-            )}
+              <div className="flex justify-between">
+                <dt className="text-gray-600 dark:text-gray-400">Version</dt>
+                <dd className="font-mono">{platformInfo.version}</dd>
+              </div>
+            </dl>
+          )}
+        </Card>
 
-            {platformInfo && (
-              <dl className="mt-4 space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-gray-600 dark:text-gray-400">Platform</dt>
-                  <dd className="font-mono">{platformInfo.platform}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600 dark:text-gray-400">Version</dt>
-                  <dd className="font-mono">{platformInfo.version}</dd>
-                </div>
-              </dl>
-            )}
-          </Card>
+        {/* Database Check */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.dbTests')}</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('admin.diagnostics.dbDescription')}
+          </p>
 
-          {/* Database Check */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.dbTests')}</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {t('admin.diagnostics.dbDescription')}
-            </p>
+          <div className="space-y-3">
+            <Button
+              onClick={checkDatabase}
+              variant="primary"
+              className="w-full"
+              disabled={dbStatus.status === 'loading'}
+            >
+              {dbStatus.status === 'loading'
+                ? t('admin.diagnostics.checking')
+                : t('admin.diagnostics.checkDb')}
+            </Button>
+          </div>
 
-            <div className="space-y-3">
-              <Button
-                onClick={checkDatabase}
-                variant="primary"
-                className="w-full"
-                disabled={dbStatus.status === 'loading'}
-              >
-                {dbStatus.status === 'loading'
-                  ? t('admin.diagnostics.checking')
-                  : t('admin.diagnostics.checkDb')}
-              </Button>
+          {dbStatus.message && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(dbStatus.status)}`}>
+              {dbStatus.message}
             </div>
+          )}
 
-            {dbStatus.message && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${getStatusColor(dbStatus.status)}`}>
-                {dbStatus.message}
-              </div>
-            )}
-
-            {dbInfo && (
-              <div className="mt-4 space-y-3">
-                {/* Database type badge */}
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                      dbInfo.database_type === 'postgresql'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        : dbInfo.database_type === 'sqlite'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    {dbInfo.database_type === 'postgresql' && '🐘 '}
-                    {dbInfo.database_type === 'sqlite' && '📄 '}
-                    {dbInfo.database_type.toUpperCase()}
+          {dbInfo && (
+            <div className="mt-4 space-y-3">
+              {/* Database type badge */}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                    dbInfo.database_type === 'postgresql'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                      : dbInfo.database_type === 'sqlite'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {dbInfo.database_type === 'postgresql' && '🐘 '}
+                  {dbInfo.database_type === 'sqlite' && '📄 '}
+                  {dbInfo.database_type.toUpperCase()}
+                </span>
+                {dbInfo.connected && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    ● Connected
                   </span>
-                  {dbInfo.connected && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                      ● Connected
+                )}
+              </div>
+
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-600 dark:text-gray-400 shrink-0">
+                    {t('admin.diagnostics.dbUrl')}
+                  </dt>
+                  <dd
+                    className="font-mono text-xs text-right truncate max-w-[180px]"
+                    title={dbInfo.database_url_masked}
+                  >
+                    {dbInfo.database_url_masked}
+                  </dd>
+                </div>
+              </dl>
+
+              {/* Pool info for PostgreSQL */}
+              {dbInfo.pool_info && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    {t('admin.diagnostics.poolInfo')}
+                  </h3>
+                  <dl className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.poolSize')}
+                      </dt>
+                      <dd className="font-mono">{dbInfo.pool_info.pool_size ?? 'N/A'}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.checkedIn')}
+                      </dt>
+                      <dd className="font-mono">{dbInfo.pool_info.checked_in}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.checkedOut')}
+                      </dt>
+                      <dd className="font-mono">{dbInfo.pool_info.checked_out}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.overflow')}
+                      </dt>
+                      <dd className="font-mono">{dbInfo.pool_info.overflow}</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+
+              {/* Tables section */}
+              {dbInfo.tables.length > 0 && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    {t('admin.diagnostics.tables')} ({dbInfo.tables.length})
+                  </h3>
+                  <div className="max-h-40 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-white dark:bg-gray-800">
+                        <tr className="text-left text-gray-500 dark:text-gray-400">
+                          <th className="pb-1">{t('admin.diagnostics.tableName')}</th>
+                          <th className="pb-1 text-right">{t('admin.diagnostics.rows')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-mono">
+                        {dbInfo.tables.map((table) => (
+                          <tr
+                            key={table.name}
+                            className="border-t border-gray-100 dark:border-gray-700"
+                          >
+                            <td className="py-1">{table.name}</td>
+                            <td className="py-1 text-right">
+                              {table.row_count?.toLocaleString() ?? '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            {t('admin.diagnostics.dbNote')}
+          </p>
+        </Card>
+
+        {/* Security Audit Widget */}
+        <SecurityAuditWidget />
+
+        {/* System Resources */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold">{t('admin.diagnostics.systemResources')}</h2>
+            <Button
+              onClick={checkSystemResources}
+              variant="secondary"
+              className="!px-2 !py-1 text-xs"
+              disabled={systemStatus.status === 'loading'}
+            >
+              {systemStatus.status === 'loading' ? '...' : '↻'}
+            </Button>
+          </div>
+
+          {systemStatus.status === 'idle' && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t('admin.diagnostics.clickToLoad')}
+            </p>
+          )}
+
+          {systemStatus.status === 'loading' && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+              {t('admin.diagnostics.checking')}
+            </p>
+          )}
+
+          {systemStatus.status === 'error' && (
+            <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs">
+              {systemStatus.message}
+            </div>
+          )}
+
+          {systemInfo && (
+            <div className="space-y-4">
+              {/* Disk Usage */}
+              {systemInfo.disk && (
+                <div>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      {t('admin.diagnostics.diskUsage')}
                     </span>
+                    <span
+                      className={`text-sm font-bold ${getUsageColor(systemInfo.disk.used_percent)}`}
+                    >
+                      {systemInfo.disk.used_percent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full ${
+                        systemInfo.disk.used_percent >= 90
+                          ? 'bg-red-500'
+                          : systemInfo.disk.used_percent >= 75
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}
+                      style={{ width: `${systemInfo.disk.used_percent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <span>{systemInfo.disk.free_gb} GB free</span>
+                    <span>{systemInfo.disk.total_gb} GB</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Memory Usage */}
+              {systemInfo.memory_used_percent !== null && (
+                <div>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      {t('admin.diagnostics.memoryUsage')}
+                    </span>
+                    <span
+                      className={`text-sm font-bold ${getUsageColor(systemInfo.memory_used_percent)}`}
+                    >
+                      {systemInfo.memory_used_percent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div
+                      className={`h-1.5 rounded-full ${
+                        systemInfo.memory_used_percent >= 90
+                          ? 'bg-red-500'
+                          : systemInfo.memory_used_percent >= 75
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                      }`}
+                      style={{ width: `${systemInfo.memory_used_percent}%` }}
+                    />
+                  </div>
+                  {systemInfo.load_average && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Load: {systemInfo.load_average.join(' / ')}
+                    </div>
                   )}
                 </div>
+              )}
 
-                <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-gray-600 dark:text-gray-400 shrink-0">
-                      {t('admin.diagnostics.dbUrl')}
-                    </dt>
-                    <dd
-                      className="font-mono text-xs text-right truncate max-w-[180px]"
-                      title={dbInfo.database_url_masked}
-                    >
-                      {dbInfo.database_url_masked}
-                    </dd>
+              {/* Uptime */}
+              {systemInfo.uptime_seconds !== null && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {t('admin.diagnostics.uptime')}
+                  </span>
+                  <span className="font-mono">{formatUptime(systemInfo.uptime_seconds)}</span>
+                </div>
+              )}
+
+              {/* Database Size */}
+              {systemInfo.database_size && (
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      {t('admin.diagnostics.databaseSize')}
+                    </span>
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                      {systemInfo.database_size.size_mb.toFixed(1)} MB
+                    </span>
                   </div>
-                </dl>
-
-                {/* Pool info for PostgreSQL */}
-                {dbInfo.pool_info && (
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      {t('admin.diagnostics.poolInfo')}
-                    </h3>
-                    <dl className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600 dark:text-gray-400">
-                          {t('admin.diagnostics.poolSize')}
-                        </dt>
-                        <dd className="font-mono">{dbInfo.pool_info.pool_size ?? 'N/A'}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600 dark:text-gray-400">
-                          {t('admin.diagnostics.checkedIn')}
-                        </dt>
-                        <dd className="font-mono">{dbInfo.pool_info.checked_in}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600 dark:text-gray-400">
-                          {t('admin.diagnostics.checkedOut')}
-                        </dt>
-                        <dd className="font-mono">{dbInfo.pool_info.checked_out}</dd>
-                      </div>
-                      <div className="flex justify-between">
-                        <dt className="text-gray-600 dark:text-gray-400">
-                          {t('admin.diagnostics.overflow')}
-                        </dt>
-                        <dd className="font-mono">{dbInfo.pool_info.overflow}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                )}
-
-                {/* Tables section */}
-                {dbInfo.tables.length > 0 && (
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                      {t('admin.diagnostics.tables')} ({dbInfo.tables.length})
-                    </h3>
-                    <div className="max-h-40 overflow-y-auto">
-                      <table className="w-full text-xs">
-                        <thead className="sticky top-0 bg-white dark:bg-gray-800">
-                          <tr className="text-left text-gray-500 dark:text-gray-400">
-                            <th className="pb-1">{t('admin.diagnostics.tableName')}</th>
-                            <th className="pb-1 text-right">{t('admin.diagnostics.rows')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="font-mono">
-                          {dbInfo.tables.map((table) => (
-                            <tr
-                              key={table.name}
-                              className="border-t border-gray-100 dark:border-gray-700"
-                            >
-                              <td className="py-1">{table.name}</td>
-                              <td className="py-1 text-right">
-                                {table.row_count?.toLocaleString() ?? '-'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-              {t('admin.diagnostics.dbNote')}
-            </p>
-          </Card>
-        </div>
-
-        {/* Right: Info Widgets Sidebar */}
-        <div className="lg:w-80 space-y-6">
-          {/* Security Audit Widget */}
-          <SecurityAuditWidget />
-
-          {/* System Resources */}
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold">{t('admin.diagnostics.systemResources')}</h2>
-              <Button
-                onClick={checkSystemResources}
-                variant="secondary"
-                className="!px-2 !py-1 text-xs"
-                disabled={systemStatus.status === 'loading'}
-              >
-                {systemStatus.status === 'loading' ? '...' : '↻'}
-              </Button>
-            </div>
-
-            {systemStatus.status === 'idle' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('admin.diagnostics.clickToLoad')}
-              </p>
-            )}
-
-            {systemStatus.status === 'loading' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
-                {t('admin.diagnostics.checking')}
-              </p>
-            )}
-
-            {systemStatus.status === 'error' && (
-              <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs">
-                {systemStatus.message}
-              </div>
-            )}
-
-            {systemInfo && (
-              <div className="space-y-4">
-                {/* Disk Usage */}
-                {systemInfo.disk && (
-                  <div>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.diskUsage')}
-                      </span>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span className="uppercase">{systemInfo.database_size.database_type}</span>
+                    {systemInfo.database_size.file_path && (
                       <span
-                        className={`text-sm font-bold ${getUsageColor(systemInfo.disk.used_percent)}`}
+                        className="font-mono truncate max-w-[120px]"
+                        title={systemInfo.database_size.file_path}
                       >
-                        {systemInfo.disk.used_percent}%
+                        {systemInfo.database_size.file_path}
                       </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full ${
-                          systemInfo.disk.used_percent >= 90
-                            ? 'bg-red-500'
-                            : systemInfo.disk.used_percent >= 75
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                        }`}
-                        style={{ width: `${systemInfo.disk.used_percent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <span>{systemInfo.disk.free_gb} GB free</span>
-                      <span>{systemInfo.disk.total_gb} GB</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Memory Usage */}
-                {systemInfo.memory_used_percent !== null && (
-                  <div>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.memoryUsage')}
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${getUsageColor(systemInfo.memory_used_percent)}`}
-                      >
-                        {systemInfo.memory_used_percent}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full ${
-                          systemInfo.memory_used_percent >= 90
-                            ? 'bg-red-500'
-                            : systemInfo.memory_used_percent >= 75
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                        }`}
-                        style={{ width: `${systemInfo.memory_used_percent}%` }}
-                      />
-                    </div>
-                    {systemInfo.load_average && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Load: {systemInfo.load_average.join(' / ')}
-                      </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
 
-                {/* Uptime */}
-                {systemInfo.uptime_seconds !== null && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t('admin.diagnostics.uptime')}
-                    </span>
-                    <span className="font-mono">{formatUptime(systemInfo.uptime_seconds)}</span>
-                  </div>
-                )}
+        {/* Current Session */}
+        <Card className="p-6">
+          <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            {t('admin.diagnostics.sessionInfo')}
+          </h2>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">User ID</dt>
+              <dd className="font-mono">{user?.id}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Email</dt>
+              <dd className="font-mono text-xs truncate max-w-[150px]" title={user?.email}>
+                {user?.email}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Global Admin</dt>
+              <dd className="font-mono">{user?.is_global_admin ? '✓ Yes' : '✗ No'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Official</dt>
+              <dd className="font-mono">{user?.is_official ? '✓ Yes' : '✗ No'}</dd>
+            </div>
+          </dl>
+        </Card>
 
-                {/* Database Size */}
-                {systemInfo.database_size && (
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.databaseSize')}
-                      </span>
-                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {systemInfo.database_size.size_mb.toFixed(1)} MB
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span className="uppercase">{systemInfo.database_size.database_type}</span>
-                      {systemInfo.database_size.file_path && (
-                        <span
-                          className="font-mono truncate max-w-[120px]"
-                          title={systemInfo.database_size.file_path}
-                        >
-                          {systemInfo.database_size.file_path}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
+        {/* System Info */}
+        <Card className="p-6">
+          <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.systemInfo')}</h2>
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Environment</dt>
+              <dd className="font-mono">{process.env.NODE_ENV}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Sentry DSN</dt>
+              <dd className="font-mono text-xs">
+                {process.env.NEXT_PUBLIC_SENTRY_DSN ? '✓ Configured' : '✗ Not set'}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Release</dt>
+              <dd className="font-mono">{process.env.NEXT_PUBLIC_SENTRY_RELEASE || 'unknown'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600 dark:text-gray-400">Instance</dt>
+              <dd className="font-mono">{process.env.NEXT_PUBLIC_INSTANCE_NAME || 'default'}</dd>
+            </div>
+          </dl>
+        </Card>
 
-          {/* Current Session */}
-          <Card className="p-5">
-            <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              {t('admin.diagnostics.sessionInfo')}
-            </h2>
+        {/* Browser Info */}
+        <Card className="p-6">
+          <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.browserInfo')}</h2>
+          {browserInfo ? (
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">User ID</dt>
-                <dd className="font-mono">{user?.id}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">Language</dt>
+                <dd className="font-mono">{browserInfo.language}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Email</dt>
-                <dd className="font-mono text-xs truncate max-w-[150px]" title={user?.email}>
-                  {user?.email}
+                <dt className="text-gray-600 dark:text-gray-400">Cookies</dt>
+                <dd className="font-mono">
+                  {browserInfo.cookiesEnabled ? '✓ Enabled' : '✗ Disabled'}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Global Admin</dt>
-                <dd className="font-mono">{user?.is_global_admin ? '✓ Yes' : '✗ No'}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">Online</dt>
+                <dd className="font-mono">{browserInfo.online ? '✓ Yes' : '✗ No'}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Official</dt>
-                <dd className="font-mono">{user?.is_official ? '✓ Yes' : '✗ No'}</dd>
-              </div>
-            </dl>
-          </Card>
-
-          {/* System Info */}
-          <Card className="p-5">
-            <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.systemInfo')}</h2>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Environment</dt>
-                <dd className="font-mono">{process.env.NODE_ENV}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Sentry DSN</dt>
-                <dd className="font-mono text-xs">
-                  {process.env.NEXT_PUBLIC_SENTRY_DSN ? '✓ Configured' : '✗ Not set'}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <dt className="text-gray-600 dark:text-gray-400 text-xs mb-1">User Agent</dt>
+                <dd
+                  className="font-mono text-xs text-gray-500 dark:text-gray-400 break-all"
+                  title={browserInfo.userAgent}
+                >
+                  {browserInfo.userAgent.slice(0, 80)}...
                 </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Release</dt>
-                <dd className="font-mono">{process.env.NEXT_PUBLIC_SENTRY_RELEASE || 'unknown'}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Instance</dt>
-                <dd className="font-mono">{process.env.NEXT_PUBLIC_INSTANCE_NAME || 'default'}</dd>
-              </div>
             </dl>
-          </Card>
-
-          {/* Browser Info */}
-          <Card className="p-5">
-            <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.browserInfo')}</h2>
-            {browserInfo ? (
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-gray-600 dark:text-gray-400">Language</dt>
-                  <dd className="font-mono">{browserInfo.language}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600 dark:text-gray-400">Cookies</dt>
-                  <dd className="font-mono">
-                    {browserInfo.cookiesEnabled ? '✓ Enabled' : '✗ Disabled'}
-                  </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600 dark:text-gray-400">Online</dt>
-                  <dd className="font-mono">{browserInfo.online ? '✓ Yes' : '✗ No'}</dd>
-                </div>
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <dt className="text-gray-600 dark:text-gray-400 text-xs mb-1">User Agent</dt>
-                  <dd
-                    className="font-mono text-xs text-gray-500 dark:text-gray-400 break-all"
-                    title={browserInfo.userAgent}
-                  >
-                    {browserInfo.userAgent.slice(0, 80)}...
-                  </dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="text-sm text-gray-500">Loading...</p>
-            )}
-          </Card>
-        </div>
+          ) : (
+            <p className="text-sm text-gray-500">Loading...</p>
+          )}
+        </Card>
       </div>
     </PageContainer>
   );
