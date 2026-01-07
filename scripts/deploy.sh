@@ -10,6 +10,7 @@ set -euo pipefail
 # ============================================
 DEPLOY_PATH="${DEPLOY_PATH:-$(pwd)}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT_NAME:-opencitivibes}"
+COMPOSE_PROFILE="${COMPOSE_PROFILE:-prod}"
 BACKUP_BEFORE_DEPLOY="${BACKUP_BEFORE_DEPLOY:-true}"
 HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-60}"
 
@@ -37,6 +38,7 @@ OpenCitiVibes Deployment Script
 Usage: ./scripts/deploy.sh [OPTIONS]
 
 Options:
+    --profile PROFILE   Docker Compose profile (dev, staging, prod) [default: prod]
     --rollback          Rollback to previous deployment
     --no-backup         Skip pre-deployment backup
     --force             Force deployment without health checks
@@ -45,10 +47,12 @@ Options:
 Environment Variables:
     DEPLOY_PATH         Path to deployment directory (default: current dir)
     COMPOSE_PROJECT_NAME    Docker Compose project name
+    COMPOSE_PROFILE     Docker Compose profile (default: prod)
     HEALTH_CHECK_TIMEOUT    Timeout for health checks in seconds (default: 60)
 
 Examples:
-    ./scripts/deploy.sh                    # Normal deployment
+    ./scripts/deploy.sh                    # Production deployment
+    ./scripts/deploy.sh --profile staging  # Staging deployment
     ./scripts/deploy.sh --no-backup        # Deploy without backup
     ./scripts/deploy.sh --rollback         # Rollback to previous version
 EOF
@@ -116,7 +120,7 @@ create_backup() {
 pull_images() {
     log "Pulling latest images..."
     cd "$DEPLOY_PATH"
-    docker compose pull
+    docker compose --profile "$COMPOSE_PROFILE" pull
 }
 
 # ============================================
@@ -127,7 +131,7 @@ store_current_state() {
     cd "$DEPLOY_PATH"
 
     # Store current image digests
-    docker compose images --format json 2>/dev/null > /tmp/deployment_state_previous.json || true
+    docker compose --profile "$COMPOSE_PROFILE" images --format json 2>/dev/null > /tmp/deployment_state_previous.json || true
 }
 
 # ============================================
@@ -156,7 +160,7 @@ deploy() {
     fi
 
     # Rolling update
-    docker compose up -d --remove-orphans
+    docker compose --profile "$COMPOSE_PROFILE" up -d --remove-orphans
 
     log "Containers started, waiting for health checks..."
 }
@@ -176,14 +180,14 @@ wait_for_health() {
         elapsed=$((elapsed + interval))
 
         # Check if any containers are unhealthy
-        if docker compose ps 2>/dev/null | grep -q "unhealthy"; then
+        if docker compose --profile "$COMPOSE_PROFILE" ps 2>/dev/null | grep -q "unhealthy"; then
             info "Services still starting... (${elapsed}s/${timeout}s)"
             continue
         fi
 
         # Check if all containers are running
-        local running_count=$(docker compose ps --status running -q 2>/dev/null | wc -l)
-        local total_count=$(docker compose ps -q 2>/dev/null | wc -l)
+        local running_count=$(docker compose --profile "$COMPOSE_PROFILE" ps --status running -q 2>/dev/null | wc -l)
+        local total_count=$(docker compose --profile "$COMPOSE_PROFILE" ps -q 2>/dev/null | wc -l)
 
         if [[ $running_count -eq $total_count ]] && [[ $total_count -gt 0 ]]; then
             log "All services healthy!"
@@ -204,20 +208,20 @@ verify_deployment() {
     cd "$DEPLOY_PATH"
 
     # Check container status
-    if docker compose ps 2>/dev/null | grep -q "unhealthy"; then
+    if docker compose --profile "$COMPOSE_PROFILE" ps 2>/dev/null | grep -q "unhealthy"; then
         error "Deployment verification failed - unhealthy containers detected"
-        docker compose ps
+        docker compose --profile "$COMPOSE_PROFILE" ps
         return 1
     fi
 
     # Check if containers are running
-    if docker compose ps --status running -q 2>/dev/null | wc -l | grep -q "^0$"; then
+    if docker compose --profile "$COMPOSE_PROFILE" ps --status running -q 2>/dev/null | wc -l | grep -q "^0$"; then
         error "Deployment verification failed - no running containers"
         return 1
     fi
 
     log "Deployment verified successfully!"
-    docker compose ps
+    docker compose --profile "$COMPOSE_PROFILE" ps
     return 0
 }
 
@@ -247,7 +251,7 @@ rollback() {
 
     info "To rollback manually:"
     info "1. Edit .env and set IMAGE_TAG to previous version"
-    info "2. Run: docker compose pull && docker compose up -d"
+    info "2. Run: docker compose --profile $COMPOSE_PROFILE pull && docker compose --profile $COMPOSE_PROFILE up -d"
     exit 1
 }
 
@@ -261,6 +265,15 @@ main() {
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --profile)
+                if [[ -n "${2:-}" ]] && [[ "$2" =~ ^(dev|staging|prod)$ ]]; then
+                    COMPOSE_PROFILE="$2"
+                    shift 2
+                else
+                    error "Invalid or missing profile. Use: dev, staging, or prod"
+                    exit 1
+                fi
+                ;;
             --rollback)
                 do_rollback=true
                 shift
@@ -287,6 +300,7 @@ main() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║  ${NC}${GREEN}OpenCitiVibes Deployment${NC}"
     echo -e "${BLUE}║  ${NC}Project: ${YELLOW}$COMPOSE_PROJECT${NC}"
+    echo -e "${BLUE}║  ${NC}Profile: ${YELLOW}$COMPOSE_PROFILE${NC}"
     echo -e "${BLUE}║  ${NC}Path: ${YELLOW}$DEPLOY_PATH${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -305,7 +319,7 @@ main() {
     if [[ "$force" != "true" ]]; then
         if ! wait_for_health; then
             error "Health check timeout - deployment may have failed"
-            docker compose ps
+            docker compose --profile "$COMPOSE_PROFILE" ps
             exit 1
         fi
 
