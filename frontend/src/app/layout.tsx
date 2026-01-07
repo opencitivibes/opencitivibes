@@ -78,6 +78,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/instance/hero.png" as="image" type="image/png" />
 
         <StructuredData data={globalSchemas} />
+
+        {/* Cloudflare Web Analytics */}
+        <script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "284d8dbeefde4c64b4d839e6eefc6903"}'
+        />
       </head>
       <body className={`${inter.className} theme-loading`}>
         {/* Fallback for no-JS: show content anyway */}
