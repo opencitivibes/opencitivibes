@@ -1026,6 +1026,98 @@ class ConsentLog(Base):
 
 
 # ============================================================================
+# Login Event Tracking Enums & Models (Security Audit Phase 1)
+# ============================================================================
+
+
+class LoginEventType(str, enum.Enum):
+    """Types of login-related events to track."""
+
+    LOGIN_SUCCESS = "login_success"
+    LOGIN_FAILED = "login_failed"
+    LOGOUT = "logout"
+    PASSWORD_RESET_REQUEST = "password_reset_request"
+
+
+class LoginFailureReason(str, enum.Enum):
+    """Reasons for login failure."""
+
+    INVALID_PASSWORD = "invalid_password"
+    USER_NOT_FOUND = "user_not_found"
+    ACCOUNT_INACTIVE = "account_inactive"
+    RATE_LIMITED = "rate_limited"
+    TWO_FACTOR_FAILED = "two_factor_failed"
+    ACCOUNT_BANNED = "account_banned"
+
+
+class LoginEvent(Base):
+    """
+    Tracks login events for security auditing.
+
+    Records both successful and failed login attempts with contextual
+    information for security monitoring and anomaly detection.
+    """
+
+    __tablename__ = "login_events"
+    __table_args__ = (
+        Index("ix_login_events_user_id", "user_id"),
+        Index("ix_login_events_ip_address", "ip_address"),
+        Index("ix_login_events_event_type", "event_type"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="User who triggered the event (null for failed login with unknown user)",
+    )
+    email: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="Email used in login attempt (stored even if user not found)",
+    )
+    event_type: Mapped[LoginEventType] = mapped_column(
+        Enum(LoginEventType),
+        nullable=False,
+        comment="Type of login event",
+    )
+    ip_address: Mapped[Optional[str]] = mapped_column(
+        String(45),
+        nullable=True,
+        comment="Client IP address (IPv6 max length)",
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Browser/client user agent string",
+    )
+    failure_reason: Mapped[Optional[LoginFailureReason]] = mapped_column(
+        Enum(LoginFailureReason),
+        nullable=True,
+        comment="Reason for login failure (null for success/logout)",
+    )
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="JSON with additional event details (2FA method, etc.)",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+        index=True,
+    )
+
+    # Relationship
+    user: Mapped[Optional["User"]] = relationship(
+        "User",
+        foreign_keys=[user_id],
+        backref="login_events",
+    )
+
+
+# ============================================================================
 # Security Audit & Breach Notification Models (Law 25 Compliance - Phase 5)
 # ============================================================================
 
