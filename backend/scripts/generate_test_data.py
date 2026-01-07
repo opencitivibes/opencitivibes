@@ -63,7 +63,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from repositories.database import Base
-from repositories.db_models import (
+from repositories.db_models import (  # noqa: F401
     AdminNote,
     AdminRole,
     Appeal,
@@ -73,21 +73,28 @@ from repositories.db_models import (
     Comment,
     ContentFlag,
     ContentType,
-    EmailLoginCode,  # noqa: F401 - needed for schema creation
+    EmailLoginCode,
     FlagReason,
     FlagStatus,
     Idea,
     IdeaStatus,
     IdeaTag,
     KeywordWatchlist,
+    LoginEvent,
+    LoginEventType,
+    LoginFailureReason,
     PenaltyStatus,
     PenaltyType,
+    PrivacyIncident,
     Quality,
+    SecurityAuditLog,
+    ShareEvent,
+    SharePlatform,
     Tag,
     User,
-    UserBackupCode,  # noqa: F401 - needed for schema creation
+    UserBackupCode,
     UserPenalty,
-    UserTOTPSecret,  # noqa: F401 - needed for schema creation
+    UserTOTPSecret,
     Vote,
     VoteQuality,
     VoteType,
@@ -231,6 +238,15 @@ class DatasetConfig:
     comment_like_probability: float  # Probability that a comment gets likes
     likes_per_comment_range: tuple[int, int]  # Range of likes per comment
 
+    # Security & Analytics (new tables)
+    num_login_events: int  # Login events for security audit
+    num_share_events: int  # Social share events for analytics
+    num_security_audit_logs: int  # Security audit log entries
+    num_official_users: int  # Users with official role
+
+    # Ideas with edits (approved then edited flow)
+    ideas_with_edits_probability: float  # Probability an approved idea has been edited
+
     # Batch sizes for large datasets
     batch_size: int = 1000
 
@@ -268,6 +284,13 @@ DATASET_CONFIGS = {
         # Comment likes
         comment_like_probability=0.3,  # 30% of comments get likes
         likes_per_comment_range=(1, 8),
+        # Security & Analytics
+        num_login_events=500,
+        num_share_events=200,
+        num_security_audit_logs=100,
+        num_official_users=5,
+        # Edit tracking
+        ideas_with_edits_probability=0.05,  # 5% of approved ideas have edits
         batch_size=500,
     ),
     "medium": DatasetConfig(
@@ -297,6 +320,13 @@ DATASET_CONFIGS = {
         # Comment likes
         comment_like_probability=0.4,  # 40% of comments get likes
         likes_per_comment_range=(1, 15),
+        # Security & Analytics
+        num_login_events=5_000,
+        num_share_events=2_000,
+        num_security_audit_logs=1_000,
+        num_official_users=20,
+        # Edit tracking
+        ideas_with_edits_probability=0.08,  # 8% of approved ideas have edits
         batch_size=1000,
     ),
     "large": DatasetConfig(
@@ -326,6 +356,13 @@ DATASET_CONFIGS = {
         # Comment likes
         comment_like_probability=0.5,  # 50% of comments get likes
         likes_per_comment_range=(1, 25),
+        # Security & Analytics
+        num_login_events=50_000,
+        num_share_events=20_000,
+        num_security_audit_logs=10_000,
+        num_official_users=100,
+        # Edit tracking
+        ideas_with_edits_probability=0.10,  # 10% of approved ideas have edits
         batch_size=5000,
     ),
 }
@@ -1948,6 +1985,308 @@ def create_admin_notes(session, users):
     return notes
 
 
+def create_official_users(session, users) -> int:
+    """Assign official role to some regular users.
+
+    Creates users with official status (e.g., city representatives,
+    elected officials) who can have verified badges.
+
+    Returns:
+        Number of users assigned official role.
+    """
+    print("  Assigning official roles to users...")
+    regular_users = users[config.num_global_admins + config.num_category_admins :]
+
+    num_officials = min(config.num_official_users, len(regular_users))
+    official_users = random.sample(regular_users, num_officials)
+
+    official_titles = [
+        "City Councillor",
+        "Borough Mayor",
+        "Urban Planner",
+        "Transportation Director",
+        "Environment Coordinator",
+        "Community Liaison",
+        "Public Works Manager",
+        "Parks Director",
+        "Heritage Officer",
+        "Accessibility Coordinator",
+    ]
+
+    for user in official_users:
+        user.is_official = True
+        user.official_title = random.choice(official_titles)
+        user.official_verified_at = random_date_after(user.created_at, max_days=30)
+
+    session.commit()
+    print(f"  Assigned official role to {num_officials} users")
+    return num_officials
+
+
+def create_login_events(session, users) -> int:
+    """Create login event records for security audit testing.
+
+    Creates a mix of successful logins, failed logins, logouts,
+    and password reset requests.
+
+    Returns:
+        Number of login events created.
+    """
+    print(f"  Creating {config.num_login_events} login events...")
+    events_count = 0
+    batch_count = 0
+
+    # Sample IPs for realistic distribution
+    sample_ips = (
+        ["192.168.1." + str(i) for i in range(1, 255)]
+        + ["10.0.0." + str(i) for i in range(1, 100)]
+        + ["172.16.0." + str(i) for i in range(1, 50)]
+    )
+
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+        "Mozilla/5.0 (Android 14; Mobile) AppleWebKit/537.36",
+    ]
+
+    for i in range(config.num_login_events):
+        # Distribution: 70% success, 20% failed, 8% logout, 2% password reset
+        rand = random.random()
+
+        if rand < 0.70:
+            # Successful login
+            user = random.choice(users)
+            event = LoginEvent(
+                user_id=user.id,
+                email=user.email,
+                event_type=LoginEventType.LOGIN_SUCCESS,
+                ip_address=random.choice(sample_ips),
+                user_agent=random.choice(user_agents),
+                failure_reason=None,
+                created_at=random_date_in_range(),
+            )
+        elif rand < 0.90:
+            # Failed login
+            user = random.choice(users) if random.random() > 0.3 else None
+            failure_reason = random.choice(
+                [
+                    LoginFailureReason.INVALID_PASSWORD,
+                    LoginFailureReason.USER_NOT_FOUND,
+                    LoginFailureReason.ACCOUNT_INACTIVE,
+                    LoginFailureReason.RATE_LIMITED,
+                    LoginFailureReason.TWO_FACTOR_FAILED,
+                ]
+            )
+            event = LoginEvent(
+                user_id=user.id if user else None,
+                email=user.email if user else f"unknown{i}@example.com",
+                event_type=LoginEventType.LOGIN_FAILED,
+                ip_address=random.choice(sample_ips),
+                user_agent=random.choice(user_agents),
+                failure_reason=failure_reason,
+                created_at=random_date_in_range(),
+            )
+        elif rand < 0.98:
+            # Logout
+            user = random.choice(users)
+            event = LoginEvent(
+                user_id=user.id,
+                email=user.email,
+                event_type=LoginEventType.LOGOUT,
+                ip_address=random.choice(sample_ips),
+                user_agent=random.choice(user_agents),
+                failure_reason=None,
+                created_at=random_date_in_range(),
+            )
+        else:
+            # Password reset request
+            user = random.choice(users)
+            event = LoginEvent(
+                user_id=user.id,
+                email=user.email,
+                event_type=LoginEventType.PASSWORD_RESET_REQUEST,
+                ip_address=random.choice(sample_ips),
+                user_agent=random.choice(user_agents),
+                failure_reason=None,
+                created_at=random_date_in_range(),
+            )
+
+        session.add(event)
+        events_count += 1
+        batch_count += 1
+
+        if batch_count >= config.batch_size:
+            session.commit()
+            print(
+                f"    Progress: {events_count}/{config.num_login_events} login events"
+            )
+            batch_count = 0
+
+    session.commit()
+    print(f"  Created {events_count} login events")
+    return events_count
+
+
+def create_share_events(session, ideas) -> int:
+    """Create share event records for analytics testing.
+
+    Creates social media share tracking events for approved ideas.
+
+    Returns:
+        Number of share events created.
+    """
+    print(f"  Creating {config.num_share_events} share events...")
+
+    approved_ideas = [i for i in ideas if i.status == IdeaStatus.APPROVED]
+    if not approved_ideas:
+        print("    No approved ideas to create share events for")
+        return 0
+
+    events_count = 0
+    batch_count = 0
+    platforms = list(SharePlatform)
+
+    for _ in range(config.num_share_events):
+        idea = random.choice(approved_ideas)
+        platform = random.choice(platforms)
+
+        event = ShareEvent(
+            idea_id=idea.id,
+            platform=platform,
+            referrer_url=f"https://opencitivibes.local/ideas/{idea.id}"
+            if random.random() > 0.3
+            else None,
+            created_at=random_date_after(idea.created_at, max_days=90),
+        )
+        session.add(event)
+        events_count += 1
+        batch_count += 1
+
+        if batch_count >= config.batch_size:
+            session.commit()
+            print(
+                f"    Progress: {events_count}/{config.num_share_events} share events"
+            )
+            batch_count = 0
+
+    session.commit()
+    print(f"  Created {events_count} share events")
+    return events_count
+
+
+def create_security_audit_logs(session, users) -> int:
+    """Create security audit log entries.
+
+    Creates various security-related audit log entries for testing
+    security monitoring and compliance features.
+
+    Returns:
+        Number of audit log entries created.
+    """
+    print(f"  Creating {config.num_security_audit_logs} security audit logs...")
+
+    admin_users = users[: config.num_global_admins]
+    regular_users = users[config.num_global_admins :]
+
+    events_count = 0
+    batch_count = 0
+
+    event_types = [
+        ("login_failed", "warning", "authenticate"),
+        ("login_success", "info", "authenticate"),
+        ("data_export", "info", "export"),
+        ("admin_access_pii", "warning", "view"),
+        ("password_change", "info", "update"),
+        ("permission_change", "warning", "update"),
+        ("bulk_data_access", "warning", "view"),
+        ("consent_change", "info", "update"),
+    ]
+
+    sample_ips = ["192.168.1." + str(i) for i in range(1, 100)]
+
+    for _ in range(config.num_security_audit_logs):
+        event_type, severity, action = random.choice(event_types)
+
+        # Admin actions target other users
+        if event_type in ["admin_access_pii", "permission_change", "bulk_data_access"]:
+            user = random.choice(admin_users) if admin_users else random.choice(users)
+            target_user = random.choice(regular_users) if regular_users else None
+        else:
+            user = random.choice(users)
+            target_user = None
+
+        log = SecurityAuditLog(
+            event_type=event_type,
+            severity=severity,
+            user_id=user.id if user else None,
+            target_user_id=target_user.id if target_user else None,
+            ip_address=random.choice(sample_ips),
+            user_agent="Mozilla/5.0 (Test Data Generator)",
+            resource_type="user" if target_user else None,
+            resource_id=target_user.id if target_user else None,
+            action=action,
+            details=None,
+            success=random.random() > 0.1,  # 90% success rate
+            created_at=random_date_in_range(),
+        )
+        session.add(log)
+        events_count += 1
+        batch_count += 1
+
+        if batch_count >= config.batch_size:
+            session.commit()
+            print(
+                f"    Progress: {events_count}/{config.num_security_audit_logs} "
+                "audit logs"
+            )
+            batch_count = 0
+
+    session.commit()
+    print(f"  Created {events_count} security audit logs")
+    return events_count
+
+
+def apply_idea_edit_tracking(session, ideas) -> int:
+    """Apply edit tracking fields to some approved ideas.
+
+    Simulates the workflow where approved ideas have been edited
+    and are either pending re-moderation or have been re-approved.
+
+    Returns:
+        Number of ideas with edit tracking applied.
+    """
+    print("  Applying edit tracking to ideas...")
+
+    approved_ideas = [i for i in ideas if i.status == IdeaStatus.APPROVED]
+    if not approved_ideas:
+        print("    No approved ideas to apply edit tracking to")
+        return 0
+
+    num_to_edit = int(len(approved_ideas) * config.ideas_with_edits_probability)
+    ideas_to_edit = random.sample(approved_ideas, min(num_to_edit, len(approved_ideas)))
+
+    edited_count = 0
+    for idea in ideas_to_edit:
+        # Set edit count (1-3 edits)
+        idea.edit_count = random.randint(1, 3)
+        idea.last_edit_at = random_date_after(
+            idea.validated_at or idea.created_at, max_days=60
+        )
+
+        # Some ideas are still pending re-moderation (20%)
+        if random.random() < 0.2:
+            idea.previous_status = IdeaStatus.APPROVED.value
+            idea.status = IdeaStatus.PENDING_EDIT
+
+        edited_count += 1
+
+    session.commit()
+    print(f"  Applied edit tracking to {edited_count} ideas")
+    return edited_count
+
+
 def setup_fts5(engine) -> int:
     """Set up FTS5 full-text search for ideas.
 
@@ -2144,7 +2483,9 @@ Sample users:
 | - Global Admins | {config.num_global_admins:,} |
 | - Category Admins | {config.num_category_admins:,} |
 | - Regular Users | {config.num_regular_users:,} |
+| - Official Users | {actual_counts["official_users"]:,} |
 | Ideas | {actual_counts["ideas"]:,} |
+| - Ideas with edits | {actual_counts["edited_ideas"]:,} |
 | Tags | {config.num_tags:,} |
 | Tag Associations | {actual_counts["idea_tags"]:,} |
 | Votes | {actual_counts["votes"]:,} |
@@ -2153,6 +2494,10 @@ Sample users:
 | Content Flags | {actual_counts["flags"]:,} |
 | User Penalties | {actual_counts["penalties"]:,} |
 | Appeals | {actual_counts["appeals"]:,} |
+| **Security & Analytics** | |
+| Login Events | {actual_counts["login_events"]:,} |
+| Share Events | {actual_counts["share_events"]:,} |
+| Security Audit Logs | {actual_counts["security_audit_logs"]:,} |
 | **Law 25 Compliance** | |
 | Policy Versions | {actual_counts["policy_versions"]:,} |
 | Consent Logs | {actual_counts["consent_logs"]:,} |
@@ -2196,6 +2541,22 @@ Data is spread over the last {config.date_range_days:,} days ({config.date_range
 - Verify privacy settings (profile visibility) filtering
 - Test data export endpoint with complete user data
 - Verify marketing_consent_timestamp is set correctly
+
+### Security Audit Testing
+- Test login event tracking with {config.num_login_events:,} login events
+- Review security audit logs ({actual_counts["security_audit_logs"]:,} entries)
+- Test failed login analysis and suspicious activity detection
+- Verify official user badge display ({actual_counts["official_users"]:,} officials)
+
+### Social Sharing Analytics
+- Test share event tracking ({actual_counts["share_events"]:,} share events)
+- Verify platform distribution (Twitter, Facebook, LinkedIn, WhatsApp, Copy Link)
+- Test share analytics dashboard with realistic data
+
+### Idea Edit Workflow Testing
+- Test edit-approved-ideas flow with {actual_counts["edited_ideas"]:,} edited ideas
+- Verify PENDING_EDIT status transition
+- Test re-moderation workflow for edited ideas
 
 ## Dataset Sizes
 
@@ -2353,8 +2714,23 @@ Examples:
         create_keyword_watchlist(session, users)
         create_admin_notes(session, users)
 
+        print("\n12. Assigning official roles...")
+        official_count = create_official_users(session, users)
+
+        print("\n13. Creating login events (Security Audit)...")
+        login_events_count = create_login_events(session, users)
+
+        print("\n14. Creating share events (Analytics)...")
+        share_events_count = create_share_events(session, ideas)
+
+        print("\n15. Creating security audit logs...")
+        security_logs_count = create_security_audit_logs(session, users)
+
+        print("\n16. Applying idea edit tracking...")
+        edited_ideas_count = apply_idea_edit_tracking(session, ideas)
+
         # Set up FTS5 full-text search
-        print("\n12. Setting up FTS5...")
+        print("\n17. Setting up FTS5...")
         setup_fts5(engine)
 
         # Collect actual counts
@@ -2370,6 +2746,11 @@ Examples:
             "appeals": len(appeals),
             "policy_versions": len(policy_versions),
             "consent_logs": len(consent_logs),
+            "official_users": official_count,
+            "login_events": login_events_count,
+            "share_events": share_events_count,
+            "security_audit_logs": security_logs_count,
+            "edited_ideas": edited_ideas_count,
         }
 
         print("\n" + "=" * 70)

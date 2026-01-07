@@ -69,77 +69,50 @@ docker compose up -d
 ## Project Structure
 
 ```
-claude-test/
+opencitivibes/
 ├── backend/                    # FastAPI Backend
 │   ├── routers/               # API route handlers (HTTP layer)
-│   │   ├── auth_router.py    # Authentication endpoints
-│   │   ├── ideas_router.py   # Ideas CRUD
-│   │   ├── votes_router.py   # Voting endpoints
-│   │   ├── comments_router.py # Comments endpoints
-│   │   ├── categories_router.py # Category management
-│   │   ├── tags_router.py    # Tag management
-│   │   └── admin_router.py   # Admin operations
 │   ├── services/              # Business logic layer
-│   │   ├── user_service.py   # User operations
-│   │   ├── idea_service.py   # Idea operations
-│   │   ├── tag_service.py    # Tag operations
-│   │   └── ...               # Other services
 │   ├── repositories/          # Data access layer
-│   │   ├── base.py           # Base repository class
 │   │   ├── db_models.py      # SQLAlchemy ORM models
-│   │   ├── database.py       # Database configuration
-│   │   └── ...               # Specialized repositories
+│   │   └── database.py       # Database configuration
 │   ├── models/                # Data models
 │   │   ├── schemas.py        # Pydantic request/response schemas
-│   │   ├── exceptions.py     # Domain exceptions
-│   │   └── config.py         # App configuration
-│   ├── authentication/        # Auth logic
-│   │   └── auth.py           # JWT, password hashing
+│   │   └── exceptions.py     # Domain exceptions
+│   ├── authentication/        # Auth logic (JWT, passwords)
 │   ├── helpers/               # Utility functions
-│   ├── data/                  # Runtime data
-│   │   └── idees_montreal.db # SQLite database
-│   ├── main.py                # FastAPI app initialization
-│   ├── init_db.py             # Database seeding script
-│   └── requirements.txt       # Python dependencies
+│   ├── alembic/               # Database migrations
+│   ├── data/                  # Runtime data (SQLite DB)
+│   └── main.py                # FastAPI app initialization
 ├── frontend/                   # Next.js Frontend
 │   ├── src/
-│   │   ├── app/              # Next.js 14 App Router pages
-│   │   │   ├── page.tsx      # Homepage (leaderboard)
-│   │   │   ├── ideas/        # Idea detail pages
-│   │   │   ├── submit/       # Idea submission form
-│   │   │   ├── admin/        # Admin dashboard
-│   │   │   ├── tags/         # Tag pages
-│   │   │   └── ...           # Other pages
+│   │   ├── app/              # Next.js App Router pages
 │   │   ├── components/       # React components
-│   │   │   ├── ui/           # Shadcn/UI components
-│   │   │   ├── IdeaCard.tsx  # Idea display
-│   │   │   ├── Navbar.tsx    # Navigation
-│   │   │   └── ...           # Other components
-│   │   ├── lib/              # Utilities
-│   │   │   └── api.ts        # Centralized API client
+│   │   │   └── ui/           # Shadcn/UI components
+│   │   ├── lib/api.ts        # Centralized API client
 │   │   ├── store/            # Zustand state management
-│   │   │   └── authStore.ts  # Auth state
 │   │   ├── types/            # TypeScript interfaces
-│   │   │   └── index.ts      # All type definitions
-│   │   └── i18n/             # Internationalization
-│   │       ├── config.ts     # i18next configuration
-│   │       └── locales/      # Translation files (en/fr)
-│   ├── package.json          # Node dependencies
+│   │   └── i18n/             # Internationalization (en/fr)
+│   ├── package.json          # Node dependencies (pnpm)
 │   └── tailwind.config.ts    # Tailwind configuration
-├── reports/                    # Code review & security audit reports
-├── CLAUDE.md                   # Development guidelines for Claude Code
-├── ACTIVE.md                   # Current sprint tasks
-├── SPECIFICATIONS.md           # Feature specifications
-├── ARCHITECTURE.md             # Technical architecture documentation
+├── instances/                  # Multi-instance configurations
+│   ├── montreal/             # Montreal instance
+│   ├── quebec/               # Quebec instance
+│   ├── calgary/              # Calgary instance
+│   └── socenv/               # SocEnv instance
+├── nginx/                      # Reverse proxy configuration
+├── docs/                       # Documentation
+├── docker-compose.yml          # Production deployment
+├── docker-compose.dev.yml      # Development deployment
 └── README.md                   # Project overview (this file)
 ```
 
 ## Setup Instructions
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.13+
 - Node.js 18+
-- npm or yarn
+- pnpm (recommended) or npm
 
 ### Backend Setup
 
@@ -207,7 +180,7 @@ claude-test/
 
 2. **Install dependencies:**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Create environment file:**
@@ -222,7 +195,7 @@ claude-test/
 
 4. **Run the development server:**
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
    The application will be available at `http://localhost:3000`
@@ -275,11 +248,11 @@ The API follows RESTful principles with endpoints for:
 ```bash
 # Backend
 cd backend
-pytest
+uv run pytest
 
 # Frontend
 cd frontend
-npm test
+pnpm test
 ```
 
 ### Building for Production
@@ -292,8 +265,37 @@ gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
 
 **Frontend:**
 ```bash
-npm run build
-npm start
+pnpm build
+pnpm start
+```
+
+### Docker Deployment (Recommended)
+
+The easiest way to deploy is with Docker:
+
+```bash
+# Development (with hot reload)
+docker compose --profile dev up -d
+
+# Production
+docker compose --profile prod up -d
+```
+
+Docker profiles:
+- `dev` - SQLite + Mailpit (email testing) + hot reload
+- `staging` - SQLite + Postfix (real email)
+- `prod` - PostgreSQL + Postfix + optimized builds
+
+### Multi-Instance Deployment
+
+Each instance has its own configuration in `instances/<name>/`:
+
+```bash
+# Switch to a different instance
+./scripts/switch-instance.sh quebec
+
+# Deploy with instance config
+PLATFORM_CONFIG_PATH=./instances/quebec/platform.config.json docker compose up -d
 ```
 
 ## Environment Variables
