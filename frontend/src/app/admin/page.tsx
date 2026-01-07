@@ -15,7 +15,6 @@ import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
 import { DataFreshness } from '@/components/DataFreshness';
 import { ModerationListSkeleton } from '@/components/admin/AnalyticsSkeleton';
-import { Edit2 } from 'lucide-react';
 import type { Idea } from '@/types';
 
 export default function AdminPage() {
@@ -183,10 +182,7 @@ export default function AdminPage() {
                     <Badge variant="primary">{getCategoryName(idea)}</Badge>
                     {/* Show "Edited" badge for pending_edit status */}
                     {idea.status === 'pending_edit' && (
-                      <Badge variant="pending_edit">
-                        <Edit2 className="h-3 w-3 mr-1" />
-                        {t('admin.editedIdea', 'Edited Idea')}
-                      </Badge>
+                      <Badge variant="pending_edit">{t('admin.editedIdea', 'Edited Idea')}</Badge>
                     )}
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {t('ideas.postedBy')}:{' '}
