@@ -68,6 +68,14 @@ const cacheHeaders = [
   },
 ];
 
+// Cache control for public pages (enables Cloudflare edge caching)
+const pagesCacheHeaders = [
+  {
+    key: 'Cache-Control',
+    value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+  },
+];
+
 // No-index header for private routes
 const noIndexHeaders = [
   {
@@ -114,6 +122,21 @@ const nextConfig = {
       {
         source: '/_next/static/:path*',
         headers: cacheHeaders,
+      },
+      {
+        // Enable edge caching for homepage (public, dynamic content fetched client-side)
+        source: '/',
+        headers: pagesCacheHeaders,
+      },
+      {
+        // Enable edge caching for idea detail pages (SEO important, content fetched client-side)
+        source: '/ideas/:id*',
+        headers: pagesCacheHeaders,
+      },
+      {
+        // Enable edge caching for category pages
+        source: '/categories/:path*',
+        headers: pagesCacheHeaders,
       },
       {
         // No-index for admin routes
