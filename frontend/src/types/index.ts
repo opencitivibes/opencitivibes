@@ -839,3 +839,72 @@ export interface SecuritySummary {
   suspicious_ips: SuspiciousIP[];
   recent_admin_logins: RecentAdminLogin[];
 }
+
+// ============================================================================
+// Two-Factor Authentication Types (2FA)
+// ============================================================================
+
+/** Response when initiating 2FA setup */
+export interface TwoFactorSetupResponse {
+  secret: string;
+  provisioning_uri: string;
+}
+
+/** Response after verifying 2FA setup with first code */
+export interface TwoFactorVerifySetupResponse {
+  enabled: boolean;
+  backup_codes: string[];
+}
+
+/** 2FA status for the current user */
+export interface TwoFactorStatusResponse {
+  enabled: boolean;
+  backup_codes_remaining: number;
+}
+
+/** Request to disable 2FA (requires re-authentication) */
+export interface TwoFactorDisableRequest {
+  password?: string;
+  email_code?: string;
+}
+
+/** Request to verify 2FA during login */
+export interface TwoFactorLoginRequest {
+  temp_token: string;
+  code: string;
+  is_backup_code?: boolean;
+}
+
+/** Response when login requires 2FA */
+export interface TwoFactorRequiredResponse {
+  requires_2fa: boolean;
+  temp_token: string;
+  message: string;
+}
+
+/** Union type for login response */
+export type LoginResponse = TokenResponse | TwoFactorRequiredResponse;
+
+/** Helper to check if response requires 2FA */
+export function isTwoFactorRequired(
+  response: LoginResponse
+): response is TwoFactorRequiredResponse {
+  return 'requires_2fa' in response && response.requires_2fa === true;
+}
+
+// ============================================================================
+// Admin Role Types (Category Moderators)
+// ============================================================================
+
+/** Admin role assignment (category-specific moderator) */
+export interface AdminRole {
+  id: number;
+  user_id: number;
+  category_id: number;
+}
+
+/** Request to create a category admin role */
+export interface AdminRoleCreate {
+  user_id: number;
+  category_id: number;
+}

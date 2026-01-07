@@ -13,6 +13,7 @@ import { Card } from '@/components/Card';
 import { LoginMethodSelector, type LoginMethod } from '@/components/LoginMethodSelector';
 import { EmailLoginForm } from '@/components/EmailLoginForm';
 import { EmailCodeVerification } from '@/components/EmailCodeVerification';
+import { TwoFactorVerify } from '@/components/TwoFactorVerify';
 import { getSafeRedirect } from '@/lib/utils';
 
 type EmailLoginStep = 'form' | 'verify';
@@ -24,6 +25,9 @@ export default function SignInPage() {
   const login = useAuthStore((state) => state.login);
   const emailLogin = useAuthStore((state) => state.emailLogin);
   const clearEmailLoginState = useAuthStore((state) => state.clearEmailLoginState);
+  const twoFactor = useAuthStore((state) => state.twoFactor);
+  const verify2FA = useAuthStore((state) => state.verify2FA);
+  const clearTwoFactorState = useAuthStore((state) => state.clearTwoFactorState);
   const redirectUrl = getSafeRedirect(searchParams.get('redirect'));
 
   // Password login state
@@ -44,7 +48,12 @@ export default function SignInPage() {
 
     try {
       await login(email, password);
-      router.push(redirectUrl);
+      // Only redirect if login was complete (no 2FA required)
+      // If 2FA is required, login() sets twoFactor state and returns without setting user
+      // The component will re-render and show the 2FA verification UI
+      if (!useAuthStore.getState().twoFactor.twoFactorRequired) {
+        router.push(redirectUrl);
+      }
     } catch (err) {
       const axiosError = err as import('axios').AxiosError<{ detail: string }>;
       if (axiosError.response?.status === 429) {
@@ -77,6 +86,31 @@ export default function SignInPage() {
   const handleEmailLoginSuccess = () => {
     router.push(redirectUrl);
   };
+
+  // 2FA verification handlers
+  const handle2FAVerify = async (code: string, isBackupCode: boolean) => {
+    await verify2FA(code, isBackupCode);
+    router.push(redirectUrl);
+  };
+
+  const handle2FACancel = () => {
+    clearTwoFactorState();
+    setEmail('');
+    setPassword('');
+  };
+
+  // Render 2FA verification flow
+  if (twoFactor.twoFactorRequired && twoFactor.twoFactorTempToken) {
+    return (
+      <PageContainer maxWidth="md" paddingY="xl">
+        <TwoFactorVerify
+          email={twoFactor.twoFactorEmail || email}
+          onVerify={handle2FAVerify}
+          onCancel={handle2FACancel}
+        />
+      </PageContainer>
+    );
+  }
 
   // Render email login flow
   if (loginMethod === 'email') {

@@ -73,6 +73,9 @@ class TOTPService:
         )
         provisioning_uri = totp_repo.get_provisioning_uri(plain_secret, str(user.email))
 
+        # Commit the pending secret so it persists for verification step
+        totp_repo.commit()
+
         return schemas.TwoFactorSetupResponse(
             secret=plain_secret,
             provisioning_uri=provisioning_uri,

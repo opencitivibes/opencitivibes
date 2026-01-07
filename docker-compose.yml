@@ -86,6 +86,8 @@ services:
       # Beta access gate (server-side only)
       - BETA_MODE=${BETA_MODE:-false}
       - BETA_PASSWORD=${BETA_PASSWORD:-}
+      # 2FA TOTP encryption key (required for 2FA feature)
+      - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
     volumes:
       - backend_data:/app/data
       - backend_logs:/app/logs

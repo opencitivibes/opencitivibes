@@ -47,6 +47,7 @@ cd "$DEPLOY_DIR"
 # Generate secrets
 echo "[2/10] Generating secrets..."
 SECRET_KEY=$(openssl rand -hex 32)
+TOTP_ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 
 # Create .env file
@@ -79,6 +80,7 @@ CORS_ORIGINS=["https://${DOMAIN}"]
 
 # Backend Configuration
 SECRET_KEY=${SECRET_KEY}
+TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 LOG_LEVEL=INFO

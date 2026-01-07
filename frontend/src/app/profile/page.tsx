@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,10 @@ import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UserActivityHistory } from '@/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TwoFactorSetup } from '@/components/TwoFactorSetup';
+import { TwoFactorDisableDialog } from '@/components/TwoFactorDisableDialog';
+import type { UserActivityHistory, TwoFactorStatusResponse } from '@/types';
 import IdeaCard from '@/components/IdeaCard';
 import { RichTextDisplay } from '@/components/RichTextDisplay';
 
@@ -46,6 +49,16 @@ export default function ProfilePage() {
   // Activity state
   const [activityData, setActivityData] = useState<UserActivityHistory | null>(null);
 
+  // 2FA state
+  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatusResponse | null>(null);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [showSetupDialog, setShowSetupDialog] = useState(false);
+  const [showDisableDialog, setShowDisableDialog] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [regeneratePassword, setRegeneratePassword] = useState('');
+  const [regenerateError, setRegenerateError] = useState('');
+  const [newBackupCodes, setNewBackupCodes] = useState<string[] | null>(null);
+
   useEffect(() => {
     if (!user) {
       router.push('/signin?redirect=/profile');
@@ -72,6 +85,25 @@ export default function ProfilePage() {
       console.error('Error loading activity data:', error);
     }
   };
+
+  const load2FAStatus = useCallback(async () => {
+    setTwoFactorLoading(true);
+    try {
+      const status = await authAPI.get2FAStatus();
+      setTwoFactorStatus(status);
+    } catch (error) {
+      console.error('Error loading 2FA status:', error);
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  }, []);
+
+  // Load 2FA status when switching to security tab
+  useEffect(() => {
+    if (activeTab === 'security' && user) {
+      load2FAStatus();
+    }
+  }, [activeTab, user, load2FAStatus]);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +213,45 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 2FA handlers
+  const handle2FASetupComplete = () => {
+    setShowSetupDialog(false);
+    load2FAStatus();
+    success('twoFactor.enabledSuccess');
+  };
+
+  const handle2FADisableComplete = () => {
+    setShowDisableDialog(false);
+    load2FAStatus();
+    success('twoFactor.disabledSuccess');
+  };
+
+  const handleRegenerateBackupCodes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegenerateError('');
+    setTwoFactorLoading(true);
+
+    try {
+      const response = await authAPI.regenerateBackupCodes({ password: regeneratePassword });
+      setNewBackupCodes(response.backup_codes);
+      setRegeneratePassword('');
+      load2FAStatus();
+      success('twoFactor.backupCodesRegenerated');
+    } catch (err) {
+      const axiosError = err as import('axios').AxiosError<{ detail: string }>;
+      setRegenerateError(axiosError.response?.data?.detail || t('twoFactor.regenerateError'));
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const closeRegenerateDialog = () => {
+    setShowRegenerateDialog(false);
+    setRegeneratePassword('');
+    setRegenerateError('');
+    setNewBackupCodes(null);
   };
 
   if (!user) {
@@ -300,8 +371,91 @@ export default function ProfilePage() {
 
         {/* Security Tab Content */}
         <TabsContent value="security" className="space-y-6">
+          {/* Two-Factor Authentication */}
           <Card>
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              {t('twoFactor.title', 'Two-Factor Authentication')}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {t(
+                'twoFactor.whatIs2FADescription',
+                'Two-factor authentication adds an extra layer of security to your account by requiring a code from your phone in addition to your password.'
+              )}
+            </p>
+
+            {twoFactorLoading && !twoFactorStatus ? (
+              <div className="animate-pulse h-20 bg-gray-200 dark:bg-gray-700 rounded" />
+            ) : twoFactorStatus ? (
+              <div className="space-y-4">
+                {/* Status indicator */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('common.status', 'Status')}:
+                  </span>
+                  {twoFactorStatus.enabled ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400">
+                      {t('twoFactor.enabled', 'Enabled')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                      {t('twoFactor.disabled', 'Disabled')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Backup codes info (only when enabled) */}
+                {twoFactorStatus.enabled &&
+                  twoFactorStatus.backup_codes_remaining !== undefined && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {t('twoFactor.backupCodes', 'Backup Codes')}:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {t('twoFactor.backupCodesRemaining', '{{count}} codes remaining', {
+                            count: twoFactorStatus.backup_codes_remaining,
+                          })}
+                        </span>
+                      </div>
+                      {twoFactorStatus.backup_codes_remaining <= 2 && (
+                        <Alert variant="warning">
+                          {t(
+                            'twoFactor.lowBackupCodesWarning',
+                            'You only have {{count}} backup code(s) left. Consider regenerating new codes.',
+                            { count: twoFactorStatus.backup_codes_remaining }
+                          )}
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  {twoFactorStatus.enabled ? (
+                    <>
+                      <Button variant="secondary" onClick={() => setShowRegenerateDialog(true)}>
+                        {t('twoFactor.regenerate', 'Regenerate Backup Codes')}
+                      </Button>
+                      <Button variant="danger" onClick={() => setShowDisableDialog(true)}>
+                        {t('twoFactor.disable', 'Disable 2FA')}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="primary" onClick={() => setShowSetupDialog(true)}>
+                      {t('twoFactor.enable', 'Enable 2FA')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Alert variant="error">
+                {t('twoFactor.statusError', 'Failed to load 2FA status')}
+              </Alert>
+            )}
+          </Card>
+
+          <Card>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
               {t('profile.changePassword', 'Change Password')}
             </h2>
             <form onSubmit={handlePasswordChange} className="space-y-4">
@@ -503,6 +657,87 @@ export default function ProfilePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* 2FA Setup Dialog */}
+      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
+        <DialogContent className="max-w-md">
+          <TwoFactorSetup
+            onComplete={handle2FASetupComplete}
+            onCancel={() => setShowSetupDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* 2FA Disable Dialog */}
+      <TwoFactorDisableDialog
+        open={showDisableDialog}
+        onOpenChange={setShowDisableDialog}
+        onSuccess={handle2FADisableComplete}
+      />
+
+      {/* Regenerate Backup Codes Dialog */}
+      <Dialog open={showRegenerateDialog} onOpenChange={closeRegenerateDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('twoFactor.regenerate', 'Regenerate Backup Codes')}</DialogTitle>
+          </DialogHeader>
+
+          {newBackupCodes ? (
+            <div className="space-y-4">
+              <Alert variant="warning">{t('twoFactor.saveBackupCodes')}</Alert>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 font-mono text-sm grid grid-cols-2 gap-2">
+                {newBackupCodes.map((code, index) => (
+                  <div key={index} className="text-center">
+                    {code}
+                  </div>
+                ))}
+              </div>
+              <Button variant="primary" onClick={closeRegenerateDialog} className="w-full">
+                {t('twoFactor.setupComplete', 'Done')}
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleRegenerateBackupCodes} className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {t(
+                  'twoFactor.enterPasswordToRegenerate',
+                  'Enter your password to regenerate backup codes:'
+                )}
+              </p>
+
+              {regenerateError && <Alert variant="error">{regenerateError}</Alert>}
+
+              <Input
+                type="password"
+                label={t('auth.password', 'Password')}
+                value={regeneratePassword}
+                onChange={(e) => setRegeneratePassword(e.target.value)}
+                required
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={closeRegenerateDialog}
+                  className="flex-1"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={twoFactorLoading}
+                  disabled={twoFactorLoading || !regeneratePassword}
+                  className="flex-1"
+                >
+                  {t('twoFactor.regenerate', 'Regenerate')}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

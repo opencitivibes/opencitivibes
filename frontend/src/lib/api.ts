@@ -63,6 +63,14 @@ import type {
   ShareAnalyticsResponse,
   SecurityEventsResponse,
   SecuritySummary,
+  TwoFactorSetupResponse,
+  TwoFactorVerifySetupResponse,
+  TwoFactorStatusResponse,
+  TwoFactorDisableRequest,
+  TwoFactorLoginRequest,
+  LoginResponse,
+  AdminRole,
+  AdminRoleCreate,
 } from '@/types';
 import type {
   FlagCreate,
@@ -296,11 +304,11 @@ export const authAPI = {
     return response.data;
   },
 
-  login: async (data: LoginRequest): Promise<TokenResponse> => {
+  login: async (data: LoginRequest): Promise<LoginResponse> => {
     const formData = new FormData();
     formData.append('username', data.username);
     formData.append('password', data.password);
-    const response = await api.post('/auth/login', formData);
+    const response = await api.post<LoginResponse>('/auth/login', formData);
     return response.data;
   },
 
@@ -414,6 +422,75 @@ export const authAPI = {
    */
   getConsentHistory: async (): Promise<ConsentLogEntry[]> => {
     const response = await api.get('/auth/consent/history');
+    return response.data;
+  },
+
+  // ============================================================================
+  // Two-Factor Authentication (2FA)
+  // ============================================================================
+
+  /**
+   * Initiate 2FA setup - returns secret and QR code URI
+   */
+  setup2FA: async (): Promise<TwoFactorSetupResponse> => {
+    const response = await api.post<TwoFactorSetupResponse>('/auth/2fa/setup');
+    return response.data;
+  },
+
+  /**
+   * Verify 2FA setup with first code - enables 2FA and returns backup codes
+   */
+  verify2FASetup: async (code: string): Promise<TwoFactorVerifySetupResponse> => {
+    const response = await api.post<TwoFactorVerifySetupResponse>('/auth/2fa/verify-setup', {
+      code,
+    });
+    return response.data;
+  },
+
+  /**
+   * Disable 2FA (requires password or email code)
+   */
+  disable2FA: async (request: TwoFactorDisableRequest): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>('/auth/2fa/disable', {
+      data: request,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get current 2FA status
+   */
+  get2FAStatus: async (): Promise<TwoFactorStatusResponse> => {
+    const response = await api.get<TwoFactorStatusResponse>('/auth/2fa/status');
+    return response.data;
+  },
+
+  /**
+   * Verify 2FA code during login (after receiving temp_token)
+   */
+  verify2FALogin: async (request: TwoFactorLoginRequest): Promise<TokenResponse> => {
+    const response = await api.post<TokenResponse>('/auth/2fa/verify', request);
+    return response.data;
+  },
+
+  /**
+   * Regenerate backup codes (requires password or email code)
+   */
+  regenerateBackupCodes: async (
+    request: TwoFactorDisableRequest
+  ): Promise<{ backup_codes: string[] }> => {
+    const response = await api.post<{ backup_codes: string[] }>(
+      '/auth/2fa/backup-codes/regenerate',
+      request
+    );
+    return response.data;
+  },
+
+  /**
+   * Get remaining backup codes count
+   */
+  getBackupCodesCount: async (): Promise<{ remaining: number }> => {
+    const response = await api.get<{ remaining: number }>('/auth/2fa/backup-codes/count');
     return response.data;
   },
 };
@@ -859,6 +936,35 @@ export const adminAPI = {
       const response = await api.get<SecuritySummary>('/admin/security/summary');
       return response.data;
     },
+  },
+};
+
+// ============================================================================
+// Admin Roles API (Category Moderators)
+// ============================================================================
+
+export const adminRolesAPI = {
+  /**
+   * Get all category admin roles
+   */
+  getAll: async (): Promise<AdminRole[]> => {
+    const response = await api.get<AdminRole[]>('/admin/roles');
+    return response.data;
+  },
+
+  /**
+   * Create a new category admin role
+   */
+  create: async (data: AdminRoleCreate): Promise<AdminRole> => {
+    const response = await api.post<AdminRole>('/admin/roles', data);
+    return response.data;
+  },
+
+  /**
+   * Delete a category admin role
+   */
+  delete: async (roleId: number): Promise<void> => {
+    await api.delete(`/admin/roles/${roleId}`);
   },
 };
 

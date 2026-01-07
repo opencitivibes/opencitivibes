@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Shield, Bell } from 'lucide-react';
+import { Shield, Bell, UserCog } from 'lucide-react';
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -174,6 +174,11 @@ const menuSections = [
         href: '/admin/officials',
         labelKey: 'nav.officials',
         Icon: () => <Shield className="w-4 h-4" />,
+      },
+      {
+        href: '/admin/category-admins',
+        labelKey: 'nav.categoryAdmins',
+        Icon: () => <UserCog className="w-4 h-4" />,
       },
     ],
   },

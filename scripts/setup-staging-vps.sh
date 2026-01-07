@@ -38,9 +38,10 @@ echo "[1/9] Creating directory structure..."
 mkdir -p "$DEPLOY_DIR"/{nginx/conf.d,config/images,backend/config,ntfy,ssl,instance-assets}
 cd "$DEPLOY_DIR"
 
-# Generate secret key
-echo "[2/9] Generating secret key..."
+# Generate secret key and TOTP encryption key
+echo "[2/9] Generating secret keys..."
 SECRET_KEY=$(openssl rand -hex 32)
+TOTP_ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 
 # Create .env file
 echo "[3/9] Creating .env file..."
@@ -72,6 +73,7 @@ CORS_ORIGINS=["https://${DOMAIN}"]
 
 # Backend Configuration
 SECRET_KEY=${SECRET_KEY}
+TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY}
 DATABASE_URL=sqlite:///./data/idees_montreal.db
 PLATFORM_CONFIG_PATH=./config/platform.config.json
 ALGORITHM=HS256

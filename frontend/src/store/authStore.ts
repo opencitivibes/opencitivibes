@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { setUser } from '@/lib/sentry-utils';
 import { authAPI, setAuthFailureHandler } from '@/lib/api';
+import { isTwoFactorRequired } from '@/types';
 import type { User } from '@/types';
 
 // Refresh token 5 minutes before expiry
@@ -20,6 +21,19 @@ const initialEmailLoginState: EmailLoginState = {
   emailLoginEmail: null,
   emailLoginPending: false,
   emailLoginExpiresAt: null,
+};
+
+// 2FA login state interface
+interface TwoFactorState {
+  twoFactorRequired: boolean;
+  twoFactorTempToken: string | null;
+  twoFactorEmail: string | null;
+}
+
+const initialTwoFactorState: TwoFactorState = {
+  twoFactorRequired: false,
+  twoFactorTempToken: null,
+  twoFactorEmail: null,
 };
 
 /**
@@ -103,6 +117,9 @@ interface AuthState {
   // Email login state
   emailLogin: EmailLoginState;
 
+  // 2FA state
+  twoFactor: TwoFactorState;
+
   // Existing methods
   login: (email: string, password: string) => Promise<void>;
   register: (
@@ -127,6 +144,10 @@ interface AuthState {
   requestEmailLogin: (email: string) => Promise<number>;
   verifyEmailCode: (email: string, code: string) => Promise<void>;
   clearEmailLoginState: () => void;
+
+  // 2FA methods
+  verify2FA: (code: string, isBackupCode: boolean) => Promise<void>;
+  clearTwoFactorState: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -136,18 +157,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   sessionExpired: false,
   accountDeleted: false,
   emailLogin: initialEmailLoginState,
+  twoFactor: initialTwoFactorState,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const tokenResponse = await authAPI.login({ username: email, password });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', tokenResponse.access_token);
+      const response = await authAPI.login({ username: email, password });
+
+      // Check if 2FA is required
+      if (isTwoFactorRequired(response)) {
+        set({
+          isLoading: false,
+          twoFactor: {
+            twoFactorRequired: true,
+            twoFactorTempToken: response.temp_token,
+            twoFactorEmail: email,
+          },
+        });
+        return; // Don't complete login yet - need 2FA verification
       }
-      set({ token: tokenResponse.access_token });
+
+      // Normal login flow (no 2FA)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', response.access_token);
+      }
+      set({ token: response.access_token });
 
       // Schedule token refresh
-      scheduleTokenRefresh(tokenResponse.access_token, get().refreshToken);
+      scheduleTokenRefresh(response.access_token, get().refreshToken);
 
       const user = await authAPI.getMe();
 
@@ -190,6 +227,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       // Auto-login after registration
       const tokenResponse = await authAPI.login({ username: email, password });
+
+      // Newly registered users can't have 2FA enabled, so this should always be a token response
+      if (isTwoFactorRequired(tokenResponse)) {
+        // This shouldn't happen for new registrations, but handle it gracefully
+        throw new Error('Unexpected 2FA requirement during registration');
+      }
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', tokenResponse.access_token);
       }
@@ -228,6 +272,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       token: null,
       sessionExpired: false,
       emailLogin: initialEmailLoginState,
+      twoFactor: initialTwoFactorState,
     });
   },
 
@@ -360,6 +405,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearEmailLoginState: () => {
     set({ emailLogin: initialEmailLoginState });
   },
+
+  // 2FA Methods
+  verify2FA: async (code: string, isBackupCode: boolean) => {
+    const { twoFactor } = get();
+    if (!twoFactor.twoFactorTempToken) {
+      throw new Error('No 2FA session active');
+    }
+
+    set({ isLoading: true });
+    try {
+      const tokenResponse = await authAPI.verify2FALogin({
+        temp_token: twoFactor.twoFactorTempToken,
+        code,
+        is_backup_code: isBackupCode,
+      });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', tokenResponse.access_token);
+      }
+      set({ token: tokenResponse.access_token });
+
+      // Schedule token refresh
+      scheduleTokenRefresh(tokenResponse.access_token, get().refreshToken);
+
+      const user = await authAPI.getMe();
+
+      // Set Sentry user context (ID only - no PII)
+      setUser({
+        id: user.id.toString(),
+      });
+
+      set({
+        user,
+        isLoading: false,
+        twoFactor: initialTwoFactorState,
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  clearTwoFactorState: () => {
+    set({ twoFactor: initialTwoFactorState });
+  },
 }));
 
 // Register auth failure handler after store is created
@@ -377,6 +467,7 @@ if (typeof window !== 'undefined') {
       user: null,
       token: null,
       emailLogin: initialEmailLoginState,
+      twoFactor: initialTwoFactorState,
     });
 
     // Redirect to homepage
