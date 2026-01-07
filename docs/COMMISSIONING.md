@@ -196,6 +196,8 @@ The script automatically:
 | `DATABASE_URL` | Database connection | See below |
 | `ADMIN_EMAIL` | Initial admin email | `admin@example.com` |
 | `DOMAIN` | Production domain | `ideas-example.com` |
+| `BETA_MODE` | Enable beta access gate | `true` or `false` |
+| `BETA_PASSWORD` | Beta access password (server-side only) | `your-secret-password` |
 
 **Database URL by Profile:**
 
@@ -425,6 +427,50 @@ EMAIL_PROVIDER=sendgrid
 SENDGRID_API_KEY=your-api-key
 SMTP_FROM_EMAIL=noreply@yourdomain.com
 SMTP_FROM_NAME=Your Instance Name
+```
+
+### Beta Access Gate
+
+OpenCitiVibes includes an optional beta access gate that restricts site access during soft launches or testing periods. Users must enter a password to access the platform.
+
+#### Security Architecture
+
+The beta password is **server-side only** and never exposed to the frontend:
+
+- Frontend only knows if beta mode is enabled (`NEXT_PUBLIC_BETA_MODE`)
+- Password verification happens via API call to `/api/beta/verify`
+- Uses constant-time comparison (`hmac.compare_digest`) to prevent timing attacks
+- Rate limited to 5 attempts per minute per IP
+- Access granted via httpOnly secure cookie (30-day expiration)
+
+#### Configuration
+
+Add these to your `.env` file:
+
+```bash
+# Backend configuration (server-side, never exposed)
+BETA_MODE=true
+BETA_PASSWORD=your-secret-password
+
+# Frontend configuration (client-side, only knows if gate is enabled)
+NEXT_PUBLIC_BETA_MODE=true
+```
+
+**Important:** Do NOT use `NEXT_PUBLIC_BETA_PASSWORD` - this would expose the password in the JavaScript bundle. The password must only be set as `BETA_PASSWORD` on the backend.
+
+#### Disabling Beta Mode
+
+To remove the beta gate and make the site public:
+
+```bash
+BETA_MODE=false
+NEXT_PUBLIC_BETA_MODE=false
+```
+
+Then restart the backend container:
+
+```bash
+docker compose --profile prod up -d --force-recreate backend
 ```
 
 ## Maintenance
