@@ -128,6 +128,8 @@ jobs:
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_BETA_MODE=${{ secrets.NEXT_PUBLIC_BETA_MODE }}
+            NEXT_PUBLIC_BETA_PASSWORD=${{ secrets.NEXT_PUBLIC_BETA_PASSWORD }}
 
   # ============================================
   # Deploy to Staging
