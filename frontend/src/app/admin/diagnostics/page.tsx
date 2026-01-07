@@ -273,148 +273,8 @@ export default function DiagnosticsPage() {
       />
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left: System Resources Vertical Column */}
-        <div className="lg:w-64 space-y-4">
-          {/* System Resources Quick Check */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold">{t('admin.diagnostics.systemResources')}</h2>
-              <Button
-                onClick={checkSystemResources}
-                variant="secondary"
-                className="!px-2 !py-1 text-xs"
-                disabled={systemStatus.status === 'loading'}
-              >
-                {systemStatus.status === 'loading' ? '...' : '↻'}
-              </Button>
-            </div>
-
-            {systemStatus.status === 'idle' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t('admin.diagnostics.clickToLoad')}
-              </p>
-            )}
-
-            {systemStatus.status === 'loading' && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
-                {t('admin.diagnostics.checking')}
-              </p>
-            )}
-
-            {systemStatus.status === 'error' && (
-              <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs">
-                {systemStatus.message}
-              </div>
-            )}
-
-            {systemInfo && (
-              <div className="space-y-4">
-                {/* Disk Usage */}
-                {systemInfo.disk && (
-                  <div>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.diskUsage')}
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${getUsageColor(systemInfo.disk.used_percent)}`}
-                      >
-                        {systemInfo.disk.used_percent}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full ${
-                          systemInfo.disk.used_percent >= 90
-                            ? 'bg-red-500'
-                            : systemInfo.disk.used_percent >= 75
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                        }`}
-                        style={{ width: `${systemInfo.disk.used_percent}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <span>{systemInfo.disk.free_gb} GB free</span>
-                      <span>{systemInfo.disk.total_gb} GB</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Memory Usage */}
-                {systemInfo.memory_used_percent !== null && (
-                  <div>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.memoryUsage')}
-                      </span>
-                      <span
-                        className={`text-sm font-bold ${getUsageColor(systemInfo.memory_used_percent)}`}
-                      >
-                        {systemInfo.memory_used_percent}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full ${
-                          systemInfo.memory_used_percent >= 90
-                            ? 'bg-red-500'
-                            : systemInfo.memory_used_percent >= 75
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                        }`}
-                        style={{ width: `${systemInfo.memory_used_percent}%` }}
-                      />
-                    </div>
-                    {systemInfo.load_average && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Load: {systemInfo.load_average.join(' / ')}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Uptime */}
-                {systemInfo.uptime_seconds !== null && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {t('admin.diagnostics.uptime')}
-                    </span>
-                    <span className="font-mono">{formatUptime(systemInfo.uptime_seconds)}</span>
-                  </div>
-                )}
-
-                {/* Database Size */}
-                {systemInfo.database_size && (
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {t('admin.diagnostics.databaseSize')}
-                      </span>
-                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {systemInfo.database_size.size_mb.toFixed(1)} MB
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span className="uppercase">{systemInfo.database_size.database_type}</span>
-                      {systemInfo.database_size.file_path && (
-                        <span
-                          className="font-mono truncate max-w-[100px]"
-                          title={systemInfo.database_size.file_path}
-                        >
-                          {systemInfo.database_size.file_path}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Middle: Test Panels */}
-        <div className="flex-1 grid gap-6 sm:grid-cols-2">
+        {/* Left: Test Panels */}
+        <div className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {/* Sentry Tests */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.sentryTests')}</h2>
@@ -722,6 +582,143 @@ export default function DiagnosticsPage() {
 
         {/* Right: Info Widgets Sidebar */}
         <div className="lg:w-80 space-y-6">
+          {/* System Resources */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold">{t('admin.diagnostics.systemResources')}</h2>
+              <Button
+                onClick={checkSystemResources}
+                variant="secondary"
+                className="!px-2 !py-1 text-xs"
+                disabled={systemStatus.status === 'loading'}
+              >
+                {systemStatus.status === 'loading' ? '...' : '↻'}
+              </Button>
+            </div>
+
+            {systemStatus.status === 'idle' && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t('admin.diagnostics.clickToLoad')}
+              </p>
+            )}
+
+            {systemStatus.status === 'loading' && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+                {t('admin.diagnostics.checking')}
+              </p>
+            )}
+
+            {systemStatus.status === 'error' && (
+              <div className="p-2 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs">
+                {systemStatus.message}
+              </div>
+            )}
+
+            {systemInfo && (
+              <div className="space-y-4">
+                {/* Disk Usage */}
+                {systemInfo.disk && (
+                  <div>
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.diskUsage')}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${getUsageColor(systemInfo.disk.used_percent)}`}
+                      >
+                        {systemInfo.disk.used_percent}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          systemInfo.disk.used_percent >= 90
+                            ? 'bg-red-500'
+                            : systemInfo.disk.used_percent >= 75
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${systemInfo.disk.used_percent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span>{systemInfo.disk.free_gb} GB free</span>
+                      <span>{systemInfo.disk.total_gb} GB</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Memory Usage */}
+                {systemInfo.memory_used_percent !== null && (
+                  <div>
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.memoryUsage')}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${getUsageColor(systemInfo.memory_used_percent)}`}
+                      >
+                        {systemInfo.memory_used_percent}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          systemInfo.memory_used_percent >= 90
+                            ? 'bg-red-500'
+                            : systemInfo.memory_used_percent >= 75
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${systemInfo.memory_used_percent}%` }}
+                      />
+                    </div>
+                    {systemInfo.load_average && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Load: {systemInfo.load_average.join(' / ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Uptime */}
+                {systemInfo.uptime_seconds !== null && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {t('admin.diagnostics.uptime')}
+                    </span>
+                    <span className="font-mono">{formatUptime(systemInfo.uptime_seconds)}</span>
+                  </div>
+                )}
+
+                {/* Database Size */}
+                {systemInfo.database_size && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {t('admin.diagnostics.databaseSize')}
+                      </span>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                        {systemInfo.database_size.size_mb.toFixed(1)} MB
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span className="uppercase">{systemInfo.database_size.database_type}</span>
+                      {systemInfo.database_size.file_path && (
+                        <span
+                          className="font-mono truncate max-w-[120px]"
+                          title={systemInfo.database_size.file_path}
+                        >
+                          {systemInfo.database_size.file_path}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+
           {/* Current Session */}
           <Card className="p-5">
             <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
