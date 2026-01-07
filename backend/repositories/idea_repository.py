@@ -3,7 +3,7 @@ Idea repository for database operations.
 """
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 from sqlalchemy import case, func, literal
 from sqlalchemy.orm import Session
@@ -123,7 +123,9 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
 
     def get_ideas_with_scores(
         self,
-        status_filter: db_models.IdeaStatus = db_models.IdeaStatus.APPROVED,
+        status_filter: Union[
+            db_models.IdeaStatus, List[db_models.IdeaStatus]
+        ] = db_models.IdeaStatus.APPROVED,
         category_id: Optional[int] = None,
         user_id: Optional[int] = None,
         current_user_id: Optional[int] = None,
@@ -246,10 +248,17 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
             )
 
         # Apply filters - always exclude deleted ideas
-        query = query.filter(
-            db_models.Idea.status == status_filter,
-            db_models.Idea.deleted_at.is_(None),
-        )
+        # Handle both single status and list of statuses
+        if isinstance(status_filter, list):
+            query = query.filter(
+                db_models.Idea.status.in_(status_filter),
+                db_models.Idea.deleted_at.is_(None),
+            )
+        else:
+            query = query.filter(
+                db_models.Idea.status == status_filter,
+                db_models.Idea.deleted_at.is_(None),
+            )
 
         if category_id:
             query = query.filter(db_models.Idea.category_id == category_id)
@@ -288,7 +297,12 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         with sentry_sdk.start_span(
             op="db.query", description="Execute ideas with scores query"
         ) as db_span:
-            db_span.set_data("status_filter", status_filter.value)
+            db_span.set_data(
+                "status_filter",
+                [s.value for s in status_filter]
+                if isinstance(status_filter, list)
+                else status_filter.value,
+            )
             db_span.set_data("category_id", category_id)
             db_span.set_data("skip", skip)
             db_span.set_data("limit", limit)
@@ -1096,7 +1110,7 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         category_ids: Optional[List[int]] = None,
     ) -> int:
         """
-        Count pending ideas, optionally filtered by category IDs.
+        Count pending ideas (PENDING and PENDING_EDIT), optionally filtered by category IDs.
 
         Args:
             category_ids: Optional list of category IDs to filter by.
@@ -1105,8 +1119,11 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         Returns:
             Total count of pending ideas matching criteria.
         """
+        # Include both PENDING and PENDING_EDIT for admin moderation queue
         query = self.db.query(func.count(db_models.Idea.id)).filter(
-            db_models.Idea.status == db_models.IdeaStatus.PENDING,
+            db_models.Idea.status.in_(
+                [db_models.IdeaStatus.PENDING, db_models.IdeaStatus.PENDING_EDIT]
+            ),
             db_models.Idea.deleted_at.is_(None),
         )
 

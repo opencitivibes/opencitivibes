@@ -1005,8 +1005,12 @@ class IdeaService:
 
         repo = IdeaRepository(db)
         user_id: int = user.id  # type: ignore[assignment]
+        # Include both PENDING and PENDING_EDIT statuses for admin moderation queue
         pending_ideas = repo.get_ideas_with_scores(
-            status_filter=db_models.IdeaStatus.PENDING,
+            status_filter=[
+                db_models.IdeaStatus.PENDING,
+                db_models.IdeaStatus.PENDING_EDIT,
+            ],
             current_user_id=user_id,
             skip=skip,
             limit=limit,
