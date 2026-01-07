@@ -312,6 +312,28 @@
       "total": "total",
       "viewDetails": "View details"
     },
+    "security": {
+      "title": "Security Audit",
+      "description": "Recent login activity",
+      "recentLogins": "Logins (24h)",
+      "failedAttempts": "Failed (24h)",
+      "uniqueIps": "Unique IPs",
+      "adminLogins": "Admin Logins",
+      "last24h": "Last 24h",
+      "loginSuccess": "Login successful",
+      "loginFailed": "Login failed",
+      "logout": "Logout",
+      "passwordReset": "Password reset",
+      "accountLocked": "Account locked",
+      "invalidPassword": "Invalid password",
+      "userNotFound": "User not found",
+      "accountInactive": "Account inactive",
+      "rateLimited": "Rate limited",
+      "suspiciousActivity": "{{count}} suspicious IP(s) detected",
+      "noEvents": "No recent events",
+      "recentEvents": "Recent Events",
+      "loadError": "Failed to load security data"
+    },
     "diagnostics": {
       "title": "System Diagnostics",
       "description": "Test error tracking, monitoring, and system health",

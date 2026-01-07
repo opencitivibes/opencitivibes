@@ -312,6 +312,28 @@
       "total": "total",
       "viewDetails": "Voir les détails"
     },
+    "security": {
+      "title": "Audit de sécurité",
+      "description": "Activité de connexion récente",
+      "recentLogins": "Connexions (24h)",
+      "failedAttempts": "Échecs (24h)",
+      "uniqueIps": "IPs uniques",
+      "adminLogins": "Connexions admin",
+      "last24h": "Dernières 24h",
+      "loginSuccess": "Connexion réussie",
+      "loginFailed": "Connexion échouée",
+      "logout": "Déconnexion",
+      "passwordReset": "Réinitialisation mot de passe",
+      "accountLocked": "Compte verrouillé",
+      "invalidPassword": "Mot de passe invalide",
+      "userNotFound": "Utilisateur non trouvé",
+      "accountInactive": "Compte inactif",
+      "rateLimited": "Limite de débit atteinte",
+      "suspiciousActivity": "{{count}} IP(s) suspecte(s) détectée(s)",
+      "noEvents": "Aucun événement récent",
+      "recentEvents": "Événements récents",
+      "loadError": "Erreur lors du chargement des données de sécurité"
+    },
     "diagnostics": {
       "title": "Diagnostics système",
       "description": "Tester le suivi des erreurs, la surveillance et la santé du système",

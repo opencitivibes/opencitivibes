@@ -61,6 +61,8 @@ import type {
   SystemResourcesResponse,
   SharePlatform,
   ShareAnalyticsResponse,
+  SecurityEventsResponse,
+  SecuritySummary,
 } from '@/types';
 import type {
   FlagCreate,
@@ -828,6 +830,33 @@ export const adminAPI = {
      */
     getSystemResources: async (): Promise<SystemResourcesResponse> => {
       const response = await api.get<SystemResourcesResponse>('/admin/diagnostics/system');
+      return response.data;
+    },
+  },
+
+  // Security Audit (Phase 3)
+  security: {
+    /**
+     * Get paginated list of security/login events
+     */
+    getEvents: async (params?: {
+      skip?: number;
+      limit?: number;
+      event_type?: string;
+      user_id?: number;
+      since?: string;
+    }): Promise<SecurityEventsResponse> => {
+      const response = await api.get<SecurityEventsResponse>('/admin/security/events', {
+        params,
+      });
+      return response.data;
+    },
+
+    /**
+     * Get security summary statistics for dashboard
+     */
+    getSummary: async (): Promise<SecuritySummary> => {
+      const response = await api.get<SecuritySummary>('/admin/security/summary');
       return response.data;
     },
   },

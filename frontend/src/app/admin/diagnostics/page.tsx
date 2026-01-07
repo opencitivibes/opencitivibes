@@ -10,6 +10,7 @@ import type { DatabaseDiagnosticsResponse, SystemResourcesResponse } from '@/typ
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
+import { SecurityAuditWidget } from '@/components/admin/SecurityAuditWidget';
 
 interface DiagnosticStatus {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -582,6 +583,9 @@ export default function DiagnosticsPage() {
 
         {/* Right: Info Widgets Sidebar */}
         <div className="lg:w-80 space-y-6">
+          {/* Security Audit Widget */}
+          <SecurityAuditWidget />
+
           {/* System Resources */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">

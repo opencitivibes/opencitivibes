@@ -778,3 +778,64 @@ export interface SystemResourcesResponse {
   memory_used_percent: number | null;
   error: string | null;
 }
+
+// ============================================================================
+// Security Audit Types (Phase 3)
+// ============================================================================
+
+export type LoginEventType =
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
+  | 'LOGOUT'
+  | 'PASSWORD_RESET_REQUEST'
+  | 'PASSWORD_CHANGED'
+  | 'ACCOUNT_LOCKED';
+
+export type LoginFailureReason =
+  | 'invalid_password'
+  | 'user_not_found'
+  | 'account_inactive'
+  | 'rate_limited'
+  | 'totp_required'
+  | 'totp_invalid';
+
+export interface SecurityEventItem {
+  id: number;
+  user_id: number | null;
+  email: string | null;
+  event_type: LoginEventType;
+  ip_address: string | null;
+  user_agent_short: string | null;
+  failure_reason: LoginFailureReason | null;
+  created_at: string;
+  time_ago: string;
+}
+
+export interface SecurityEventsResponse {
+  events: SecurityEventItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SuspiciousIP {
+  ip: string;
+  failed_count: number;
+  last_attempt: string | null;
+}
+
+export interface RecentAdminLogin {
+  email: string;
+  ip: string;
+  time_ago: string;
+}
+
+export interface SecuritySummary {
+  total_events_24h: number;
+  successful_logins_24h: number;
+  failed_attempts_24h: number;
+  unique_ips_24h: number;
+  admin_logins_24h: number;
+  suspicious_ips: SuspiciousIP[];
+  recent_admin_logins: RecentAdminLogin[];
+}
