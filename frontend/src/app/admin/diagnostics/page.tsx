@@ -273,9 +273,9 @@ export default function DiagnosticsPage() {
         description={t('admin.diagnostics.description')}
       />
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Left Column: Test/Checker Widgets */}
-        <div className="flex-1 space-y-6">
+        <div className="space-y-6">
           {/* Sentry Tests */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.sentryTests')}</h2>
@@ -582,7 +582,7 @@ export default function DiagnosticsPage() {
         </div>
 
         {/* Right Column: Info Widgets */}
-        <div className="lg:w-96 space-y-6">
+        <div className="space-y-6">
           {/* Security Audit Widget */}
           <SecurityAuditWidget />
 

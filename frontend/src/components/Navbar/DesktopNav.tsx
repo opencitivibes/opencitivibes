@@ -66,7 +66,7 @@ export function DesktopNav({
           )}
           {user.is_global_admin && (
             <DropdownMenu open={adminMenuOpen} onOpenChange={setAdminMenuOpen}>
-              <DropdownMenuTrigger className="font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 pb-1 border-b-2 border-transparent text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1">
+              <DropdownMenuTrigger className="font-medium transition-colors duration-150 focus:outline-none pb-1 border-b-2 border-transparent text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 data-[state=open]:text-primary-600 data-[state=open]:border-primary-500 dark:data-[state=open]:text-primary-400 flex items-center gap-1">
                 {t('nav.adminPanel')}
                 <svg
                   className="w-4 h-4 transition-transform duration-200"
