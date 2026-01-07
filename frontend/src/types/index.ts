@@ -908,3 +908,54 @@ export interface AdminRoleCreate {
   user_id: number;
   category_id: number;
 }
+
+// ============================================================================
+// Quality Signals Types (Phase 2)
+// ============================================================================
+
+/** Trust distribution breakdown by voter trust score buckets */
+export interface TrustDistribution {
+  excellent: number; // trust 81-100
+  good: number; // trust 61-80
+  average: number; // trust 41-60
+  below_average: number; // trust 21-40
+  low: number; // trust 0-20
+  total_votes: number;
+}
+
+/** Quality signals response combining trust distribution and quality counts */
+export interface QualitySignalsResponse {
+  trust_distribution: TrustDistribution;
+  quality_counts: QualityCounts;
+  votes_with_qualities: number;
+  total_upvotes: number;
+}
+
+// ============================================================================
+// Admin Weighted Score Analytics Types (Phase 3)
+// ============================================================================
+
+/** Response for weighted score analysis of a single idea */
+export interface WeightedScoreResponse {
+  idea_id: number;
+  public_score: number;
+  weighted_score: number;
+  divergence_percent: number;
+  trust_distribution: TrustDistribution;
+}
+
+/** Score anomaly item from backend (flat structure) */
+export interface ScoreAnomaly {
+  idea_id: number;
+  title: string;
+  public_score: number;
+  weighted_score: number;
+  divergence_percent: number;
+}
+
+/** Response for score anomalies endpoint */
+export interface ScoreAnomaliesResponse {
+  threshold_percent: number;
+  anomalies: ScoreAnomaly[];
+  count: number;
+}

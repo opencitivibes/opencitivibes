@@ -59,6 +59,7 @@
     "rejectedIdeas": "Idées refusées",
     "analytics": "Analyses",
     "qualityAnalytics": "Qualités des votes",
+    "scoreAnalysis": "Analyse des scores",
     "moderationStats": "Stats modération",
     "officials": "Fonctionnaires",
     "categoryAdmins": "Modérateurs de catégories",
@@ -229,6 +230,23 @@
     "saved": "Enregistré",
     "saving": "Enregistrement...",
     "noQualities": "Aucune rétroaction qualitative"
+  },
+  "quality": {
+    "trust": {
+      "title": "Confiance des votants",
+      "excellent": "Excellent",
+      "good": "Bon",
+      "average": "Moyen",
+      "below_average": "Sous la moyenne",
+      "low": "Faible",
+      "badge_label": "{{percent}}% de confiance",
+      "tooltip": "Basé sur la réputation des votants"
+    },
+    "signals": {
+      "title": "Signaux de qualité",
+      "expand": "Voir les détails",
+      "collapse": "Masquer les détails"
+    }
   },
   "comment": {
     "addComment": "Ajouter un commentaire",
@@ -607,6 +625,7 @@
     "edit": "Modifier",
     "close": "Fermer",
     "back": "Retour",
+    "actions": "Actions",
     "backToHome": "Retour à l'Accueil",
     "submitting": "Soumission en cours...",
     "characters": "caractères",
@@ -999,6 +1018,25 @@
       "distribution": "Distribution des qualités",
       "topIdeas": "Meilleures idées par qualité",
       "noData": "Aucune donnée qualitative disponible"
+    },
+    "weightedScores": {
+      "title": "Analyse des scores pondérés",
+      "description": "Détection de manipulation des votes basée sur la confiance",
+      "publicScore": "Score public",
+      "weightedScore": "Score pondéré",
+      "divergence": "Divergence",
+      "divergenceLabel": "{{percent}}% de divergence",
+      "threshold": "Seuil de détection",
+      "noAnomalies": "Aucune anomalie détectée",
+      "noAnomaliesDescription": "Tous les scores sont dans les limites normales pondérées par la confiance",
+      "investigate": "Investiguer",
+      "totalAnalyzed": "Idées analysées",
+      "lowDivergence": "Divergence faible",
+      "mediumDivergence": "Divergence moyenne",
+      "highDivergence": "Divergence élevée",
+      "anomaliesTitle": "Anomalies de score",
+      "idea": "Idée",
+      "viewIdea": "Voir l'idée"
     }
   },
   "moderation": {

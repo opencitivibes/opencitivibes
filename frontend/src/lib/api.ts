@@ -71,6 +71,9 @@ import type {
   LoginResponse,
   AdminRole,
   AdminRoleCreate,
+  QualitySignalsResponse,
+  WeightedScoreResponse,
+  ScoreAnomaliesResponse,
 } from '@/types';
 import type {
   FlagCreate,
@@ -569,6 +572,11 @@ export const ideaAPI = {
     const response = await api.post('/ideas/check-similar', data, {
       params: { language, threshold, limit },
     });
+    return response.data;
+  },
+
+  getQualitySignals: async (ideaId: number): Promise<QualitySignalsResponse> => {
+    const response = await api.get<QualitySignalsResponse>(`/ideas/${ideaId}/quality-signals`);
     return response.data;
   },
 };
@@ -1084,6 +1092,26 @@ export const analyticsAPI = {
 
   getQualityAnalytics: async (): Promise<QualityAnalyticsResponse> => {
     const response = await api.get('/admin/analytics/qualities');
+    return response.data;
+  },
+
+  /**
+   * Get weighted score analysis for a specific idea
+   */
+  getWeightedScore: async (ideaId: number): Promise<WeightedScoreResponse> => {
+    const response = await api.get<WeightedScoreResponse>(
+      `/admin/analytics/weighted-scores/${ideaId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get list of ideas with score anomalies (high divergence between public and weighted scores)
+   */
+  getScoreAnomalies: async (threshold?: number): Promise<ScoreAnomaliesResponse> => {
+    const response = await api.get<ScoreAnomaliesResponse>('/admin/analytics/score-anomalies', {
+      params: threshold ? { threshold } : undefined,
+    });
     return response.data;
   },
 };

@@ -18,6 +18,8 @@ interface VotingButtonsProps {
   onVoteUpdate?: () => void;
   variant?: 'compact' | 'full';
   showScore?: boolean;
+  /** Content to render after vote buttons (e.g., trust badge) */
+  children?: React.ReactNode;
 }
 
 export function VotingButtons({
@@ -29,6 +31,7 @@ export function VotingButtons({
   onVoteUpdate,
   variant = 'compact',
   showScore = true,
+  children,
 }: VotingButtonsProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -180,6 +183,9 @@ export function VotingButtons({
           {downvotes}
         </span>
       </button>
+
+      {/* Optional slot for badges/indicators */}
+      {children}
 
       {!user && (
         <span className="text-sm text-gray-500 dark:text-gray-400 italic ml-2">

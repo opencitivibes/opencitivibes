@@ -59,6 +59,7 @@
     "rejectedIdeas": "Rejected Ideas",
     "analytics": "Analytics",
     "qualityAnalytics": "Quality Analytics",
+    "scoreAnalysis": "Score Analysis",
     "moderationStats": "Moderation Stats",
     "officials": "Officials",
     "categoryAdmins": "Category Admins",
@@ -229,6 +230,23 @@
     "saved": "Saved",
     "saving": "Saving...",
     "noQualities": "No quality feedback yet"
+  },
+  "quality": {
+    "trust": {
+      "title": "Voter Trust",
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "below_average": "Below Average",
+      "low": "Low",
+      "badge_label": "{{percent}}% trusted",
+      "tooltip": "Based on voter reputation"
+    },
+    "signals": {
+      "title": "Quality Signals",
+      "expand": "See details",
+      "collapse": "Hide details"
+    }
   },
   "comment": {
     "addComment": "Add a comment",
@@ -607,6 +625,7 @@
     "edit": "Edit",
     "close": "Close",
     "back": "Back",
+    "actions": "Actions",
     "backToHome": "Back to Home",
     "submitting": "Submitting...",
     "characters": "characters",
@@ -999,6 +1018,25 @@
       "distribution": "Quality Distribution",
       "topIdeas": "Top Ideas by Quality",
       "noData": "No quality data yet"
+    },
+    "weightedScores": {
+      "title": "Weighted Score Analysis",
+      "description": "Vote manipulation detection based on voter trust",
+      "publicScore": "Public Score",
+      "weightedScore": "Weighted Score",
+      "divergence": "Divergence",
+      "divergenceLabel": "{{percent}}% divergence",
+      "threshold": "Detection Threshold",
+      "noAnomalies": "No anomalies detected",
+      "noAnomaliesDescription": "All ideas have scores within normal trust-weighted ranges",
+      "investigate": "Investigate",
+      "totalAnalyzed": "Ideas Analyzed",
+      "lowDivergence": "Low Divergence",
+      "mediumDivergence": "Medium Divergence",
+      "highDivergence": "High Divergence",
+      "anomaliesTitle": "Score Anomalies",
+      "idea": "Idea",
+      "viewIdea": "View Idea"
     }
   },
   "moderation": {

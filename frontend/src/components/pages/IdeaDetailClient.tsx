@@ -18,14 +18,15 @@ import { RichTextDisplay } from '@/components/RichTextDisplay';
 import { DeleteIdeaDialog } from '@/components/DeleteIdeaDialog';
 import { DeleteCommentDialog } from '@/components/DeleteCommentDialog';
 import { VotingButtons } from '@/components/VotingButtons';
-import { QualityBreakdown } from '@/components/QualityBreakdown';
+import { QualitySignalsPanel } from '@/components/QualitySignalsPanel';
+import { TrustBadge } from '@/components/TrustBadge';
 import { ShareButtons } from '@/components/ShareButtons';
 import { FlagButton } from '@/components/moderation';
 import { CommentLikeButton, CommentSortSelector } from '@/components/comments';
 import type { CommentSortOrder } from '@/components/comments';
 import { isContentEmpty } from '@/lib/sanitize';
 import { htmlToPlainText } from '@/lib/sanitize';
-import type { Idea, Comment } from '@/types';
+import type { Idea, Comment, TrustDistribution } from '@/types';
 
 // Lazy load the simple editor since it's below the fold
 const SimpleRichTextEditor = dynamic(
@@ -60,6 +61,9 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentSortOrder, setCommentSortOrder] = useState<CommentSortOrder>('relevance');
+  const [signalsRefreshKey, setSignalsRefreshKey] = useState(0);
+  const [trustDistribution, setTrustDistribution] = useState<TrustDistribution | null>(null);
+  const [trustLoading, setTrustLoading] = useState(true);
 
   useEffect(() => {
     loadIdea();
@@ -90,7 +94,10 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
   };
 
   // Refresh idea data without showing loading spinner (preserves child component state)
-  const refreshIdea = () => loadIdea(false);
+  const refreshIdea = () => {
+    loadIdea(false);
+    setSignalsRefreshKey((k) => k + 1);
+  };
 
   const loadComments = async (sortBy: CommentSortOrder = commentSortOrder) => {
     try {
@@ -100,6 +107,26 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
       console.error('Error loading comments:', err);
     }
   };
+
+  const loadTrustDistribution = async () => {
+    try {
+      setTrustLoading(true);
+      const signals = await ideaAPI.getQualitySignals(numericIdeaId);
+      setTrustDistribution(signals.trust_distribution);
+    } catch (err) {
+      console.error('Error loading trust distribution:', err);
+    } finally {
+      setTrustLoading(false);
+    }
+  };
+
+  // Load trust distribution when idea is loaded and approved
+  useEffect(() => {
+    if (idea?.status === 'approved') {
+      loadTrustDistribution();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idea?.id, idea?.status, signalsRefreshKey]);
 
   // Reload comments when sort order changes
   useEffect(() => {
@@ -302,10 +329,17 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
               onVoteUpdate={refreshIdea}
               variant="full"
               showScore={true}
-            />
-            {/* Quality Breakdown */}
-            {idea.quality_counts && (
-              <QualityBreakdown counts={idea.quality_counts} totalUpvotes={idea.upvotes} />
+            >
+              {/* Trust Badge - quick indicator next to voting */}
+              <TrustBadge
+                trustDistribution={trustDistribution ?? undefined}
+                loading={trustLoading}
+                size="md"
+              />
+            </VotingButtons>
+            {/* Quality Signals Panel - detailed breakdown (admin-only) */}
+            {isAdmin && (
+              <QualitySignalsPanel ideaId={idea.id} refreshKey={signalsRefreshKey} isAdmin={true} />
             )}
 
             {/* Share Buttons */}
