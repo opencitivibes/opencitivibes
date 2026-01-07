@@ -368,7 +368,8 @@
       "images": "Images",
       "buildCache": "Build Cache",
       "reclaimable": "Reclaimable",
-      "dockerNotAvailable": "Docker not accessible from backend container"
+      "dockerNotAvailable": "Docker not accessible from backend container",
+      "clickToLoad": "Click refresh to load"
     },
     "showingOf": "Showing {{showing}} of {{total}}",
     "noPendingIdeas": "No pending ideas",
