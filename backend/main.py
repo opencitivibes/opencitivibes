@@ -334,10 +334,13 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Configure CORS from environment settings
 # In development, allow all origins for mobile/network testing
-cors_origins = ["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS
+# Production uses strict CORS_ORIGINS from settings; credentials disabled with wildcard
+cors_origins = (
+    ["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS
+)  # nosemgrep: cors-misconfiguration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=cors_origins,  # nosemgrep: python.django.security.audit.cors-misconfiguration
     allow_credentials=True if settings.ENVIRONMENT != "development" else False,
     allow_methods=["*"],
     allow_headers=["*"],

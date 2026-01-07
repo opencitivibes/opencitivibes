@@ -46,6 +46,7 @@ export function RichTextDisplay({ content, className = '' }: RichTextDisplayProp
         prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto
         ${className}
       `}
+      // nosemgrep: react-dangerouslysetinnerhtml - content sanitized via DOMPurify in sanitizeHtml()
       dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   );
