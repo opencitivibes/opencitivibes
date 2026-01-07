@@ -116,6 +116,18 @@ docker compose version</code></pre>
                 <li><code>ntfy.votredomaine.com</code> → IP de votre serveur (pour les notifications admin)</li>
             </ul>
 
+            <div class="callout callout-warning">
+                <div class="callout-title">Configuration proxy Cloudflare</div>
+                <p>Si vous utilisez Cloudflare, configurez les paramètres proxy (nuage orange/gris) appropriés :</p>
+                <ul>
+                    <li><strong>votredomaine.com</strong> - Proxié (nuage orange) pour la protection DDoS et le cache</li>
+                    <li><strong>www.votredomaine.com</strong> - Proxié (nuage orange)</li>
+                    <li><strong>ntfy.votredomaine.com</strong> - DNS uniquement (nuage gris) - requis pour WebSocket/SSE</li>
+                    <li><strong>ssh.votredomaine.com</strong> - DNS uniquement (nuage gris) - si vous voulez accéder via SSH sur un sous-domaine</li>
+                </ul>
+                <p>Le sous-domaine ntfy <strong>doit</strong> être DNS uniquement car le proxy Cloudflare interfère avec les connexions WebSocket et Server-Sent Events utilisées par ntfy.</p>
+            </div>
+
             <h2 id="quick-start">Démarrage rapide</h2>
 
             <h3>Étape 1 : Cloner le dépôt</h3>
@@ -467,13 +479,35 @@ curl -X POST http://localhost:8000/api/categories \
             <h2 id="ssl">Certificats SSL</h2>
 
             <h3>Utiliser Let's Encrypt (recommandé)</h3>
+            <p>OpenCitiVibes inclut un script d'aide pour configurer les certificats SSL pour le domaine principal et le sous-domaine ntfy :</p>
+            <pre><code># Configuration initiale (arrête nginx, obtient le certificat)
+./scripts/setup-ssl.sh votredomaine.com
+
+# Cela obtient des certificats pour :
+#   - votredomaine.com
+#   - ntfy.votredomaine.com
+
+# Renouvellement (quand les certificats expirent)
+./scripts/setup-ssl.sh --renew votredomaine.com
+
+# Utiliser le mode webroot si nginx est en cours d'exécution
+./scripts/setup-ssl.sh --webroot votredomaine.com</code></pre>
+
+            <h3>Configuration manuelle</h3>
             <pre><code># Installer certbot
-sudo apt install certbot python3-certbot-nginx
+sudo apt install certbot
 
-# Obtenir le certificat
-sudo certbot --nginx -d votredomaine.com -d www.votredomaine.com
+# Obtenir le certificat (inclut le sous-domaine ntfy)
+sudo certbot certonly --standalone \
+    -d votredomaine.com \
+    -d ntfy.votredomaine.com
 
-# Le renouvellement automatique est configuré</code></pre>
+# Copier les certificats vers le répertoire de déploiement
+sudo cp /etc/letsencrypt/live/votredomaine.com/fullchain.pem ssl/
+sudo cp /etc/letsencrypt/live/votredomaine.com/privkey.pem ssl/
+
+# Renouvellement automatique via cron
+0 0 1 * * cd /opt/opencitivibes-instance && ./scripts/setup-ssl.sh --renew votredomaine.com</code></pre>
 
             <h2 id="backups">Sauvegardes</h2>
 
@@ -508,12 +542,23 @@ NTFY_ENABLED=true
 APP_URL=https://votredomaine.com
 NTFY_BASE_URL=https://ntfy.votredomaine.com</code></pre>
 
-            <h3>Configurer l'accès admin</h3>
-            <pre><code># Créer un utilisateur admin pour les notifications
-docker exec ${CONTAINER_PREFIX}-ntfy ntfy user add admin1
+            <h3>Configurer l'authentification ntfy</h3>
+            <p>Par défaut, ntfy utilise <code>auth-default-access: "deny-all"</code> pour la sécurité. Vous devez créer des utilisateurs et un jeton d'authentification :</p>
+            <pre><code># Créer un utilisateur admin pour les abonnements mobile app
+NTFY_ADMIN_PASS="VotreMotDePasseSecurise123"
+docker exec -e NTFY_PASSWORD="${NTFY_ADMIN_PASS}" ${CONTAINER_PREFIX}-ntfy ntfy user add --role=admin admin
 
-# Accorder l'accès en lecture aux topics admin
-docker exec ${CONTAINER_PREFIX}-ntfy ntfy access admin1 "admin-*" read</code></pre>
+# Créer un jeton d'authentification pour que le backend puisse lire l'historique des notifications
+NTFY_TOKEN=$(docker exec ${CONTAINER_PREFIX}-ntfy ntfy token add --label=backend admin 2>/dev/null | grep -oP 'token \K[^ ]+')
+echo "NTFY_AUTH_TOKEN=${NTFY_TOKEN}" >> .env
+
+# Redémarrer le backend pour récupérer le nouveau jeton
+docker compose --profile prod up -d backend</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Important : Caractères de mot de passe</div>
+                <p>Évitez les caractères spéciaux comme <code>!</code> dans le mot de passe admin ntfy car ils peuvent causer des problèmes d'authentification. Utilisez des mots de passe alphanumériques avec des chiffres (ex: <code>SecurePass123</code>).</p>
+            </div>
 
             <h3>Applications mobiles</h3>
             <p>Recevez des notifications push instantanées sur votre appareil mobile avec les applications officielles ntfy :</p>

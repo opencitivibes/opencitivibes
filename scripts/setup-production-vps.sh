@@ -98,6 +98,9 @@ NTFY_CACHE_DURATION=24h
 NTFY_ENABLED=true
 APP_URL=https://${DOMAIN}
 
+# Ntfy admin user for mobile app subscriptions (auto-generated if not set)
+# NTFY_ADMIN_PASSWORD=YourSecurePassword
+
 # SMTP Email Configuration (Postfix container)
 # Used for passwordless login magic links
 EMAIL_PROVIDER=smtp
@@ -253,6 +256,98 @@ server {
     location ~ /\. { deny all; access_log off; log_not_found off; }
 }
 NGINXEOF
+
+# Create ntfy nginx configuration (from template pattern)
+cat > nginx/conf.d/ntfy.conf << 'NTFYNGINXEOF'
+# OpenCitiVibes Ntfy Push Notification Server Configuration
+# Proxies to internal ntfy container
+
+upstream ntfy_upstream {
+    server idees-mtl-ntfy:80;
+    keepalive 8;
+}
+
+# HTTP -> HTTPS redirect for ntfy subdomain
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ntfy.ideespourmontreal.opencitivibes.ovh;
+
+    # ACME challenge for Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS server for ntfy
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ntfy.ideespourmontreal.opencitivibes.ovh;
+
+    # SSL certificates (shared with main domain)
+    ssl_certificate /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+
+    # SSL configuration (modern)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # Main location - proxy to ntfy
+    location / {
+        proxy_pass http://ntfy_upstream;
+        proxy_http_version 1.1;
+
+        # Required headers for ntfy
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support (for real-time subscriptions)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeouts for long-polling/SSE
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+
+        # Don't buffer for SSE
+        proxy_buffering off;
+        proxy_cache off;
+    }
+
+    # Health check endpoint (internal only)
+    location /v1/health {
+        proxy_pass http://ntfy_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        allow 10.0.0.0/8;
+        allow 172.16.0.0/12;
+        allow 192.168.0.0/16;
+        allow 127.0.0.1;
+        deny all;
+    }
+}
+NTFYNGINXEOF
+echo "  - Created nginx/conf.d/ntfy.conf"
 
 # Create ntfy server.yml
 echo "[6/10] Setting up ntfy configuration..."
@@ -462,6 +557,34 @@ TOPIC_PREFIX=${TOPIC_PREFIX:-admin}
 docker exec ${CONTAINER_PREFIX}-ntfy ntfy access '*' "${TOPIC_PREFIX}-*" write 2>/dev/null || {
     echo "Warning: Could not configure ntfy permissions (container may not be ready)"
 }
+
+# Create ntfy admin user for mobile app subscriptions
+echo "Creating ntfy admin user..."
+NTFY_ADMIN_PASS=$(grep '^NTFY_ADMIN_PASSWORD=' .env | cut -d'=' -f2)
+NTFY_ADMIN_PASS=${NTFY_ADMIN_PASS:-$(openssl rand -base64 12 | tr -d '/+=')}
+docker exec -e NTFY_PASSWORD="${NTFY_ADMIN_PASS}" ${CONTAINER_PREFIX}-ntfy ntfy user add --role=admin --ignore-exists admin 2>/dev/null || {
+    echo "Warning: Could not create ntfy admin user (container may not be ready)"
+}
+# Create auth token for backend to read notification history
+echo "Creating ntfy auth token for backend..."
+NTFY_TOKEN=$(docker exec ${CONTAINER_PREFIX}-ntfy ntfy token add --label=backend admin 2>/dev/null | grep -oP 'token \K[^ ]+')
+if [ -n "$NTFY_TOKEN" ]; then
+    # Add token to .env if not already present
+    grep -q "^NTFY_AUTH_TOKEN=" .env || echo "NTFY_AUTH_TOKEN=${NTFY_TOKEN}" >> .env
+    # Update .env with new token
+    sed -i "s/^NTFY_AUTH_TOKEN=.*/NTFY_AUTH_TOKEN=${NTFY_TOKEN}/" .env
+    echo "  - Token created and added to .env"
+    echo "  - Restart backend to apply: docker compose --profile prod up -d backend"
+fi
+
+echo ""
+echo "============================================"
+echo "NTFY ADMIN CREDENTIALS (save these!):"
+echo "  Server: https://ntfy.\${DOMAIN}"
+echo "  Username: admin"
+echo "  Password: ${NTFY_ADMIN_PASS}"
+echo "============================================"
+echo ""
 echo "Ntfy configuration complete!"
 SEEDSCRIPT
 chmod +x seed-admin.sh

@@ -68,6 +68,7 @@ services:
       # Ntfy notification configuration
       - NTFY_URL=${NTFY_INTERNAL_URL:-http://ntfy:80}
       - NTFY_TOPIC_PREFIX=${NTFY_TOPIC_PREFIX:-admin}
+      - NTFY_AUTH_TOKEN=${NTFY_AUTH_TOKEN:-}
       - APP_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
       # Admin seed credentials (used on first startup)
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}

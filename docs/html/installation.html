@@ -114,7 +114,18 @@ docker compose version</code></pre>
                 <li><code>yourdomain.com</code> → Your server IP (A record)</li>
                 <li><code>www.yourdomain.com</code> → Your server IP (A record or CNAME)</li>
                 <li><code>ntfy.yourdomain.com</code> → Your server IP (for admin notifications)</li>
+                <li><code>ssh.yourdomain.com</code> → Your server IP (optional, for SSH access)</li>
             </ul>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Cloudflare Users</div>
+                <p>If using Cloudflare, configure proxy status carefully:</p>
+                <ul>
+                    <li><strong>Main domain</strong> → <strong>Proxied</strong> (orange cloud) - DDoS protection, CDN</li>
+                    <li><strong>ntfy subdomain</strong> → <strong>DNS only</strong> (grey cloud) - WebSocket/SSE needs direct connection</li>
+                    <li><strong>ssh subdomain</strong> → <strong>DNS only</strong> (grey cloud) - SSH (port 22) isn't proxied by Cloudflare</li>
+                </ul>
+            </div>
 
             <h2 id="quick-start">Quick Start</h2>
 
@@ -468,12 +479,26 @@ curl -X POST http://localhost:8000/api/categories \
 
             <h3>Using Let's Encrypt (Recommended)</h3>
             <pre><code># Install certbot
-sudo apt install certbot python3-certbot-nginx
+sudo apt install certbot
 
-# Get certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+# Get certificate for main domain AND ntfy subdomain
+sudo certbot certonly --standalone \
+  -d yourdomain.com \
+  -d ntfy.yourdomain.com
 
-# Auto-renewal is configured automatically</code></pre>
+# Copy certificates to deploy directory
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem ssl/
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem ssl/
+sudo chown $USER:$USER ssl/*
+
+# Auto-renewal is configured automatically via certbot.timer</code></pre>
+
+            <h3>Using the Setup Script</h3>
+            <pre><code># Initial setup (requests certs for domain and ntfy.domain)
+./scripts/setup-ssl.sh yourdomain.com
+
+# Renewal (run periodically or via cron)
+./scripts/setup-ssl.sh --renew yourdomain.com</code></pre>
 
             <h2 id="backups">Backups</h2>
 
@@ -506,14 +531,28 @@ NTFY_URL=http://ntfy:80
 NTFY_TOPIC_PREFIX=admin
 NTFY_ENABLED=true
 APP_URL=https://yourdomain.com
-NTFY_BASE_URL=https://ntfy.yourdomain.com</code></pre>
+NTFY_BASE_URL=https://ntfy.yourdomain.com
+
+# Optional: Set a custom password for ntfy admin user
+# NTFY_ADMIN_PASSWORD=YourSecurePassword</code></pre>
 
             <h3>Set Up Admin Access</h3>
-            <pre><code># Create admin user for notifications
-docker exec ${CONTAINER_PREFIX}-ntfy ntfy user add admin1
+            <p>The <code>seed-admin.sh</code> script automatically creates the ntfy admin user. If you need to set it up manually:</p>
+            <pre><code># Create admin user with password (avoid special characters like !)
+docker exec -e NTFY_PASSWORD="YourSecurePass123" \
+  ${CONTAINER_PREFIX}-ntfy ntfy user add --role=admin admin
 
-# Grant read access to admin topics
-docker exec ${CONTAINER_PREFIX}-ntfy ntfy access admin1 "admin-*" read</code></pre>
+# Configure anonymous write access for backend to publish notifications
+docker exec ${CONTAINER_PREFIX}-ntfy ntfy access '*' "admin-*" write
+
+# Create auth token for backend to read notification history
+docker exec ${CONTAINER_PREFIX}-ntfy ntfy token add --label=backend admin
+# Add the token output to .env as NTFY_AUTH_TOKEN=tk_xxxxx</code></pre>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">Password Note</div>
+                <p>Avoid special characters like <code>!</code> in the ntfy password as they can cause authentication issues with some clients.</p>
+            </div>
 
             <h3>Mobile Apps</h3>
             <p>Receive instant push notifications on your mobile device using the official ntfy apps:</p>

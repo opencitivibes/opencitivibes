@@ -158,8 +158,20 @@ docker compose exec backend python init_db.py
 ### 6. Set Up SSL
 
 ```bash
+# Initial setup (requests certs for domain and ntfy.domain)
 ./scripts/setup-ssl.sh <domain>
+
+# Renewal (run periodically or via cron)
+./scripts/setup-ssl.sh --renew <domain>
+
+# Use webroot mode if nginx is already running
+./scripts/setup-ssl.sh --webroot <domain>
 ```
+
+The script automatically:
+- Requests certificates for both main domain and `ntfy.` subdomain
+- Copies certificates to the `ssl/` directory
+- Sets correct permissions
 
 ## Configuration Reference
 
@@ -249,8 +261,10 @@ NTFY_BASE_URL=https://ntfy.yourdomain.com
 ```
 
 2. Add DNS record for `ntfy.yourdomain.com` pointing to your server
+   - **Important:** If using Cloudflare, set this record to **DNS only** (grey cloud, not proxied)
+   - Ntfy uses WebSockets/SSE which work better without Cloudflare proxy
 
-3. Configure SSL for the ntfy subdomain
+3. Configure SSL for the ntfy subdomain (included in `setup-ssl.sh`)
 
 #### Set Up Admin Access
 
@@ -489,8 +503,17 @@ ls -la data/
 # Check nginx configuration
 docker compose exec nginx nginx -t
 
-# Renew certificates
+# Check certificate expiry
+sudo certbot certificates
+
+# Renew certificates (stops nginx, renews, restarts)
 ./scripts/setup-ssl.sh --renew <domain>
+
+# If certificate doesn't include ntfy subdomain, expand it
+sudo certbot certonly --standalone \
+  -d yourdomain.com \
+  -d ntfy.yourdomain.com \
+  --expand
 ```
 
 #### Configuration not loading
@@ -554,6 +577,21 @@ nc -zv smtp.gmail.com 25 || echo "Port 25 blocked by provider"
 - Check the [Configuration Reference](CONFIGURATION.md)
 - Review the [Testing Checklist](TESTING_CHECKLIST.md)
 - Open an issue on the GitHub repository
+
+## DNS Configuration with Cloudflare
+
+If using Cloudflare for DNS, configure proxy status as follows:
+
+| Record | Type | Value | Proxy Status | Reason |
+|--------|------|-------|--------------|--------|
+| `yourdomain.com` | A | VPS IP | **Proxied** (orange) | DDoS protection, CDN |
+| `ntfy.yourdomain.com` | A | VPS IP | **DNS only** (grey) | WebSocket/SSE performance |
+| `ssh.yourdomain.com` | A | VPS IP | **DNS only** (grey) | SSH access (port 22) |
+
+**Why some records should not be proxied:**
+- Cloudflare only proxies HTTP/HTTPS (ports 80/443)
+- SSH (port 22) won't work through Cloudflare proxy
+- Ntfy's real-time features (WebSockets, SSE) work better without proxy
 
 ## Staging Environment Setup
 
