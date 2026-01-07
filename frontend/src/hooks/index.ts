@@ -6,6 +6,7 @@
 export * from './useApi';
 
 // Individual hooks
+export { useBetaAccess } from './useBetaAccess';
 export { useConfigTranslation } from './useConfigTranslation';
 export { useDebounce } from './useDebounce';
 export { useLocalizedField } from './useLocalizedField';

@@ -3,6 +3,15 @@
     "title": "{{config.instanceName}}",
     "subtitle": "Share your ideas to improve life in {{config.entityName}}"
   },
+  "beta": {
+    "title": "Beta Access",
+    "description": "This site is currently in testing phase. Please enter the password to continue.",
+    "passwordPlaceholder": "Password",
+    "submit": "Enter",
+    "error": "Incorrect password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
   "hero": {
     "imageAlt": "{{config.entityName}} skyline",
     "location": "{{config.location}}",

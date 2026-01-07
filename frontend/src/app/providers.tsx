@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import CollapsibleFooter from '@/components/CollapsibleFooter';
 import LoadingBar from '@/components/LoadingBar';
 import ScrollToTop from '@/components/ScrollToTop';
+import { BetaAccessGate } from '@/components/BetaAccessGate';
 import { useAuthStore } from '@/store/authStore';
 import { Toaster } from '@/components/ui/sonner';
 import { PlatformConfigProvider, usePlatformConfig } from '@/lib/config/PlatformConfigProvider';
@@ -64,14 +65,16 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <I18nextProvider i18n={i18n}>
       <PlatformConfigProvider>
         <ConfigInitializer>
-          <LoadingBar />
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <CollapsibleFooter />
-          </div>
-          <ScrollToTop />
-          <Toaster position="top-right" expand={false} richColors closeButton duration={4000} />
+          <BetaAccessGate>
+            <LoadingBar />
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <CollapsibleFooter />
+            </div>
+            <ScrollToTop />
+            <Toaster position="top-right" expand={false} richColors closeButton duration={4000} />
+          </BetaAccessGate>
         </ConfigInitializer>
       </PlatformConfigProvider>
     </I18nextProvider>
