@@ -304,6 +304,16 @@ class Settings(BaseSettings):
         description="Frontend URL for notification deep links",
     )
 
+    # Beta Access Settings (Security Hardening Phase 1)
+    BETA_MODE: bool = Field(
+        default=False,
+        description="Enable beta mode - requires password to access site",
+    )
+    BETA_PASSWORD: str = Field(
+        default="",
+        description="Beta access password (server-side only, never exposed to client)",
+    )
+
     def get_search_backend(self) -> str:
         """Determine search backend from config or DATABASE_URL."""
         if self.SEARCH_BACKEND:

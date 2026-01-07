@@ -1,66 +1,79 @@
 'use client';
 
-import { useState, useCallback, useSyncExternalStore } from 'react';
-
-const STORAGE_KEY = 'beta_unlocked';
+import { useState, useCallback, useEffect } from 'react';
+import { betaAPI } from '@/lib/api';
 
 interface UseBetaAccessReturn {
   isUnlocked: boolean;
   isLoading: boolean;
   error: string | null;
-  unlock: (password: string) => boolean;
+  isBetaMode: boolean;
+  unlock: (password: string) => Promise<boolean>;
 }
 
 /**
- * Helper to read localStorage value safely (client-side only).
- */
-function getStoredValue(): boolean {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEY) === 'true';
-}
-
-/**
- * Subscribe to storage events for external sync.
- */
-function subscribe(callback: () => void): () => void {
-  window.addEventListener('storage', callback);
-  return () => window.removeEventListener('storage', callback);
-}
-
-/**
- * Hook to manage beta access gate state.
- * Uses useSyncExternalStore for proper SSR hydration.
+ * Hook to manage beta access gate state with server-side verification.
+ *
+ * Security: Password verification happens server-side to prevent
+ * client-side exposure of the beta password (V1 security fix).
  */
 export function useBetaAccess(): UseBetaAccessReturn {
-  const isUnlocked = useSyncExternalStore(
-    subscribe,
-    getStoredValue,
-    () => false // Server snapshot - always locked
-  );
-
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isBetaMode, setIsBetaMode] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const unlock = useCallback((password: string): boolean => {
-    setError(null);
-    const correctPassword = process.env.NEXT_PUBLIC_BETA_PASSWORD;
+  // Check beta status on mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await betaAPI.getStatus();
+        setIsBetaMode(status.beta_mode_enabled);
+        setIsUnlocked(status.has_access);
+      } catch {
+        // If API fails, assume beta mode is disabled
+        setIsBetaMode(false);
+        setIsUnlocked(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    if (!correctPassword) {
-      // No password configured - allow access
-      localStorage.setItem(STORAGE_KEY, 'true');
-      window.dispatchEvent(new Event('storage'));
-      return true;
-    }
-
-    if (password === correctPassword) {
-      localStorage.setItem(STORAGE_KEY, 'true');
-      window.dispatchEvent(new Event('storage'));
-      return true;
-    }
-
-    setError('incorrect');
-    return false;
+    checkStatus();
   }, []);
 
-  // No loading state needed with useSyncExternalStore
-  return { isUnlocked, isLoading: false, error, unlock };
+  const unlock = useCallback(async (password: string): Promise<boolean> => {
+    setError(null);
+
+    try {
+      const response = await betaAPI.verify(password);
+      if (response.success) {
+        setIsUnlocked(true);
+        return true;
+      }
+      // This shouldn't happen - API throws on failure
+      setError('incorrect');
+      return false;
+    } catch (err: unknown) {
+      // Check for rate limiting (429)
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { status?: number } };
+        if (axiosError.response?.status === 429) {
+          setError('rate_limited');
+          return false;
+        }
+      }
+      // Generic error for incorrect password
+      setError('incorrect');
+      return false;
+    }
+  }, []);
+
+  return {
+    isUnlocked: !isBetaMode || isUnlocked,
+    isLoading,
+    error,
+    isBetaMode,
+    unlock,
+  };
 }

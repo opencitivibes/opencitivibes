@@ -9,6 +9,7 @@
     "passwordPlaceholder": "Mot de passe",
     "submit": "Accéder",
     "error": "Mot de passe incorrect",
+    "errorRateLimited": "Trop de tentatives. Veuillez patienter un moment et réessayer.",
     "showPassword": "Afficher le mot de passe",
     "hidePassword": "Masquer le mot de passe"
   },

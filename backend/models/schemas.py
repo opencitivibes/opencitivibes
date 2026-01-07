@@ -2199,3 +2199,27 @@ class CleanupResponse(BaseModel):
     deleted_count: int
     retention_days: int
     triggered_at: datetime
+
+
+# ============================================================================
+# Beta Access Schemas (Security Hardening Phase 1)
+# ============================================================================
+
+
+class BetaVerifyRequest(BaseModel):
+    """Request schema for beta password verification."""
+
+    password: str = Field(..., min_length=1, description="Beta access password")
+
+
+class BetaVerifyResponse(BaseModel):
+    """Response schema for beta password verification."""
+
+    success: bool = Field(description="Whether verification succeeded")
+
+
+class BetaStatusResponse(BaseModel):
+    """Response schema for beta access status check."""
+
+    beta_mode_enabled: bool = Field(description="Whether beta mode is active")
+    has_access: bool = Field(description="Whether user has beta access")

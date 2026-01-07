@@ -9,6 +9,7 @@
     "passwordPlaceholder": "Password",
     "submit": "Enter",
     "error": "Incorrect password",
+    "errorRateLimited": "Too many attempts. Please wait a moment and try again.",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
   },

@@ -320,37 +320,42 @@ class SecurityAuditService:
         Log a successful login event to the LoginEvent table.
 
         Also logs to SecurityAuditLog for comprehensive audit trail.
+        IP addresses are anonymized at storage time for Law 25 compliance.
 
         Args:
             db: Database session
             user_id: ID of the user who logged in
             email: User's email address
-            ip_address: Client IP address
+            ip_address: Client IP address (will be anonymized)
             user_agent: Browser user agent
             metadata_json: Additional metadata (e.g., 2FA method used)
 
         Returns:
             Created LoginEvent entry
         """
+        from helpers.ip_utils import anonymize_ip
         from repositories.login_event_repository import LoginEventRepository
+
+        # Anonymize IP address for privacy compliance (Law 25)
+        anon_ip = anonymize_ip(ip_address)
 
         repo = LoginEventRepository(db)
         event = repo.create_event(
             event_type=db_models.LoginEventType.LOGIN_SUCCESS,
             user_id=user_id,
             email=email,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
             metadata_json=metadata_json,
         )
 
-        # Also log to general security audit log
+        # Also log to general security audit log (with anonymized IP)
         SecurityAuditService.log_event(
             db=db,
             event_type=SecurityEventType.LOGIN_SUCCESS,
             action="login",
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
             success=True,
         )
@@ -371,12 +376,14 @@ class SecurityAuditService:
         Log a failed login attempt to the LoginEvent table.
 
         Also logs to SecurityAuditLog for comprehensive audit trail.
+        IP addresses are anonymized and emails are hashed for failed attempts
+        from unknown users to prevent user enumeration (V4 security fix).
 
         Args:
             db: Database session
-            email: Email used in the attempt
+            email: Email used in the attempt (hashed if user unknown)
             failure_reason: Why the login failed
-            ip_address: Client IP address
+            ip_address: Client IP address (will be anonymized)
             user_agent: Browser user agent
             user_id: User ID if the user exists but auth failed
             metadata_json: Additional metadata
@@ -384,28 +391,38 @@ class SecurityAuditService:
         Returns:
             Created LoginEvent entry
         """
+        from helpers.ip_utils import anonymize_ip, hash_email_for_audit
         from repositories.login_event_repository import LoginEventRepository
+
+        # Anonymize IP address for privacy compliance (Law 25)
+        anon_ip = anonymize_ip(ip_address)
+
+        # For failed logins without a user_id (user enumeration risk),
+        # hash the email to prevent revealing valid email addresses
+        stored_email = email
+        if user_id is None:
+            stored_email = hash_email_for_audit(email)
 
         repo = LoginEventRepository(db)
         event = repo.create_event(
             event_type=db_models.LoginEventType.LOGIN_FAILED,
-            email=email,
+            email=stored_email,
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
             failure_reason=failure_reason,
             metadata_json=metadata_json,
         )
 
-        # Also log to general security audit log
+        # Also log to general security audit log (with anonymized/hashed data)
         SecurityAuditService.log_event(
             db=db,
             event_type=SecurityEventType.LOGIN_FAILED,
             action="login",
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
-            details={"email": email, "reason": failure_reason.value},
+            details={"email": stored_email, "reason": failure_reason.value},
             success=False,
         )
 
@@ -422,34 +439,40 @@ class SecurityAuditService:
         """
         Log a logout event to the LoginEvent table.
 
+        IP addresses are anonymized at storage time for Law 25 compliance.
+
         Args:
             db: Database session
             user_id: ID of the user who logged out
             email: User's email address
-            ip_address: Client IP address
+            ip_address: Client IP address (will be anonymized)
             user_agent: Browser user agent
 
         Returns:
             Created LoginEvent entry
         """
+        from helpers.ip_utils import anonymize_ip
         from repositories.login_event_repository import LoginEventRepository
+
+        # Anonymize IP address for privacy compliance (Law 25)
+        anon_ip = anonymize_ip(ip_address)
 
         repo = LoginEventRepository(db)
         event = repo.create_event(
             event_type=db_models.LoginEventType.LOGOUT,
             user_id=user_id,
             email=email,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
         )
 
-        # Also log to general security audit log
+        # Also log to general security audit log (with anonymized IP)
         SecurityAuditService.log_event(
             db=db,
             event_type=SecurityEventType.LOGOUT,
             action="logout",
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
             success=True,
         )
@@ -467,36 +490,49 @@ class SecurityAuditService:
         """
         Log a password reset request to the LoginEvent table.
 
+        IP addresses are anonymized and emails are hashed for requests
+        from unknown users to prevent user enumeration.
+
         Args:
             db: Database session
-            email: Email for the reset request
-            ip_address: Client IP address
+            email: Email for the reset request (hashed if user unknown)
+            ip_address: Client IP address (will be anonymized)
             user_agent: Browser user agent
             user_id: User ID if user exists
 
         Returns:
             Created LoginEvent entry
         """
+        from helpers.ip_utils import anonymize_ip, hash_email_for_audit
         from repositories.login_event_repository import LoginEventRepository
+
+        # Anonymize IP address for privacy compliance (Law 25)
+        anon_ip = anonymize_ip(ip_address)
+
+        # For password reset without a user_id (user enumeration risk),
+        # hash the email to prevent revealing valid email addresses
+        stored_email = email
+        if user_id is None:
+            stored_email = hash_email_for_audit(email)
 
         repo = LoginEventRepository(db)
         event = repo.create_event(
             event_type=db_models.LoginEventType.PASSWORD_RESET_REQUEST,
-            email=email,
+            email=stored_email,
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
         )
 
-        # Also log to general security audit log
+        # Also log to general security audit log (with anonymized/hashed data)
         SecurityAuditService.log_event(
             db=db,
             event_type=SecurityEventType.PASSWORD_RESET_REQUESTED,
             action="password_reset_request",
             user_id=user_id,
-            ip_address=ip_address,
+            ip_address=anon_ip,
             user_agent=user_agent,
-            details={"email": email},
+            details={"email": stored_email},
             success=True,
         )
 

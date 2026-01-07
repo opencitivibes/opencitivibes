@@ -1175,6 +1175,11 @@ from routers import share_router
 app.include_router(share_router.router, prefix="/api")
 app.include_router(share_router.admin_router, prefix="/api")
 
+# Import beta_router for server-side beta access verification (Security Hardening Phase 1)
+from routers import beta_router
+
+app.include_router(beta_router.router, prefix="/api")
+
 
 @app.get("/")
 def root() -> dict:

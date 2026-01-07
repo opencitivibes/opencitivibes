@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, type ReactNode, type FormEvent } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useBetaAccess } from '@/hooks/useBetaAccess';
 import { Button } from './Button';
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock, Loader2 } from 'lucide-react';
 
 interface BetaAccessGateProps {
   children: ReactNode;
@@ -12,29 +12,30 @@ interface BetaAccessGateProps {
 
 /**
  * Beta access gate component that blocks access to the site until
- * the correct password is entered. Only active when NEXT_PUBLIC_BETA_MODE=true.
+ * the correct password is verified server-side.
+ *
+ * Security: Password verification happens via API to prevent
+ * client-side exposure of the beta password (V1 security fix).
  */
 export function BetaAccessGate({ children }: BetaAccessGateProps) {
   const { t } = useTranslation();
-  const { isUnlocked, error, unlock } = useBetaAccess();
+  const { isUnlocked, isLoading, error, isBetaMode, unlock } = useBetaAccess();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const isBetaMode = process.env.NEXT_PUBLIC_BETA_MODE === 'true';
-
   // Focus input when modal appears
   useEffect(() => {
-    if (isBetaMode && !isUnlocked) {
+    if (isBetaMode && !isUnlocked && !isLoading) {
       inputRef.current?.focus();
     }
-  }, [isBetaMode, isUnlocked]);
+  }, [isBetaMode, isUnlocked, isLoading]);
 
   // Trap focus within modal
   useEffect(() => {
-    if (!isBetaMode || isUnlocked) return;
+    if (!isBetaMode || isUnlocked || isLoading) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab' && modalRef.current) {
@@ -56,26 +57,39 @@ export function BetaAccessGate({ children }: BetaAccessGateProps) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isBetaMode, isUnlocked]);
+  }, [isBetaMode, isUnlocked, isLoading]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Small delay for UX
-    setTimeout(() => {
-      unlock(password);
+    try {
+      await unlock(password);
+    } finally {
       setIsSubmitting(false);
-    }, 300);
+    }
   };
 
-  // If beta mode is disabled, render children normally
-  if (!isBetaMode) {
-    return <>{children}</>;
+  // Get error message based on error type
+  const getErrorMessage = () => {
+    if (!error) return null;
+    if (error === 'rate_limited') {
+      return t('beta.errorRateLimited');
+    }
+    return t('beta.error');
+  };
+
+  // Show loading state while checking beta status
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
   }
 
-  // If unlocked, render children normally
-  if (isUnlocked) {
+  // If beta mode is disabled or unlocked, render children normally
+  if (!isBetaMode || isUnlocked) {
     return <>{children}</>;
   }
 
@@ -142,12 +156,14 @@ export function BetaAccessGate({ children }: BetaAccessGateProps) {
                 autoComplete="off"
                 aria-invalid={error ? 'true' : 'false'}
                 aria-describedby={error ? 'beta-error' : undefined}
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:text-primary-500"
                 aria-label={showPassword ? t('beta.hidePassword') : t('beta.showPassword')}
+                disabled={isSubmitting}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -160,7 +176,7 @@ export function BetaAccessGate({ children }: BetaAccessGateProps) {
                 className="text-sm text-red-600 dark:text-red-400 text-center"
                 role="alert"
               >
-                {t('beta.error')}
+                {getErrorMessage()}
               </p>
             )}
 
@@ -170,7 +186,7 @@ export function BetaAccessGate({ children }: BetaAccessGateProps) {
               className="w-full"
               size="lg"
               loading={isSubmitting}
-              disabled={!password.trim()}
+              disabled={!password.trim() || isSubmitting}
             >
               {t('beta.submit')}
             </Button>

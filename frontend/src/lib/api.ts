@@ -1448,4 +1448,36 @@ export const shareAPI = {
   },
 };
 
+// =============================================================================
+// Beta Access API (Security Hardening Phase 1)
+// =============================================================================
+
+export interface BetaVerifyResponse {
+  success: boolean;
+}
+
+export interface BetaStatusResponse {
+  beta_mode_enabled: boolean;
+  has_access: boolean;
+}
+
+export const betaAPI = {
+  /**
+   * Verify beta password server-side.
+   * Sets an httpOnly cookie on success for persistent access.
+   */
+  verify: async (password: string): Promise<BetaVerifyResponse> => {
+    const response = await api.post<BetaVerifyResponse>('/beta/verify', { password });
+    return response.data;
+  },
+
+  /**
+   * Check beta access status (via cookie).
+   */
+  getStatus: async (): Promise<BetaStatusResponse> => {
+    const response = await api.get<BetaStatusResponse>('/beta/status');
+    return response.data;
+  },
+};
+
 export default api;

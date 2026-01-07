@@ -1,17 +1,25 @@
+from datetime import datetime as dt
+from datetime import timedelta
+from datetime import timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 import authentication.auth as auth
 import models.schemas as schemas
 import repositories.db_models as db_models
 from helpers.pagination import PaginationLimitLarge, PaginationSkip
+from helpers.rate_limiter import limiter
+from models.exceptions import ValidationException
 from repositories.database import get_db
 from services import CategoryService, CommentService, IdeaService, UserService
 from services.admin_role_service import AdminRoleService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# Maximum lookback for time-range queries (90 days to prevent DoS)
+MAX_QUERY_LOOKBACK_DAYS = 90
 
 
 @router.get("/ideas/pending", response_model=schemas.PendingIdeasResponse)
@@ -228,7 +236,6 @@ def get_all_users(
 ):
     """Get all users with pagination, search, filtering, and reputation data."""
     import math
-    from datetime import datetime as dt
 
     # Parse date strings to datetime objects
     created_after_dt = None
@@ -847,7 +854,9 @@ def get_system_resources(
     summary="List security events",
     description="Get paginated list of login events with optional filtering.",
 )
+@limiter.limit("30/minute")
 def get_security_events(
+    request: Request,
     skip: PaginationSkip = 0,
     limit: PaginationLimitLarge = 50,
     event_type: Optional[str] = Query(
@@ -864,19 +873,28 @@ def get_security_events(
     """
     Get paginated list of security/login events.
 
+    Rate limited to 30 requests/minute to prevent abuse.
+
     Supports filtering by:
     - event_type: LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, PASSWORD_RESET_REQUEST
     - user_id: specific user's events
-    - since: events after a specific datetime
+    - since: events after a specific datetime (max 90 days lookback)
     """
-    from datetime import datetime as dt
-
     from services.security_audit_service import SecurityAuditService
 
-    # Parse since datetime if provided
+    # Parse and validate since datetime
     since_dt = None
     if since:
         since_dt = dt.fromisoformat(since.replace("Z", "+00:00"))
+        # Validate query bounds - reject lookback > 90 days
+        min_allowed = dt.now(timezone.utc) - timedelta(days=MAX_QUERY_LOOKBACK_DAYS)
+        if since_dt < min_allowed:
+            raise ValidationException(
+                f"Query lookback cannot exceed {MAX_QUERY_LOOKBACK_DAYS} days"
+            )
+    else:
+        # Default to 7 days if not specified
+        since_dt = dt.now(timezone.utc) - timedelta(days=7)
 
     events, total = SecurityAuditService.get_security_events_list(
         db=db,
@@ -901,7 +919,9 @@ def get_security_events(
     summary="Security statistics summary",
     description="Get aggregated security statistics for the admin dashboard.",
 )
+@limiter.limit("30/minute")
 def get_security_summary(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> schemas.AdminSecuritySummary:
@@ -912,6 +932,8 @@ def get_security_summary(
     - Admin login count
     - List of suspicious IPs (high failure rate)
     - Recent admin logins
+
+    Rate limited to 30 requests/minute.
     """
     from services.security_audit_service import SecurityAuditService
 
@@ -924,14 +946,16 @@ def get_security_summary(
     summary="User's security events",
     description="Get login events for a specific user.",
 )
+@limiter.limit("20/minute")
 def get_user_security_events(
+    request: Request,
     user_id: int,
     skip: PaginationSkip = 0,
     limit: PaginationLimitLarge = 50,
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> schemas.AdminSecurityEventsResponse:
-    """Get all login/security events for a specific user."""
+    """Get all login/security events for a specific user. Rate limited to 20/minute."""
     from services.security_audit_service import SecurityAuditService
 
     events, total = SecurityAuditService.get_events_for_user(
@@ -955,7 +979,9 @@ def get_user_security_events(
     summary="Failed login attempts",
     description="Get recent failed login attempts.",
 )
+@limiter.limit("30/minute")
 def get_failed_attempts(
+    request: Request,
     skip: PaginationSkip = 0,
     limit: PaginationLimitLarge = 50,
     hours: int = Query(
@@ -964,8 +990,15 @@ def get_failed_attempts(
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> schemas.AdminSecurityEventsResponse:
-    """Get only failed login attempts within the specified time window."""
+    """Get only failed login attempts within the specified time window. Rate limited to 30/minute."""
     from services.security_audit_service import SecurityAuditService
+
+    # Validate hours doesn't exceed 90 days (2160 hours)
+    max_hours = MAX_QUERY_LOOKBACK_DAYS * 24
+    if hours > max_hours:
+        raise ValidationException(
+            f"Time window cannot exceed {MAX_QUERY_LOOKBACK_DAYS} days ({max_hours} hours)"
+        )
 
     events, total = SecurityAuditService.get_failed_attempts_list(
         db=db,
@@ -988,7 +1021,9 @@ def get_failed_attempts(
     summary="Brute force detection",
     description="Detect potential brute force attack patterns.",
 )
+@limiter.limit("20/minute")
 def get_brute_force_risks(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> schemas.BruteForceRiskResponse:
@@ -996,6 +1031,7 @@ def get_brute_force_risks(
     Detect potential brute force attacks.
 
     Returns IPs with 3+ failures in the last hour, ranked by failure count.
+    Rate limited to 20 requests/minute.
     """
     from services.security_audit_service import SecurityAuditService
 
