@@ -273,11 +273,11 @@ export default function DiagnosticsPage() {
         description={t('admin.diagnostics.description')}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 min-w-0">
         {/* Left Column: Test/Checker Widgets */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           {/* Sentry Tests */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.sentryTests')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('admin.diagnostics.sentryDescription')}
@@ -313,7 +313,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* ntfy Tests */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.ntfyTests')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('admin.diagnostics.ntfyDescription')}
@@ -344,7 +344,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* SMTP Test */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.smtpTests')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('admin.diagnostics.smtpDescription')}
@@ -403,7 +403,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* API Health Check */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.apiHealth')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('admin.diagnostics.apiDescription')}
@@ -443,7 +443,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* Database Check */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-lg font-semibold mb-2">{t('admin.diagnostics.dbTests')}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('admin.diagnostics.dbDescription')}
@@ -493,12 +493,12 @@ export default function DiagnosticsPage() {
                 </div>
 
                 <dl className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
                     <dt className="text-gray-600 dark:text-gray-400 shrink-0">
                       {t('admin.diagnostics.dbUrl')}
                     </dt>
                     <dd
-                      className="font-mono text-xs text-right truncate max-w-[180px]"
+                      className="font-mono text-xs sm:text-right truncate"
                       title={dbInfo.database_url_masked}
                     >
                       {dbInfo.database_url_masked}
@@ -582,12 +582,12 @@ export default function DiagnosticsPage() {
         </div>
 
         {/* Right Column: Info Widgets */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0 overflow-hidden">
           {/* Security Audit Widget */}
           <SecurityAuditWidget />
 
           {/* System Resources */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold">{t('admin.diagnostics.systemResources')}</h2>
               <Button
@@ -710,7 +710,7 @@ export default function DiagnosticsPage() {
                       <span className="uppercase">{systemInfo.database_size.database_type}</span>
                       {systemInfo.database_size.file_path && (
                         <span
-                          className="font-mono truncate max-w-[120px]"
+                          className="font-mono truncate max-w-[40vw] sm:max-w-[120px]"
                           title={systemInfo.database_size.file_path}
                         >
                           {systemInfo.database_size.file_path}
@@ -724,7 +724,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* Current Session */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
               {t('admin.diagnostics.sessionInfo')}
@@ -736,7 +736,10 @@ export default function DiagnosticsPage() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-600 dark:text-gray-400">Email</dt>
-                <dd className="font-mono text-xs truncate max-w-[180px]" title={user?.email}>
+                <dd
+                  className="font-mono text-xs truncate max-w-[50vw] sm:max-w-[180px]"
+                  title={user?.email}
+                >
                   {user?.email}
                 </dd>
               </div>
@@ -752,7 +755,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* System Info */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.systemInfo')}</h2>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -777,7 +780,7 @@ export default function DiagnosticsPage() {
           </Card>
 
           {/* Browser Info */}
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6 overflow-hidden">
             <h2 className="text-base font-semibold mb-3">{t('admin.diagnostics.browserInfo')}</h2>
             {browserInfo ? (
               <dl className="space-y-2 text-sm">

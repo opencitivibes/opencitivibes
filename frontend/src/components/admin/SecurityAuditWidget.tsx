@@ -111,13 +111,13 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
   // Loading skeleton
   if (isLoading && !summary) {
     return (
-      <Card className={`p-5 ${className}`}>
+      <Card className={`p-4 sm:p-5 overflow-hidden ${className}`}>
         <div className="animate-pulse">
           <div className="flex items-center justify-between mb-4">
             <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
             <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded" />
           </div>
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="text-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-1" />
@@ -138,7 +138,7 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
   // Error state
   if (error) {
     return (
-      <Card className={`p-5 ${className}`}>
+      <Card className={`p-4 sm:p-5 overflow-hidden ${className}`}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <span role="img" aria-label="lock">
@@ -165,7 +165,7 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
   // No data state
   if (!summary) {
     return (
-      <Card className={`p-5 ${className}`}>
+      <Card className={`p-4 sm:p-5 overflow-hidden ${className}`}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <span role="img" aria-label="lock">
@@ -188,10 +188,10 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
   }
 
   return (
-    <Card className={`p-5 ${className}`}>
+    <Card className={`p-4 sm:p-5 overflow-hidden ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold flex items-center gap-2">
+        <h2 className="text-sm sm:text-base font-semibold flex items-center gap-2">
           <span role="img" aria-label="lock">
             &#128274;
           </span>
@@ -209,28 +209,28 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-          <div className="text-xl font-bold text-green-700 dark:text-green-400">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+        <div className="text-center p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+          <div className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400">
             {summary.successful_logins_24h}
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 leading-tight">
             {t('admin.security.recentLogins')}
           </div>
         </div>
-        <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-          <div className="text-xl font-bold text-red-700 dark:text-red-400">
+        <div className="text-center p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+          <div className="text-lg sm:text-xl font-bold text-red-700 dark:text-red-400">
             {summary.failed_attempts_24h}
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 leading-tight">
             {t('admin.security.failedAttempts')}
           </div>
         </div>
-        <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <div className="text-xl font-bold text-blue-700 dark:text-blue-400">
+        <div className="text-center p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-400">
             {summary.unique_ips_24h}
           </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 leading-tight">
             {t('admin.security.uniqueIps')}
           </div>
         </div>
@@ -319,12 +319,12 @@ export function SecurityAuditWidget({ className = '' }: SecurityAuditWidgetProps
           </h3>
           <div className="space-y-1">
             {summary.recent_admin_logins.slice(0, 3).map((login, idx) => (
-              <div key={idx} className="flex items-center justify-between text-xs">
-                <span className="font-mono truncate max-w-[120px]" title={login.email}>
+              <div key={idx} className="flex items-center justify-between gap-2 text-xs min-w-0">
+                <span className="font-mono truncate min-w-0 flex-1" title={login.email}>
                   {login.email}
                 </span>
-                <div className="flex gap-2 text-gray-500 dark:text-gray-400">
-                  <span className="font-mono">{login.ip}</span>
+                <div className="flex gap-2 text-gray-500 dark:text-gray-400 shrink-0">
+                  <span className="font-mono hidden sm:inline">{login.ip}</span>
                   <span>{login.time_ago}</span>
                 </div>
               </div>
