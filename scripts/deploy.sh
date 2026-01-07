@@ -137,13 +137,22 @@ deploy() {
     log "Deploying..."
     cd "$DEPLOY_PATH"
 
-    # Generate nginx config from template if needed
+    # Generate nginx config from templates if needed
     if [[ -f "$DEPLOY_PATH/nginx/conf.d/default.conf.template" ]]; then
-        info "Generating nginx configuration from template..."
+        info "Generating nginx configuration from templates..."
         source "$DEPLOY_PATH/.env"
         envsubst '${DOMAIN} ${CONTAINER_PREFIX}' \
             < "$DEPLOY_PATH/nginx/conf.d/default.conf.template" \
             > "$DEPLOY_PATH/nginx/conf.d/default.conf"
+    fi
+
+    # Generate ntfy nginx config from template
+    if [[ -f "$DEPLOY_PATH/nginx/conf.d/ntfy.conf.template" ]]; then
+        info "Generating ntfy nginx configuration from template..."
+        source "$DEPLOY_PATH/.env"
+        envsubst '${DOMAIN} ${CONTAINER_PREFIX}' \
+            < "$DEPLOY_PATH/nginx/conf.d/ntfy.conf.template" \
+            > "$DEPLOY_PATH/nginx/conf.d/ntfy.conf"
     fi
 
     # Rolling update

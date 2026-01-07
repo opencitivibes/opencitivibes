@@ -4,6 +4,17 @@
 # ============================================
 # Run this on a fresh Ubuntu VPS with Docker installed
 # Usage: bash setup-staging-vps.sh
+#
+# ⚠️  WARNING: FOR FRESH VPS ONLY!
+# This script OVERWRITES configuration files:
+#   - .env (secrets, database passwords)
+#   - docker-compose.yml
+#   - nginx configs
+#   - ntfy/server.yml
+#   - platform.config.json
+#
+# DO NOT run on existing deployments - you will lose configuration!
+# For updates, use deploy.sh or manually update specific files.
 # ============================================
 
 set -e
@@ -135,197 +146,24 @@ if ! grep -q "postfix_dkim:" docker-compose.yml; then
     echo "    name: \${VOLUME_PREFIX:-ocv}-postfix-dkim" >> docker-compose.yml
 fi
 
-# Download nginx.conf
-echo "[5/9] Setting up nginx configuration..."
+# Download nginx configuration files from repo
+echo "[5/9] Setting up nginx configuration from templates..."
 curl -sL -o nginx/nginx.conf https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/nginx.conf
 
-# Create nginx default.conf (processed from template)
-cat > nginx/conf.d/default.conf << 'NGINXEOF'
-upstream backend {
-    server idees-mtl-backend:8000;
-    keepalive 32;
-}
+# Download templates and process them with envsubst
+curl -sL -o /tmp/default.conf.template https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/conf.d/default.conf.template
+curl -sL -o /tmp/ntfy.conf.template https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/conf.d/ntfy.conf.template
 
-upstream frontend {
-    server idees-mtl-frontend:3000;
-    keepalive 32;
-}
+# Generate configs from templates
+export DOMAIN CONTAINER_PREFIX
+envsubst '${DOMAIN} ${CONTAINER_PREFIX}' < /tmp/default.conf.template > nginx/conf.d/default.conf
+envsubst '${DOMAIN} ${CONTAINER_PREFIX}' < /tmp/ntfy.conf.template > nginx/conf.d/ntfy.conf
 
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ideespourmontreal.opencitivibes.ovh;
+echo "  - Generated nginx/conf.d/default.conf from template"
+echo "  - Generated nginx/conf.d/ntfy.conf from template (secured - web UI blocked)"
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
-    server_name ideespourmontreal.opencitivibes.ovh;
-
-    ssl_certificate /etc/nginx/ssl/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 1d;
-    ssl_session_tickets off;
-
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-
-    location /api/ {
-        limit_req zone=api_limit burst=20 nodelay;
-        limit_conn conn_limit 20;
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Connection "";
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-        proxy_buffering on;
-        proxy_buffer_size 4k;
-        proxy_buffers 8 4k;
-    }
-
-    location /api/auth/ {
-        limit_req zone=login_limit burst=5 nodelay;
-        limit_conn conn_limit 5;
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Connection "";
-    }
-
-    location /api/health {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        access_log off;
-    }
-
-    location /_next/static {
-        proxy_pass http://frontend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_cache_valid 200 365d;
-        add_header Cache-Control "public, max-age=31536000, immutable";
-    }
-
-    location /_next/image {
-        proxy_pass http://frontend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_cache_valid 200 60d;
-    }
-
-    location / {
-        proxy_pass http://frontend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-    }
-
-    location = /favicon.ico { proxy_pass http://frontend; access_log off; log_not_found off; }
-    location = /robots.txt { proxy_pass http://frontend; access_log off; log_not_found off; }
-    location = /sitemap.xml { proxy_pass http://frontend; access_log off; }
-    location = /health { access_log off; return 200 "healthy\n"; add_header Content-Type text/plain; }
-    location ~ /\. { deny all; access_log off; log_not_found off; }
-}
-NGINXEOF
-
-# Create ntfy nginx configuration (from template pattern)
-cat > nginx/conf.d/ntfy.conf << 'NTFYNGINXEOF'
-# OpenCitiVibes Ntfy Push Notification Server Configuration
-
-upstream ntfy_upstream {
-    server idees-mtl-ntfy:80;
-    keepalive 8;
-}
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ntfy.ideespourmontreal.opencitivibes.ovh;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
-    server_name ntfy.ideespourmontreal.opencitivibes.ovh;
-
-    ssl_certificate /etc/nginx/ssl/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 1d;
-    ssl_session_tickets off;
-
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-Frame-Options DENY always;
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-
-    location / {
-        proxy_pass http://ntfy_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 300s;
-        proxy_read_timeout 300s;
-        proxy_buffering off;
-        proxy_cache off;
-    }
-
-    location /v1/health {
-        proxy_pass http://ntfy_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        allow 10.0.0.0/8;
-        allow 172.16.0.0/12;
-        allow 192.168.0.0/16;
-        allow 127.0.0.1;
-        deny all;
-    }
-}
-NTFYNGINXEOF
-echo "  - Created nginx/conf.d/ntfy.conf"
+# Cleanup temp files
+rm -f /tmp/default.conf.template /tmp/ntfy.conf.template
 
 # Create ntfy server.yml
 echo "[6/9] Setting up ntfy configuration..."

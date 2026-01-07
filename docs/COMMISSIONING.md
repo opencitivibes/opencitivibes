@@ -245,6 +245,20 @@ Customize `backend/config/legal.config.json` with your jurisdiction's requiremen
 
 OpenCitiVibes includes a self-hosted [ntfy](https://ntfy.sh) service for admin push notifications. Admins receive real-time alerts on their mobile devices when content requires moderation.
 
+#### Security Configuration
+
+**Important:** The ntfy web interface is blocked by default for security. Only API endpoints are exposed:
+
+| Endpoint | Access | Purpose |
+|----------|--------|---------|
+| `/<topic>/json,sse,ws,raw` | Public (with auth) | Mobile app subscriptions |
+| `POST/PUT /<topic>` | Public (with auth) | Backend publishing |
+| `/v1/account` | Public | Mobile app authentication |
+| `/v1/health` | Internal only | Health checks |
+| `/settings`, `/login`, `/app`, etc. | **Blocked (404)** | Web UI disabled |
+
+This prevents information disclosure and reduces attack surface. Admins must use the mobile app.
+
 #### Enable Notifications
 
 1. Configure environment variables in `.env`:
@@ -605,6 +619,12 @@ For testing deployments before production, use the automated staging setup scrip
 
 ### Quick Setup
 
+> **⚠️ WARNING: FOR FRESH VPS ONLY!**
+>
+> The setup scripts OVERWRITE configuration files (.env, docker-compose.yml, nginx configs, etc.).
+> **DO NOT run on existing deployments** - you will lose your configuration!
+> For updates to existing deployments, use `deploy.sh` or manually update specific files.
+
 ```bash
 # SSH to your VPS
 ssh ubuntu@your-staging-vps
@@ -616,11 +636,15 @@ curl -sL https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/scri
 The script creates:
 - `.env` with generated secrets and configurable admin email
 - `docker-compose.yml` from the repository
-- `nginx/` configuration for reverse proxy with SSL
-- `ntfy/` configuration for push notifications
+- `nginx/nginx.conf` - main nginx configuration
+- `nginx/conf.d/default.conf` - generated from template (main site)
+- `nginx/conf.d/ntfy.conf` - generated from template (ntfy API, web UI blocked)
+- `ntfy/server.yml` - ntfy configuration with auth enabled
 - `backend/config/platform.config.json` with correct schema
 - `instance-assets/` directory for hero.png and logo.svg
 - `seed-admin.sh` for creating the admin user
+
+**Note:** Nginx configs are downloaded as templates from GitHub and processed with `envsubst` to substitute `${DOMAIN}` and `${CONTAINER_PREFIX}`. The ntfy config blocks the web interface for security - only API endpoints are exposed.
 
 ### Post-Setup Steps
 
@@ -695,6 +719,27 @@ docker exec your-prefix-backend alembic stamp head
 docker compose --profile staging restart backend
 ```
 
+## Production Environment Setup
+
+Production setup uses the same approach as staging but with PostgreSQL:
+
+> **⚠️ WARNING: FOR FRESH VPS ONLY!** Same warning as staging - this script overwrites all configuration files.
+
+```bash
+# SSH to your production VPS
+ssh ubuntu@your-production-vps
+
+# Download and run the production setup script
+curl -sL https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/scripts/setup-production-vps.sh | bash
+```
+
+Key differences from staging:
+- Uses PostgreSQL instead of SQLite (`--profile prod`)
+- Generates `POSTGRES_PASSWORD` automatically
+- Creates PostgreSQL-aware backup script
+
+The script downloads nginx templates from GitHub and generates configs with your domain/container prefix. Follow the same post-setup steps as staging, but use `--profile prod` for all Docker commands.
+
 ## Security Considerations
 
 1. **Always change default passwords** - Never use default admin credentials in production
@@ -702,6 +747,7 @@ docker compose --profile staging restart backend
 3. **Enable HTTPS** - Required for production deployments
 4. **Regular backups** - Configure automated backup scripts
 5. **Keep updated** - Regularly pull latest security patches
+6. **Ntfy web UI blocked** - The setup scripts configure nginx to block ntfy's web interface (`/settings`, `/login`, etc.) - only API endpoints are exposed to prevent information disclosure
 
 ## Next Steps
 

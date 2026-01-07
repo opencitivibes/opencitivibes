@@ -350,6 +350,14 @@ server {
 NGINX
 fi
 
+# Generate ntfy nginx config from template
+if [[ -f "nginx/conf.d/ntfy.conf.template" ]]; then
+    log "Generating ntfy nginx configuration..."
+    envsubst '${DOMAIN} ${CONTAINER_PREFIX}' \
+        < nginx/conf.d/ntfy.conf.template \
+        > "$DEPLOY_PATH/nginx/conf.d/ntfy.conf"
+fi
+
 # ============================================
 # Copy nginx.conf
 # ============================================
