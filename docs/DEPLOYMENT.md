@@ -395,6 +395,128 @@ dig +short ssh.yourdomain.com
 # NOT a Cloudflare IP like: 104.21.74.4
 ```
 
+## Manual Deployment Script (deploy.sh)
+
+For server-side deployments without GitHub Actions, use the `deploy.sh` script directly on the VPS.
+
+**File:** `scripts/deploy.sh`
+
+### When to Use
+
+| Scenario | Use |
+|----------|-----|
+| Automated CI/CD | GitHub Actions (preferred) |
+| Manual server update | `deploy.sh` |
+| Emergency hotfix on server | `deploy.sh` |
+| Debugging deployment issues | `deploy.sh` with `--force` |
+| No GitHub Actions access | `deploy.sh` |
+
+### Usage
+
+```bash
+# SSH to the server
+ssh user@ssh.yourdomain.com
+cd /path/to/deployment
+
+# Normal deployment (with backup and health checks)
+./scripts/deploy.sh
+
+# Deploy without pre-deployment backup
+./scripts/deploy.sh --no-backup
+
+# Force deploy (skip health checks)
+./scripts/deploy.sh --force
+
+# Show help
+./scripts/deploy.sh --help
+```
+
+### What It Does
+
+1. **Checks requirements** - Verifies `.env`, `docker-compose.yml`, Docker installed
+2. **Creates backup** - Runs `scripts/backup.sh` (unless `--no-backup`)
+3. **Stores rollback state** - Saves current image digests to `/tmp/`
+4. **Pulls latest images** - `docker compose pull`
+5. **Generates nginx configs** - Processes templates with `envsubst`:
+   - `nginx/conf.d/default.conf.template` → `default.conf`
+   - `nginx/conf.d/ntfy.conf.template` → `ntfy.conf`
+6. **Deploys containers** - `docker compose up -d --remove-orphans`
+7. **Health checks** - Waits for all containers to be healthy (60s timeout)
+8. **Verifies deployment** - Confirms no unhealthy containers
+9. **Cleans up** - Prunes old Docker resources
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEPLOY_PATH` | Current dir | Path to deployment directory |
+| `COMPOSE_PROJECT_NAME` | `opencitivibes` | Docker Compose project name |
+| `BACKUP_BEFORE_DEPLOY` | `true` | Run backup before deploying |
+| `HEALTH_CHECK_TIMEOUT` | `60` | Seconds to wait for health checks |
+
+### Example Workflow
+
+```bash
+# 1. SSH to server
+ssh -i ~/.ssh/key ubuntu@ssh.yourdomain.com
+
+# 2. Navigate to deployment
+cd /opt/opencitivibes
+
+# 3. Pull latest code (if using git on server)
+git pull origin main
+
+# 4. Deploy
+./scripts/deploy.sh
+
+# 5. Verify
+docker compose ps
+curl -s http://localhost:8000/api/health
+```
+
+### Nginx Template Processing
+
+The script automatically generates nginx configs from templates using variables from `.env`:
+
+```bash
+# Variables substituted:
+# ${DOMAIN} - e.g., "ideespourmontreal.opencitivibes.ovh"
+# ${CONTAINER_PREFIX} - e.g., "idees-mtl"
+
+# Templates:
+nginx/conf.d/default.conf.template  →  default.conf
+nginx/conf.d/ntfy.conf.template     →  ntfy.conf
+```
+
+### Troubleshooting
+
+**Health check timeout:**
+```bash
+# Check container status
+docker compose ps
+
+# View logs for unhealthy container
+docker compose logs backend
+
+# Force deploy anyway
+./scripts/deploy.sh --force
+```
+
+**Rollback info:**
+```bash
+# Script shows rollback instructions if deployment fails
+./scripts/deploy.sh --rollback
+```
+
+**Missing template:**
+```bash
+# If templates don't exist, copy from repo
+curl -sL https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/conf.d/default.conf.template \
+  -o nginx/conf.d/default.conf.template
+curl -sL https://raw.githubusercontent.com/opencitivibes/opencitivibes/main/nginx/conf.d/ntfy.conf.template \
+  -o nginx/conf.d/ntfy.conf.template
+```
+
 ## Related Documentation
 
 - [Cloudflare Guide](CLOUDFLARE.md) - CDN, caching, and security settings
