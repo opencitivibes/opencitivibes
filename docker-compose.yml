@@ -27,7 +27,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ssl_certs:/etc/nginx/ssl:ro
+      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       backend:
         condition: service_healthy
@@ -302,8 +302,6 @@ volumes:
     name: ${VOLUME_PREFIX:-ocv}-backend-logs
   postgres_data:
     name: ${VOLUME_PREFIX:-ocv}-postgres-data
-  ssl_certs:
-    name: ${VOLUME_PREFIX:-ocv}-ssl-certs
   ntfy_cache:
     name: ${VOLUME_PREFIX:-ocv}-ntfy-cache
   ntfy_data:
