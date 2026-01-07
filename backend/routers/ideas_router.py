@@ -169,3 +169,32 @@ def get_idea_quality_counts(
         raise IdeaNotFoundException(f"Idea with ID {idea_id} not found")
 
     return QualityService.get_quality_counts_for_idea(db, idea_id)
+
+
+@router.get(
+    "/{idea_id}/quality-signals",
+    response_model=schemas.QualitySignalsResponse,
+    summary="Get quality signals for an idea",
+    description="Returns trust distribution and quality counts for an idea. Public endpoint for approved ideas.",
+)
+def get_idea_quality_signals(
+    idea_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Get aggregated quality signals for an idea.
+
+    Returns:
+    - Trust distribution of upvoters (excellent/good/average/below_average/low)
+    - Quality voting breakdown
+    - Total upvotes and votes with qualities
+    """
+    from models.exceptions import IdeaNotFoundException
+    from services.quality_signals_service import QualitySignalsService
+
+    # Verify idea exists
+    idea = IdeaService.get_idea_by_id(db, idea_id)
+    if not idea:
+        raise IdeaNotFoundException(f"Idea with ID {idea_id} not found")
+
+    return QualitySignalsService.get_signals_for_idea(db, idea_id)

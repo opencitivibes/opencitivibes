@@ -1148,6 +1148,228 @@ class AnalyticsRepository:
 
         return query.order_by(Idea.created_at.desc()).all()
 
+    # ========================================================================
+    # Weighted Score Methods (Quality Signals Phase 1)
+    # ========================================================================
+
+    @staticmethod
+    def get_weighted_score_for_idea(db: Session, idea_id: int) -> dict:
+        """
+        Calculate weighted score for an idea based on voter trust scores.
+
+        Uses TrustScoreService.get_flag_weight() multipliers:
+        - Trust 0-20: 0.5x weight
+        - Trust 21-40: 0.75x weight
+        - Trust 41-60: 1.0x weight
+        - Trust 61-80: 1.25x weight
+        - Trust 81-100: 1.5x weight
+
+        Args:
+            db: Database session
+            idea_id: Idea ID
+
+        Returns:
+            Dict with weighted_score, public_score, divergence
+        """
+        # Calculate weighted score using trust-based multipliers
+        # Upvotes contribute positive, downvotes contribute negative
+        weight_expr = case(
+            (User.trust_score <= 20, 0.5),
+            (User.trust_score <= 40, 0.75),
+            (User.trust_score <= 60, 1.0),
+            (User.trust_score <= 80, 1.25),
+            else_=1.5,
+        )
+
+        vote_value_expr = case(
+            (Vote.vote_type == VoteType.UPVOTE, 1),
+            (Vote.vote_type == VoteType.DOWNVOTE, -1),
+            else_=0,
+        )
+
+        result = (
+            db.query(
+                func.sum(vote_value_expr * weight_expr).label("weighted_score"),
+                func.sum(vote_value_expr).label("public_score"),
+            )
+            .join(User, Vote.user_id == User.id)
+            .filter(Vote.idea_id == idea_id)
+            .first()
+        )
+
+        weighted = float(result.weighted_score or 0) if result else 0.0
+        public = int(result.public_score or 0) if result else 0
+
+        # Calculate divergence percentage
+        divergence = 0.0
+        if public != 0:
+            divergence = abs(weighted - public) / abs(public)
+
+        return {
+            "weighted_score": round(weighted, 2),
+            "public_score": public,
+            "divergence": round(divergence, 4),
+        }
+
+    @staticmethod
+    def get_weighted_scores_batch(db: Session, idea_ids: list[int]) -> dict[int, dict]:
+        """
+        Get weighted scores for multiple ideas in a single query.
+
+        Args:
+            db: Database session
+            idea_ids: List of idea IDs
+
+        Returns:
+            Dict mapping idea_id to {weighted_score, public_score, divergence}
+        """
+        if not idea_ids:
+            return {}
+
+        weight_expr = case(
+            (User.trust_score <= 20, 0.5),
+            (User.trust_score <= 40, 0.75),
+            (User.trust_score <= 60, 1.0),
+            (User.trust_score <= 80, 1.25),
+            else_=1.5,
+        )
+
+        vote_value_expr = case(
+            (Vote.vote_type == VoteType.UPVOTE, 1),
+            (Vote.vote_type == VoteType.DOWNVOTE, -1),
+            else_=0,
+        )
+
+        results = (
+            db.query(
+                Vote.idea_id,
+                func.sum(vote_value_expr * weight_expr).label("weighted_score"),
+                func.sum(vote_value_expr).label("public_score"),
+            )
+            .join(User, Vote.user_id == User.id)
+            .filter(Vote.idea_id.in_(idea_ids))
+            .group_by(Vote.idea_id)
+            .all()
+        )
+
+        scores: dict[int, dict] = {}
+        for row in results:
+            weighted = float(row.weighted_score or 0)
+            public = int(row.public_score or 0)
+            divergence = 0.0
+            if public != 0:
+                divergence = abs(weighted - public) / abs(public)
+
+            scores[row.idea_id] = {
+                "weighted_score": round(weighted, 2),
+                "public_score": public,
+                "divergence": round(divergence, 4),
+            }
+
+        # Fill in zeros for ideas with no votes
+        for idea_id in idea_ids:
+            if idea_id not in scores:
+                scores[idea_id] = {
+                    "weighted_score": 0.0,
+                    "public_score": 0,
+                    "divergence": 0.0,
+                }
+
+        return scores
+
+    @staticmethod
+    def get_score_anomalies(
+        db: Session, threshold: float = 0.3, limit: int = 50
+    ) -> list[dict]:
+        """
+        Find ideas where weighted score diverges significantly from public score.
+
+        Used for admin manipulation detection.
+
+        Args:
+            db: Database session
+            threshold: Minimum divergence percentage (default 0.3 = 30%)
+            limit: Maximum results to return
+
+        Returns:
+            List of dicts with idea info and score data
+        """
+        from sqlalchemy import desc
+
+        weight_expr = case(
+            (User.trust_score <= 20, 0.5),
+            (User.trust_score <= 40, 0.75),
+            (User.trust_score <= 60, 1.0),
+            (User.trust_score <= 80, 1.25),
+            else_=1.5,
+        )
+
+        vote_value_expr = case(
+            (Vote.vote_type == VoteType.UPVOTE, 1),
+            (Vote.vote_type == VoteType.DOWNVOTE, -1),
+            else_=0,
+        )
+
+        # Subquery to get weighted scores
+        score_subq = (
+            db.query(
+                Vote.idea_id,
+                func.sum(vote_value_expr * weight_expr).label("weighted_score"),
+                func.sum(vote_value_expr).label("public_score"),
+            )
+            .join(User, Vote.user_id == User.id)
+            .group_by(Vote.idea_id)
+            .subquery()
+        )
+
+        # Join with ideas to get details, filter by divergence
+        results = (
+            db.query(
+                Idea.id,
+                Idea.title,
+                score_subq.c.weighted_score,
+                score_subq.c.public_score,
+            )
+            .join(score_subq, Idea.id == score_subq.c.idea_id)
+            .filter(
+                Idea.deleted_at.is_(None),
+                Idea.status == IdeaStatus.APPROVED,
+                score_subq.c.public_score != 0,  # Avoid division by zero
+            )
+            .order_by(
+                desc(
+                    func.abs(score_subq.c.weighted_score - score_subq.c.public_score)
+                    / func.abs(score_subq.c.public_score)
+                )
+            )
+            .limit(limit * 2)  # Get more than needed to filter
+            .all()
+        )
+
+        anomalies = []
+        for row in results:
+            weighted = float(row.weighted_score or 0)
+            public = int(row.public_score or 0)
+            if public == 0:
+                continue
+
+            divergence = abs(weighted - public) / abs(public)
+            if divergence >= threshold:
+                anomalies.append(
+                    {
+                        "idea_id": row.id,
+                        "title": row.title,
+                        "weighted_score": round(weighted, 2),
+                        "public_score": public,
+                        "divergence_percent": round(divergence * 100, 1),
+                    }
+                )
+
+            if len(anomalies) >= limit:
+                break
+
+        return anomalies
+
     @staticmethod
     def get_users_for_export(
         db: Session,

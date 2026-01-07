@@ -1190,6 +1190,59 @@ class QualityCounts(BaseModel):
 
 
 # ============================================================================
+# Quality Signals Schemas (Phase 1: Backend Aggregation)
+# ============================================================================
+
+
+class TrustDistribution(BaseModel):
+    """Distribution of voter trust scores for an idea."""
+
+    excellent: int = 0  # trust 81-100
+    good: int = 0  # trust 61-80
+    average: int = 0  # trust 41-60
+    below_average: int = 0  # trust 21-40
+    low: int = 0  # trust 0-20
+    total_votes: int = 0
+
+
+class QualitySignalsResponse(BaseModel):
+    """Combined quality signals for an idea (public endpoint)."""
+
+    trust_distribution: TrustDistribution
+    quality_counts: QualityCounts
+    votes_with_qualities: int
+    total_upvotes: int
+
+
+class WeightedScoreResponse(BaseModel):
+    """Weighted score analytics for an idea (admin-only)."""
+
+    idea_id: int
+    public_score: int
+    weighted_score: float
+    divergence_percent: float
+    trust_distribution: TrustDistribution
+
+
+class ScoreAnomalyItem(BaseModel):
+    """Single anomaly in score divergence analysis."""
+
+    idea_id: int
+    title: str
+    weighted_score: float
+    public_score: int
+    divergence_percent: float
+
+
+class ScoreAnomaliesResponse(BaseModel):
+    """Response for admin score anomaly detection endpoint."""
+
+    threshold_percent: float
+    anomalies: List[ScoreAnomalyItem]
+    count: int
+
+
+# ============================================================================
 # Officials Analytics Schemas
 # ============================================================================
 

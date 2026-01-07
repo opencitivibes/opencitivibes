@@ -247,3 +247,79 @@ def get_quality_analytics(
 
     result = AnalyticsService.get_quality_analytics(db)
     return result
+
+
+# ============================================================================
+# Weighted Score Analytics (Quality Signals Phase 1)
+# ============================================================================
+
+
+@router.get(
+    "/weighted-scores/{idea_id}",
+    summary="Get weighted score analytics for an idea",
+    description="Returns weighted vote score based on voter trust levels. Used for manipulation detection.",
+)
+def get_weighted_score_for_idea(
+    idea_id: int,
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+):
+    """
+    Get weighted score analytics for a specific idea (admin-only).
+
+    Returns:
+    - Public score (raw vote count)
+    - Weighted score (adjusted by voter trust levels)
+    - Divergence percentage between public and weighted scores
+    - Trust distribution of voters
+
+    High divergence may indicate vote manipulation.
+    """
+    from models.schemas import TrustDistribution, WeightedScoreResponse
+
+    data = AnalyticsService.get_weighted_score_analytics(db, idea_id)
+
+    return WeightedScoreResponse(
+        idea_id=data["idea_id"],
+        public_score=data["public_score"],
+        weighted_score=data["weighted_score"],
+        divergence_percent=data["divergence_percent"],
+        trust_distribution=TrustDistribution(**data["trust_distribution"]),
+    )
+
+
+@router.get(
+    "/score-anomalies",
+    summary="Detect score anomalies",
+    description="Find ideas where weighted score significantly differs from public score. Used for manipulation detection.",
+)
+def get_score_anomalies(
+    threshold: float = Query(
+        0.3,
+        ge=0.0,
+        le=1.0,
+        description="Minimum divergence threshold (0.3 = 30%)",
+    ),
+    db: Session = Depends(get_db),
+    current_user: db_models.User = Depends(auth.get_admin_user),
+):
+    """
+    Get ideas with significant score divergence (admin-only).
+
+    Ideas where weighted score differs significantly from public score
+    may indicate vote manipulation (e.g., low-trust accounts upvoting
+    or high-trust accounts downvoting).
+
+    Returns:
+    - List of ideas with divergence above threshold
+    - Sorted by divergence (highest first)
+    """
+    from models.schemas import ScoreAnomaliesResponse, ScoreAnomalyItem
+
+    data = AnalyticsService.get_score_anomalies(db, threshold)
+
+    return ScoreAnomaliesResponse(
+        threshold_percent=data["threshold_percent"],
+        anomalies=[ScoreAnomalyItem(**a) for a in data["anomalies"]],
+        count=data["count"],
+    )

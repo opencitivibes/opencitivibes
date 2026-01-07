@@ -697,3 +697,78 @@ class AnalyticsService:
         results = AnalyticsRepository.get_quality_time_series(db, days)
 
         return [{"date": str(r.date), "count": r.count} for r in results]
+
+    # ========================================================================
+    # Weighted Score Analytics Methods (Quality Signals Phase 1)
+    # ========================================================================
+
+    _weighted_score_ttl: float = 600.0  # 10 minutes
+
+    @staticmethod
+    def get_weighted_score_analytics(
+        db: Session,
+        idea_id: int,
+    ) -> dict[str, Any]:
+        """
+        Get weighted score analytics for a single idea (admin-only).
+
+        Includes trust distribution for context.
+        Cached for 10 minutes.
+
+        Args:
+            db: Database session
+            idea_id: Idea ID
+
+        Returns:
+            WeightedScoreResponse data as dict
+        """
+        from repositories.vote_repository import VoteRepository
+
+        cache_key = f"weighted_score_{idea_id}"
+
+        cached_data = AnalyticsService._get_from_cache(
+            cache_key, AnalyticsService._weighted_score_ttl
+        )
+        if cached_data is not None:
+            return cached_data
+
+        # Get weighted score from repository
+        score_data = AnalyticsRepository.get_weighted_score_for_idea(db, idea_id)
+
+        # Get trust distribution for context
+        vote_repo = VoteRepository(db)
+        trust_data = vote_repo.get_trust_distribution_for_idea(idea_id)
+
+        result = {
+            "idea_id": idea_id,
+            "public_score": score_data["public_score"],
+            "weighted_score": score_data["weighted_score"],
+            "divergence_percent": round(score_data["divergence"] * 100, 1),
+            "trust_distribution": trust_data,
+        }
+
+        AnalyticsService._set_cache(cache_key, result)
+        return result
+
+    @staticmethod
+    def get_score_anomalies(
+        db: Session,
+        threshold: float = 0.3,
+    ) -> dict[str, Any]:
+        """
+        Get ideas with significant score divergence (admin manipulation detection).
+
+        Args:
+            db: Database session
+            threshold: Minimum divergence (0.3 = 30%)
+
+        Returns:
+            ScoreAnomaliesResponse data as dict
+        """
+        anomalies = AnalyticsRepository.get_score_anomalies(db, threshold)
+
+        return {
+            "threshold_percent": round(threshold * 100, 1),
+            "anomalies": anomalies,
+            "count": len(anomalies),
+        }
