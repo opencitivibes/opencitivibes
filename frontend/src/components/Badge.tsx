@@ -1,11 +1,12 @@
 import React from 'react';
-import { Check, Clock, X, Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Check, Clock, X, Info, AlertTriangle, CheckCircle, XCircle, Edit2 } from 'lucide-react';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?:
     | 'approved'
     | 'pending'
     | 'rejected'
+    | 'pending_edit'
     | 'primary'
     | 'secondary'
     | 'success'
@@ -22,6 +23,7 @@ const statusIcons: Record<string, React.ReactNode> = {
   approved: <Check className="w-3 h-3" aria-hidden="true" />,
   pending: <Clock className="w-3 h-3" aria-hidden="true" />,
   rejected: <X className="w-3 h-3" aria-hidden="true" />,
+  pending_edit: <Edit2 className="w-3 h-3" aria-hidden="true" />,
   success: <CheckCircle className="w-3 h-3" aria-hidden="true" />,
   warning: <AlertTriangle className="w-3 h-3" aria-hidden="true" />,
   error: <XCircle className="w-3 h-3" aria-hidden="true" />,
@@ -55,6 +57,8 @@ export function Badge({
       'bg-warning-100 dark:bg-warning-800/80 text-warning-800 dark:text-warning-100 border border-warning-200/50 dark:border-warning-600/50',
     rejected:
       'bg-error-100 dark:bg-error-900/70 text-error-800 dark:text-error-100 border border-error-200/50 dark:border-error-700/50',
+    pending_edit:
+      'bg-purple-100 dark:bg-purple-900/70 text-purple-800 dark:text-purple-100 border border-purple-200/50 dark:border-purple-700/50',
     primary:
       'bg-primary-100 dark:bg-primary-900/70 text-primary-800 dark:text-primary-100 border border-primary-200/50 dark:border-primary-700/50',
     secondary:

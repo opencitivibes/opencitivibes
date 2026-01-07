@@ -121,7 +121,8 @@
     "status": {
       "pending": "En attente",
       "approved": "Approuvée",
-      "rejected": "Refusée"
+      "rejected": "Refusée",
+      "pending_edit": "En attente de ré-approbation"
     },
     "myIdeasDescription": "Consulter et gérer toutes vos idées soumises",
     "noIdeasYet": "Aucune idée pour l'instant",
@@ -158,7 +159,20 @@
     "editRejectedInfo": "Modifier cette idée la soumettra à nouveau pour approbation. Ajustez votre idée selon les commentaires de l'administrateur ci-dessous.",
     "notOwner": "Vous ne pouvez modifier que vos propres idées",
     "cannotEditApproved": "Les idées approuvées ne peuvent pas être modifiées",
+    "cannotEditPendingEdit": "Cette idée est en attente de ré-approbation et ne peut pas être modifiée",
     "saveChanges": "Enregistrer",
+    "editApprovedTitle": "Modifier une idée approuvée",
+    "editApprovedWarning": "Modifier cette idée la renverra en modération",
+    "editApprovedInfo": "Modifier cette idée approuvée la renverra en modération. Vos votes et commentaires seront préservés.",
+    "editApprovedConfirm": "Confirmer la modification",
+    "editApprovedConfirmCheckbox": "Je comprends que mon idée sera masquée jusqu'à sa ré-approbation par les modérateurs",
+    "editRemainingThisMonth": "Modifications restantes ce mois: {{count}}",
+    "editRateLimitError": "Vous avez atteint la limite de modifications pour ce mois",
+    "editCooldownError": "Veuillez attendre {{hours}} heures avant de modifier à nouveau",
+    "votesPreserved": "Vos {{count}} votes seront préservés",
+    "commentsPreserved": "Vos {{count}} commentaires seront préservés",
+    "ideaHiddenDuringReview": "Votre idée sera masquée jusqu'à ré-approbation",
+    "pendingEditMessage": "Votre idée a été modifiée et est en attente de ré-approbation par les modérateurs. Elle sera masquée du public jusqu'à son approbation.",
     "similarIdeas": {
       "title": "Idées similaires trouvées",
       "description": "Nous avons trouvé des idées existantes similaires à la vôtre. Considérez soutenir ces idées au lieu de créer un doublon.",
@@ -371,6 +385,9 @@
     "userId": "ID Utilisateur",
     "categoryId": "ID Catégorie (laisser vide pour admin global)",
     "addRole": "Ajouter le Rôle",
+    "editedIdea": "Idée modifiée",
+    "editCount": "Nombre de modifications: {{count}}",
+    "filterPendingEdit": "Modifications en attente",
     "categories": {
       "title": "Gestion des Catégories",
       "createButton": "+ Créer une Catégorie",

@@ -121,7 +121,8 @@
     "status": {
       "pending": "Pending",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "pending_edit": "Pending Re-approval"
     },
     "myIdeasDescription": "View and manage all your submitted ideas",
     "noIdeasYet": "No ideas yet",
@@ -158,7 +159,20 @@
     "editRejectedInfo": "Editing this idea will resubmit it for approval. Make changes based on the admin feedback below.",
     "notOwner": "You can only edit your own ideas",
     "cannotEditApproved": "Approved ideas cannot be edited",
+    "cannotEditPendingEdit": "This idea is awaiting re-approval and cannot be edited",
     "saveChanges": "Save Changes",
+    "editApprovedTitle": "Edit Approved Idea",
+    "editApprovedWarning": "Editing this idea will send it back for moderation",
+    "editApprovedInfo": "Editing this approved idea will send it back for moderation. Your votes and comments will be preserved.",
+    "editApprovedConfirm": "Confirm Edit",
+    "editApprovedConfirmCheckbox": "I understand my idea will be hidden until re-approved by moderators",
+    "editRemainingThisMonth": "Edits remaining this month: {{count}}",
+    "editRateLimitError": "You have reached the edit limit for this month",
+    "editCooldownError": "Please wait {{hours}} hours before editing again",
+    "votesPreserved": "Your {{count}} votes will be preserved",
+    "commentsPreserved": "Your {{count}} comments will be preserved",
+    "ideaHiddenDuringReview": "Your idea will be hidden until re-approved",
+    "pendingEditMessage": "Your idea has been edited and is awaiting re-approval by moderators. It will be hidden from the public until approved.",
     "similarIdeas": {
       "title": "Similar Ideas Found",
       "description": "We found existing ideas similar to yours. Consider supporting these ideas instead of creating a duplicate.",
@@ -371,6 +385,9 @@
     "userId": "User ID",
     "categoryId": "Category ID (leave empty for global admin)",
     "addRole": "Add Role",
+    "editedIdea": "Edited Idea",
+    "editCount": "Edit count: {{count}}",
+    "filterPendingEdit": "Pending Edits",
     "categories": {
       "title": "Category Management",
       "createButton": "+ Create Category",

@@ -216,7 +216,7 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
           <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="primary">{categoryName}</Badge>
-              <Badge variant={idea.status as 'pending' | 'approved' | 'rejected'}>
+              <Badge variant={idea.status as 'pending' | 'approved' | 'rejected' | 'pending_edit'}>
                 {t(`ideas.status.${idea.status}`)}
               </Badge>
             </div>
@@ -229,8 +229,8 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
                 contentPreview={`${idea.title}: ${htmlToPlainText(idea.description).slice(0, 200)}`}
                 variant="text"
               />
-              {/* Edit button for owner of pending/rejected ideas */}
-              {isOwner && idea.status !== 'approved' && (
+              {/* Edit button for owner (pending, rejected, or approved ideas - not pending_edit) */}
+              {isOwner && idea.status !== 'pending_edit' && (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -277,6 +277,18 @@ export default function IdeaDetailClient({ ideaId }: IdeaDetailClientProps) {
             className="text-gray-700 dark:text-gray-300"
           />
         </div>
+
+        {/* Pending Edit Status Message */}
+        {idea.status === 'pending_edit' && isOwner && (
+          <div className="mt-6">
+            <Alert variant="info" title={t('ideas.status.pending_edit', 'Pending Re-approval')}>
+              {t(
+                'ideas.pendingEditMessage',
+                'Your idea has been edited and is awaiting re-approval by moderators. It will be hidden from the public until approved.'
+              )}
+            </Alert>
+          </div>
+        )}
 
         {/* Voting Section */}
         {idea.status === 'approved' && (

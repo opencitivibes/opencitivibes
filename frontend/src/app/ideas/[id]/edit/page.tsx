@@ -15,6 +15,7 @@ import { Alert } from '@/components/Alert';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import TagInput from '@/components/TagInput';
+import { EditApprovedIdeaDialog } from '@/components/EditApprovedIdeaDialog';
 import { isContentEmpty } from '@/lib/sanitize';
 import type { Category, Idea } from '@/types';
 
@@ -36,6 +37,8 @@ export default function EditIdeaPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingIdea, setIsLoadingIdea] = useState(true);
+  const [showApprovedDialog, setShowApprovedDialog] = useState(false);
+  const [approvedEditConfirmed, setApprovedEditConfirmed] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -70,11 +73,15 @@ export default function EditIdeaPage() {
         return;
       }
 
-      // Check if idea is editable (only pending or rejected)
-      if (data.status === 'approved') {
-        toastError(t('ideas.cannotEditApproved', 'Approved ideas cannot be edited'), {
-          isRaw: true,
-        });
+      // Ideas in pending_edit status cannot be edited again until re-approved
+      if (data.status === 'pending_edit') {
+        toastError(
+          t(
+            'ideas.cannotEditPendingEdit',
+            'This idea is awaiting re-approval and cannot be edited'
+          ),
+          { isRaw: true }
+        );
         router.push(`/ideas/${ideaId}`);
         return;
       }
@@ -107,6 +114,12 @@ export default function EditIdeaPage() {
       return;
     }
 
+    // Show confirmation dialog for approved ideas (unless already confirmed)
+    if (idea?.status === 'approved' && !approvedEditConfirmed) {
+      setShowApprovedDialog(true);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -120,10 +133,45 @@ export default function EditIdeaPage() {
       success('toast.ideaUpdated');
       router.push(`/ideas/${ideaId}`);
     } catch (err) {
-      const axiosError = err as import('axios').AxiosError<{ detail: string }>;
-      setError(axiosError.response?.data?.detail || t('common.error'));
+      const axiosError = err as import('axios').AxiosError<{
+        detail: string;
+        error_type?: string;
+        hours_remaining?: number;
+      }>;
+      const errorType = axiosError.response?.data?.error_type;
+      const detail = axiosError.response?.data?.detail;
+
+      // Handle specific error types
+      if (errorType === 'edit_rate_limit') {
+        setError(t('ideas.editRateLimitError', 'You have reached the edit limit for this month'));
+      } else if (errorType === 'edit_cooldown') {
+        const hours = axiosError.response?.data?.hours_remaining || 24;
+        setError(
+          t('ideas.editCooldownError', 'Please wait {{hours}} hours before editing again', {
+            hours: Math.ceil(hours),
+          })
+        );
+      } else if (errorType === 'cannot_edit_idea') {
+        setError(
+          t('ideas.cannotEditPendingEdit', 'This idea is awaiting re-approval and cannot be edited')
+        );
+      } else {
+        setError(detail || t('common.error'));
+      }
     } finally {
       setIsLoading(false);
+      setApprovedEditConfirmed(false);
+    }
+  };
+
+  // Handle confirmation from the dialog
+  const handleApprovedEditConfirm = () => {
+    setShowApprovedDialog(false);
+    setApprovedEditConfirmed(true);
+    // Re-trigger submit after confirmation
+    const form = document.querySelector('form');
+    if (form) {
+      form.requestSubmit();
     }
   };
 
@@ -163,6 +211,23 @@ export default function EditIdeaPage() {
         title={t('ideas.editIdea', 'Edit Idea')}
         description={t('ideas.editDescription', 'Update your idea and resubmit for approval')}
       />
+
+      {/* Info alert for approved ideas */}
+      {idea.status === 'approved' && (
+        <div className="mb-6">
+          <Alert variant="warning">
+            {t(
+              'ideas.editApprovedInfo',
+              'Editing this approved idea will send it back for moderation. Your votes and comments will be preserved.'
+            )}
+          </Alert>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {t('ideas.editRemainingThisMonth', 'Edits remaining this month: {{count}}', {
+              count: Math.max(0, 3 - (idea.edit_count || 0)),
+            })}
+          </p>
+        </div>
+      )}
 
       {/* Info alert for rejected ideas */}
       {idea.status === 'rejected' && (
@@ -260,6 +325,16 @@ export default function EditIdeaPage() {
           </div>
         </form>
       </Card>
+
+      {/* Confirmation dialog for editing approved ideas */}
+      {idea && (
+        <EditApprovedIdeaDialog
+          idea={idea}
+          isOpen={showApprovedDialog}
+          onConfirm={handleApprovedEditConfirm}
+          onCancel={() => setShowApprovedDialog(false)}
+        />
+      )}
     </PageContainer>
   );
 }

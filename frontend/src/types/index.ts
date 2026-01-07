@@ -152,7 +152,7 @@ export interface CategoryStatistics {
   rejected_ideas: number;
 }
 
-export type IdeaStatus = 'pending' | 'approved' | 'rejected';
+export type IdeaStatus = 'pending' | 'approved' | 'rejected' | 'pending_edit';
 export type VoteType = 'upvote' | 'downvote';
 export type QualityType = 'community_benefit' | 'quality_of_life' | 'urgent' | 'would_volunteer';
 
@@ -222,6 +222,10 @@ export interface Idea {
   tags: Tag[];
   quality_counts?: QualityCounts;
   language?: 'fr' | 'en';
+  // Edit tracking fields
+  edit_count?: number;
+  last_edit_at?: string;
+  previous_status?: IdeaStatus;
 }
 
 export interface Comment {
