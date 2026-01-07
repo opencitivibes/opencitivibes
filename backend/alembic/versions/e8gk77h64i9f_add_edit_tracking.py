@@ -24,6 +24,14 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # For PostgreSQL: Add PENDING_EDIT to the ideastatus enum type
+    # This must be done before adding columns that might use this value
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        # PostgreSQL requires ALTER TYPE to add enum values
+        # Using raw SQL because Alembic doesn't have direct enum support
+        op.execute("ALTER TYPE ideastatus ADD VALUE IF NOT EXISTS 'PENDING_EDIT'")
+
     # Add edit tracking columns to ideas table
     op.add_column(
         "ideas",
