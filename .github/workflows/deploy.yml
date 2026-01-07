@@ -6,7 +6,10 @@ on:
     workflows: ["CI"]
     types: [completed]
     branches: [main]
-  # Allow manual trigger (skips CI dependency)
+
+  # Allow manual trigger from GitHub UI or CLI
+  # GitHub UI: Actions > Build and Deploy > Run workflow (dropdown, top right)
+  # CLI: gh workflow run "Build and Deploy" -f environment=production
   workflow_dispatch:
     inputs:
       environment:

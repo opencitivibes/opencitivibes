@@ -397,6 +397,7 @@ dig +short ssh.yourdomain.com
 
 ## Related Documentation
 
+- [Cloudflare Guide](CLOUDFLARE.md) - CDN, caching, and security settings
 - [Commissioning Guide](COMMISSIONING.md) - Setting up new instances
 - [Configuration Reference](CONFIGURATION.md) - All configuration options
 - [Testing Checklist](TESTING_CHECKLIST.md) - Pre-deployment verification
