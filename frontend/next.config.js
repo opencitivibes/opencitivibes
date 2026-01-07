@@ -35,14 +35,14 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com https://*.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       // Allow API connections: in dev mode allow all http/https, in prod restrict to known domains
       process.env.NODE_ENV === 'development'
         ? "connect-src 'self' http: https:"
-        : "connect-src 'self' https://*.idees-montreal.ca https://*.idees-quebec.ca https://*.ideas-calgary.ca https://*.opencitivibes.ovh https://*.sentry.io",
+        : "connect-src 'self' https://*.idees-montreal.ca https://*.idees-quebec.ca https://*.ideas-calgary.ca https://*.opencitivibes.ovh https://*.sentry.io https://*.cloudflareinsights.com",
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",
       "form-action 'self'",
