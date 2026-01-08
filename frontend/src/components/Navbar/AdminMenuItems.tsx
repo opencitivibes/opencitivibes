@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Shield, Bell, UserCog, Scale } from 'lucide-react';
+import { Shield, Bell, Scale } from 'lucide-react';
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -175,11 +175,6 @@ const menuSections = [
         labelKey: 'nav.officials',
         Icon: () => <Shield className="w-4 h-4" />,
       },
-      {
-        href: '/admin/category-admins',
-        labelKey: 'nav.categoryAdmins',
-        Icon: () => <UserCog className="w-4 h-4" />,
-      },
     ],
   },
   {
@@ -193,16 +188,18 @@ const menuSections = [
         Icon: () => <Scale className="w-4 h-4" />,
       },
       { href: '/admin/moderation/stats', labelKey: 'nav.moderationStats', Icon: StatsIcon },
+    ],
+  },
+  {
+    labelKey: 'nav.sectionSystem',
+    items: [
+      { href: '/admin/diagnostics', labelKey: 'nav.diagnostics', Icon: DiagnosticsIcon },
       {
         href: '/admin/notifications',
         labelKey: 'nav.notifications',
         Icon: () => <Bell className="w-4 h-4" />,
       },
     ],
-  },
-  {
-    labelKey: 'nav.sectionSystem',
-    items: [{ href: '/admin/diagnostics', labelKey: 'nav.diagnostics', Icon: DiagnosticsIcon }],
   },
 ];
 

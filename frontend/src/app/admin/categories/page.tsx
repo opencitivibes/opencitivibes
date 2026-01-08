@@ -13,6 +13,8 @@ import { Textarea } from '@/components/Textarea';
 import { Alert } from '@/components/Alert';
 import { Card } from '@/components/Card';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
+import Link from 'next/link';
+import { UserCog } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -194,9 +196,17 @@ export default function AdminCategoriesPage() {
       <PageHeader
         title={t('admin.categories.title')}
         actions={
-          <Button variant="primary" onClick={handleOpenCreate}>
-            {t('admin.categories.createButton')}
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/admin/category-admins">
+              <Button variant="secondary">
+                <UserCog className="w-4 h-4 mr-2" />
+                {t('nav.categoryAdmins')}
+              </Button>
+            </Link>
+            <Button variant="primary" onClick={handleOpenCreate}>
+              {t('admin.categories.createButton')}
+            </Button>
+          </div>
         }
       />
 
