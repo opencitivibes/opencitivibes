@@ -31,6 +31,26 @@ interface IdeaData {
   category_name_fr: string;
 }
 
+// Locale-aware text for OG images
+type OgTextEntry = { notFound: string; proposedBy: string };
+const OG_TEXT_LOCALES = {
+  fr: { notFound: "Cette idée n'existe plus", proposedBy: 'Proposé par' },
+  en: { notFound: 'This idea no longer exists', proposedBy: 'Proposed by' },
+  es: { notFound: 'Esta idea ya no existe', proposedBy: 'Propuesto por' },
+} as const satisfies Record<string, OgTextEntry>;
+
+const DEFAULT_OG_TEXT: OgTextEntry = OG_TEXT_LOCALES.en;
+
+function getOgText(locale: string): OgTextEntry {
+  return (OG_TEXT_LOCALES as Record<string, OgTextEntry>)[locale] ?? DEFAULT_OG_TEXT;
+}
+
+function getCategoryName(idea: IdeaData, locale: string): string {
+  // Try locale-specific field, fallback to en, then fr
+  const localeKey = `category_name_${locale}` as keyof IdeaData;
+  return (idea[localeKey] as string) || idea.category_name_en || idea.category_name_fr || '';
+}
+
 async function fetchIdea(id: string): Promise<IdeaData | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/ideas/${id}`, {
@@ -82,7 +102,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             color: OG_COLORS.textMuted,
           }}
         >
-          {locale === 'fr' ? "Cette idée n'existe plus" : 'This idea no longer exists'}
+          {getOgText(locale).notFound}
         </div>
       </div>,
       {
@@ -92,12 +112,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
   }
 
-  const categoryName = locale === 'en' ? idea.category_name_en : idea.category_name_fr;
+  const categoryName = getCategoryName(idea, locale);
   const title = truncateText(idea.title, OG_TEXT.maxTitleLength);
   const authorName = truncateText(idea.author_display_name, OG_TEXT.maxAuthorLength);
   const scoreColor = getScoreColor(idea.score);
   const scoreText = formatScore(idea.score);
-  const proposedByLabel = locale === 'fr' ? 'Proposé par' : 'Proposed by';
+  const proposedByLabel = getOgText(locale).proposedBy;
   const scoreLabel = 'Score';
 
   return new ImageResponse(

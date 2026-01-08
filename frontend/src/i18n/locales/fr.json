@@ -28,13 +28,16 @@
     "dark": "Sombre"
   },
   "language": {
-    "french": "Fran\u00e7ais",
+    "french": "Français",
     "english": "Anglais",
-    "contentInFrench": "Contenu en fran\u00e7ais",
+    "spanish": "Espagnol",
+    "contentInFrench": "Contenu en français",
     "contentInEnglish": "Contenu en anglais",
+    "contentInSpanish": "Contenu en espagnol",
     "badge": {
       "fr": "FR",
-      "en": "EN"
+      "en": "EN",
+      "es": "ES"
     }
   },
   "nav": {

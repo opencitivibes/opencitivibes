@@ -30,11 +30,14 @@
   "language": {
     "french": "French",
     "english": "English",
+    "spanish": "Spanish",
     "contentInFrench": "Content in French",
     "contentInEnglish": "Content in English",
+    "contentInSpanish": "Content in Spanish",
     "badge": {
       "fr": "FR",
-      "en": "EN"
+      "en": "EN",
+      "es": "ES"
     }
   },
   "nav": {

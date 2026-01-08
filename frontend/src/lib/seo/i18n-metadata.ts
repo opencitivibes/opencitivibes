@@ -36,6 +36,13 @@ export function generateBilingualMetadata(
     }
   };
 
+  // Get alternate locales (all supported locales except the current one)
+  const getAlternateLocales = (currentLocale: string): string[] => {
+    const allLocales = ['fr_CA', 'en_CA', 'es_ES'];
+    const currentOgLocale = getOpenGraphLocale(currentLocale);
+    return allLocales.filter((l) => l !== currentOgLocale);
+  };
+
   const titleValue = title[defaultLocale] || title.en;
   const descValue = description[defaultLocale] || description.en;
 
@@ -59,7 +66,7 @@ export function generateBilingualMetadata(
       description: descValue,
       url: fullUrl,
       locale: getOpenGraphLocale(defaultLocale),
-      alternateLocale: defaultLocale === 'fr' ? 'en_CA' : 'fr_CA',
+      alternateLocale: getAlternateLocales(defaultLocale),
     },
     twitter: {
       ...base.twitter,

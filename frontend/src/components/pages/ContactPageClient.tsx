@@ -27,7 +27,7 @@ export default function ContactPageClient() {
     setIsSubmitting(true);
 
     try {
-      const language = i18n.language?.startsWith('fr') ? 'fr' : 'en';
+      const language = (i18n.language?.substring(0, 2) || 'fr') as 'en' | 'fr' | 'es';
       await contactAPI.submit({
         name: formState.name,
         email: formState.email,

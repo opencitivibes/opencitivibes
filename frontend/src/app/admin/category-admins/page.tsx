@@ -8,12 +8,13 @@ import { UserCog, UserPlus, Trash2, Search, X, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { getBilingualField } from '@/lib/i18n/helpers';
 
 export default function CategoryAdminsPage() {
   const { t, i18n, ready } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
-  const locale = i18n.language?.substring(0, 2) === 'en' ? 'en' : 'fr';
+  const locale = i18n.language?.substring(0, 2) || 'fr';
 
   // Data state
   const [roles, setRoles] = useState<AdminRole[]>([]);
@@ -137,7 +138,7 @@ export default function CategoryAdminsPage() {
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((c) => c.id === categoryId);
     if (!category) return t('admin.categoryAdmins.noCategory');
-    return locale === 'en' ? category.name_en : category.name_fr;
+    return getBilingualField(category, 'name', locale);
   };
 
   const getUserInfo = (userId: number): { name: string; email: string } => {
@@ -344,7 +345,7 @@ export default function CategoryAdminsPage() {
                     <option value="">{t('admin.categoryAdmins.selectCategory')}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
-                        {locale === 'en' ? cat.name_en : cat.name_fr}
+                        {getBilingualField(cat, 'name', locale)}
                       </option>
                     ))}
                   </select>

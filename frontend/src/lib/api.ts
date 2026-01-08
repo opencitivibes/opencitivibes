@@ -161,8 +161,7 @@ api.interceptors.request.use((config) => {
   // Add Accept-Language header based on current UI language
   // This enables language-aware content prioritization on the backend
   const uiLanguage = i18n.language?.substring(0, 2) || 'fr';
-  const language = uiLanguage === 'en' ? 'en' : 'fr';
-  config.headers['Accept-Language'] = language;
+  config.headers['Accept-Language'] = uiLanguage;
 
   // Set in Sentry for this request (no-op if Sentry disabled)
   setTag('correlation_id', correlationId);
@@ -545,8 +544,8 @@ export const ideaAPI = {
 
   create: async (data: IdeaCreate): Promise<Idea> => {
     // Capture current UI language if not explicitly provided
-    const uiLanguage = i18n.language?.substring(0, 2);
-    const language = data.language || (uiLanguage === 'en' ? 'en' : 'fr');
+    const uiLanguage = i18n.language?.substring(0, 2) || 'fr';
+    const language = data.language || uiLanguage;
     const response = await api.post('/ideas/', { ...data, language });
     return response.data;
   },
@@ -628,8 +627,8 @@ export const commentAPI = {
 
   create: async (ideaId: number, data: CommentCreate): Promise<Comment> => {
     // Capture current UI language if not explicitly provided
-    const uiLanguage = i18n.language?.substring(0, 2);
-    const language = data.language || (uiLanguage === 'en' ? 'en' : 'fr');
+    const uiLanguage = i18n.language?.substring(0, 2) || 'fr';
+    const language = data.language || uiLanguage;
     const response = await api.post(`/comments/${ideaId}`, { ...data, language });
     return response.data;
   },
@@ -1514,7 +1513,7 @@ export interface ContactFormRequest {
   email: string;
   subject: ContactSubject;
   message: string;
-  language: 'en' | 'fr';
+  language: 'en' | 'fr' | 'es';
 }
 
 export interface ContactFormResponse {

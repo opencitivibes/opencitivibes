@@ -31,15 +31,22 @@ export function getLocalizedValue(
 /**
  * Get bilingual field (name_en/name_fr pattern common in API responses).
  */
-export function getBilingualField<T extends Record<string, unknown>>(
+export function getBilingualField<T extends object>(
   obj: T,
   fieldPrefix: string,
   locale: string
 ): string {
-  const key = `${fieldPrefix}_${locale}` as keyof T;
-  const fallbackKey = `${fieldPrefix}_en` as keyof T;
+  const record = obj as Record<string, unknown>;
+  const key = `${fieldPrefix}_${locale}`;
+  const fallbackEnKey = `${fieldPrefix}_en`;
+  const fallbackFrKey = `${fieldPrefix}_fr`;
 
-  return ((obj[key] as string) || (obj[fallbackKey] as string) || '') as string;
+  return (
+    (record[key] as string) ||
+    (record[fallbackEnKey] as string) ||
+    (record[fallbackFrKey] as string) ||
+    ''
+  );
 }
 
 /**

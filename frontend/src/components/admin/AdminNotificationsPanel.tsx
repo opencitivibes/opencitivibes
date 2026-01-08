@@ -139,7 +139,7 @@ export default function AdminNotificationsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  const language = i18n.language?.substring(0, 2) === 'fr' ? 'fr' : 'en';
+  const language = i18n.language?.substring(0, 2) || 'fr';
 
   const fetchNotifications = useCallback(async () => {
     try {
