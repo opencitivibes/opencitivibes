@@ -893,6 +893,60 @@ export function isTwoFactorRequired(
 }
 
 // ============================================================================
+// Trusted Device Types (2FA Remember Device - Law 25 Compliance)
+// ============================================================================
+
+/** Device fingerprint information (privacy-safe subset) */
+export interface TrustedDeviceFingerprint {
+  browser?: string;
+  os?: string;
+  platform?: string;
+}
+
+/** Trusted device information */
+export interface TrustedDevice {
+  id: number;
+  device_name: string;
+  fingerprint: TrustedDeviceFingerprint | null;
+  trusted_at: string;
+  last_used_at: string | null;
+  expires_at: string;
+  is_active: boolean;
+}
+
+/** Response with list of trusted devices */
+export interface TrustedDeviceListResponse {
+  devices: TrustedDevice[];
+  total: number;
+}
+
+/** Request to rename a trusted device */
+export interface TrustedDeviceRename {
+  device_name: string;
+}
+
+/** Extended 2FA login request with device trust options */
+export interface TwoFactorLoginWithTrustRequest extends TwoFactorLoginRequest {
+  trust_device?: boolean;
+  trust_duration_days?: number;
+  consent_given?: boolean;
+}
+
+/** Token response with optional device token */
+export interface TokenWithDeviceToken extends TokenResponse {
+  device_token?: string;
+  device_id?: number;
+  device_expires_at?: string;
+}
+
+/** Helper to check if token response includes device token */
+export function hasDeviceToken(
+  response: TokenResponse | TokenWithDeviceToken
+): response is TokenWithDeviceToken {
+  return 'device_token' in response && response.device_token !== undefined;
+}
+
+// ============================================================================
 // Admin Role Types (Category Moderators)
 // ============================================================================
 

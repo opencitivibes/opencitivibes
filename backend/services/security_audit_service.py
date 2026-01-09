@@ -40,6 +40,12 @@ class SecurityEventType:
     ADMIN_BULK_OPERATION = "admin_bulk_operation"
     SUSPICIOUS_ACTIVITY = "suspicious_activity"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    # Trusted Device Events (2FA Remember Device)
+    DEVICE_TRUSTED = "device_trusted"
+    DEVICE_REVOKED = "device_revoked"
+    ALL_DEVICES_REVOKED = "all_devices_revoked"
+    DEVICE_TRUST_VERIFIED = "device_trust_verified"
+    DEVICE_TRUST_FAILED = "device_trust_failed"
 
 
 class SecurityAuditService:

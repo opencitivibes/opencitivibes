@@ -89,7 +89,9 @@ def check_schema_version() -> None:
     from repositories.database import SessionLocal
 
     # Expected latest migration revision (update when adding new migrations)
-    EXPECTED_REVISION = "e8gk77h64i9f"  # add_edit_tracking  # pragma: allowlist secret
+    EXPECTED_REVISION = (
+        "f9hl88i75j0g"  # add_trusted_devices  # pragma: allowlist secret
+    )
 
     db = SessionLocal()
     try:
@@ -801,6 +803,71 @@ async def comment_approval_handler(
         status_code=status.HTTP_202_ACCEPTED,
         content={"detail": exc.message, "correlation_id": exc.correlation_id},
     )
+
+
+# ============================================================================
+# Trusted Device Exception Handlers (2FA Remember Device)
+# ============================================================================
+
+
+def _register_trusted_device_handlers(app_instance: FastAPI) -> None:
+    """Register trusted device exception handlers with late import."""
+    from models.exceptions import (
+        TrustedDeviceExpiredException,
+        TrustedDeviceLimitExceededException,
+        TrustedDeviceNotFoundException,
+    )
+
+    @app_instance.exception_handler(TrustedDeviceLimitExceededException)
+    async def trusted_device_limit_handler(
+        request: Request, exc: TrustedDeviceLimitExceededException
+    ) -> JSONResponse:
+        """Handle trusted device limit exceeded exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Trusted device limit exceeded: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "correlation_id": exc.correlation_id,
+                "max_devices": exc.max_devices,
+            },
+        )
+
+    @app_instance.exception_handler(TrustedDeviceNotFoundException)
+    async def trusted_device_not_found_handler(
+        request: Request, exc: TrustedDeviceNotFoundException
+    ) -> JSONResponse:
+        """Handle trusted device not found exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.info(
+            f"Trusted device not found: {exc.message}", path=str(request.url.path)
+        )
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": exc.message, "correlation_id": exc.correlation_id},
+        )
+
+    @app_instance.exception_handler(TrustedDeviceExpiredException)
+    async def trusted_device_expired_handler(
+        request: Request, exc: TrustedDeviceExpiredException
+    ) -> JSONResponse:
+        """Handle trusted device expired exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.info(
+            f"Trusted device expired: {exc.message}", path=str(request.url.path)
+        )
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": exc.message, "correlation_id": exc.correlation_id},
+        )
+
+
+# Register trusted device handlers
+_register_trusted_device_handlers(app)
 
 
 # ============================================================================

@@ -553,3 +553,40 @@ class CannotEditIdeaException(IdeaEditException):
         message: str = "This idea cannot be edited in its current state.",
     ):
         super().__init__(message)
+
+
+# ============================================================================
+# Trusted Device Exceptions (2FA Remember Device)
+# ============================================================================
+
+
+class TrustedDeviceException(DomainException):
+    """Base exception for trusted device-related errors."""
+
+    pass
+
+
+class TrustedDeviceLimitExceededException(TrustedDeviceException):
+    """Raised when maximum number of trusted devices is reached."""
+
+    def __init__(
+        self,
+        message: str = "Maximum number of trusted devices reached.",
+        max_devices: int = 10,
+    ):
+        super().__init__(message)
+        self.max_devices = max_devices
+
+
+class TrustedDeviceNotFoundException(TrustedDeviceException):
+    """Raised when trusted device is not found."""
+
+    def __init__(self, message: str = "Trusted device not found."):
+        super().__init__(message)
+
+
+class TrustedDeviceExpiredException(TrustedDeviceException):
+    """Raised when device trust has expired."""
+
+    def __init__(self, message: str = "Device trust has expired."):
+        super().__init__(message)

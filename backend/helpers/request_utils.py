@@ -3,6 +3,8 @@ Request utilities for extracting client information.
 
 Provides helpers to extract IP addresses and user agent strings from
 HTTP requests, handling proxy headers correctly.
+
+Also includes helpers for device token handling (2FA Remember Device).
 """
 
 from typing import Optional
@@ -87,3 +89,103 @@ def get_request_metadata(request: Request) -> dict:
         "ip_address": get_client_ip(request),
         "user_agent": get_user_agent(request),
     }
+
+
+# ============================================================================
+# Device Token Helpers (2FA Remember Device)
+# ============================================================================
+
+
+def get_device_token_from_request(request: Request) -> Optional[str]:
+    """
+    Extract device token from request for 2FA bypass.
+
+    Checks multiple sources in order of precedence:
+    1. X-Device-Token header (mobile apps, API clients)
+    2. device_token cookie (web browsers)
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        Device token string or None if not found
+    """
+    # Check header first (mobile apps, API clients)
+    header_token = request.headers.get("X-Device-Token")
+    if header_token:
+        return header_token.strip()
+
+    # Check cookie (web browsers)
+    cookie_token = request.cookies.get("device_token")
+    if cookie_token:
+        return cookie_token.strip()
+
+    return None
+
+
+def set_device_token_cookie(
+    response: "Response",
+    device_token: str,
+    expires_at: "datetime",
+    is_production: bool = True,
+) -> None:
+    """
+    Set a secure httpOnly cookie for device token.
+
+    Security settings:
+    - httpOnly=True: Prevents XSS access to token
+    - secure=True: HTTPS only (production)
+    - SameSite=Strict: Prevents CSRF
+    - path=/: Available for all paths
+
+    Args:
+        response: FastAPI response object
+        device_token: The device token to store
+        expires_at: When the cookie/trust expires
+        is_production: Whether to enforce HTTPS-only
+    """
+    from datetime import datetime, timezone
+
+    # Calculate max_age from expires_at
+    now = datetime.now(timezone.utc)
+    max_age = int((expires_at - now).total_seconds())
+
+    if max_age <= 0:
+        # Token already expired, don't set cookie
+        return
+
+    response.set_cookie(
+        key="device_token",
+        value=device_token,
+        max_age=max_age,
+        expires=expires_at.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+        path="/",
+        httponly=True,
+        secure=is_production,
+        samesite="strict",
+    )
+
+
+def clear_device_token_cookie(response: "Response") -> None:
+    """
+    Clear the device token cookie.
+
+    Used when:
+    - User explicitly revokes device trust
+    - Device token is invalid/expired
+    - User logs out
+
+    Args:
+        response: FastAPI response object
+    """
+    response.delete_cookie(
+        key="device_token",
+        path="/",
+        httponly=True,
+        samesite="strict",
+    )
+
+
+# Import types for type hints
+from datetime import datetime  # noqa: E402
+from fastapi import Response  # noqa: E402, F811

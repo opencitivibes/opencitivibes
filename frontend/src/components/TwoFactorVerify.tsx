@@ -8,20 +8,33 @@ import { Card } from '@/components/Card';
 import { Alert } from '@/components/Alert';
 import { Input } from '@/components/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { DeviceTrustConsent } from '@/components/auth/DeviceTrustConsent';
 
 interface TwoFactorVerifyProps {
   email: string;
-  onVerify: (code: string, isBackupCode: boolean) => Promise<void>;
+  onVerify: (
+    code: string,
+    isBackupCode: boolean,
+    trustDevice?: boolean,
+    consentGiven?: boolean
+  ) => Promise<boolean>; // Returns true if device was trusted
   onCancel: () => void;
+  onDeviceTrusted?: () => void; // Callback when device is trusted
 }
 
-export function TwoFactorVerify({ email, onVerify, onCancel }: TwoFactorVerifyProps) {
+export function TwoFactorVerify({
+  email,
+  onVerify,
+  onCancel,
+  onDeviceTrusted,
+}: TwoFactorVerifyProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'totp' | 'backup'>('totp');
   const [code, setCode] = useState('');
   const [backupCode, setBackupCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [trustConsent, setTrustConsent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -38,7 +51,13 @@ export function TwoFactorVerify({ email, onVerify, onCancel }: TwoFactorVerifyPr
     setError('');
 
     try {
-      await onVerify(codeToVerify, isBackup);
+      // Pass device trust options if consent was given
+      const wasTrusted = await onVerify(codeToVerify, isBackup, trustConsent, trustConsent);
+
+      // If device was trusted, call the callback
+      if (wasTrusted && onDeviceTrusted) {
+        onDeviceTrusted();
+      }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { detail?: string } } };
       setError(axiosError.response?.data?.detail || t('twoFactor.invalidCode'));
@@ -163,6 +182,11 @@ export function TwoFactorVerify({ email, onVerify, onCancel }: TwoFactorVerifyPr
           </Button>
         </TabsContent>
       </Tabs>
+
+      {/* Device Trust Consent - Law 25 Compliant */}
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <DeviceTrustConsent onConsentChange={setTrustConsent} disabled={loading} />
+      </div>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <Button variant="ghost" onClick={onCancel} className="w-full">

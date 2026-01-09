@@ -1,6 +1,6 @@
 ---
-version: "1.0"
-lastUpdated: "2025-01-01"
+version: "1.1"
+lastUpdated: "2026-01-08"
 ---
 
 # Politique de Confidentialité
@@ -73,6 +73,43 @@ Nous ne vendons pas vos données personnelles. Vos données peuvent être partag
 
 Nous utilisons des cookies essentiels pour le fonctionnement du site (authentification, préférences de langue). Aucun cookie publicitaire ou de pistage n'est utilisé.
 
-## 10. Contact et réclamations
+## 10. Appareil de confiance (Mémoriser l'appareil 2FA)
+
+Si vous activez l'authentification à deux facteurs (2FA), vous pouvez choisir de faire confiance à un appareil pour contourner la saisie du code TOTP lors des connexions futures.
+
+**Données collectées lors de la mémorisation d'un appareil :**
+
+- Identifiant de l'appareil (type de navigateur, système d'exploitation)
+- Adresse IP anonymisée (sous-réseau uniquement, dernier octet supprimé)
+- Date de création et date d'expiration de la confiance
+- Date de dernière utilisation
+
+**Finalité :**
+
+- Réduire les frictions d'authentification tout en maintenant la sécurité
+- La confiance de l'appareil contourne UNIQUEMENT la saisie du code TOTP, PAS l'authentification par mot de passe
+
+**Durée :**
+
+- Vous choisissez la durée de confiance (maximum 30 jours)
+- La confiance expire automatiquement après la période sélectionnée
+- Les appareils révoqués sont définitivement supprimés après 7 jours
+
+**Vos droits concernant les appareils de confiance :**
+
+- **Consulter** : Accédez à la liste de tous vos appareils de confiance à tout moment
+- **Renommer** : Donnez à vos appareils des noms personnalisés pour faciliter l'identification
+- **Révoquer** : Retirez la confiance de n'importe quel appareil immédiatement
+- **Tout révoquer** : Supprimez la confiance de tous les appareils en une seule fois
+
+**Notifications :**
+
+Lorsque vous faites confiance à un appareil, vous recevez une notification par courriel contenant le nom de l'appareil, la date de confiance et la date d'expiration. Cela garantit que vous êtes informé de tous les appareils qui peuvent contourner la 2FA.
+
+**Pour gérer vos appareils de confiance :**
+
+Visitez Paramètres > Sécurité > Appareils de confiance, ou contactez-nous à {{contactEmail}}.
+
+## 11. Contact et réclamations
 
 Pour toute question ou réclamation concernant vos données personnelles, contactez-nous à {{contactEmail}}. Vous avez également le droit de déposer une plainte auprès de {{privacyAuthority}}.

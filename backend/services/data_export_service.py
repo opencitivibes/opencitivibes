@@ -48,6 +48,9 @@ class DataExportService:
             "consent_history": DataExportService._format_consent_logs(
                 export_repo.get_user_consent_logs(user_id)
             ),
+            "trusted_devices": DataExportService._format_trusted_devices(
+                export_repo.get_user_trusted_devices_for_export(user_id)
+            ),
         }
 
     @staticmethod
@@ -180,6 +183,55 @@ class DataExportService:
         ]
 
     @staticmethod
+    def _format_trusted_devices(
+        devices: list[db_models.TrustedDevice],
+    ) -> list[dict]:
+        """
+        Format trusted devices for export.
+
+        Law 25 Compliance: Right to Access (Article 27)
+        Note: Device token hash is NOT exported (security).
+        Note: Full IP addresses are NOT exported (privacy).
+        """
+        import json
+
+        result = []
+        for device in devices:
+            # Parse fingerprint to extract safe fields
+            browser = None
+            os_name = None
+            platform = None
+            if device.device_fingerprint:
+                try:
+                    fp = json.loads(str(device.device_fingerprint))
+                    browser = fp.get("browser")
+                    os_name = fp.get("os")
+                    platform = fp.get("platform")
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            result.append(
+                {
+                    "id": device.id,
+                    "device_name": str(device.device_name),
+                    "trusted_at": (
+                        device.trusted_at.isoformat() if device.trusted_at else None
+                    ),
+                    "expires_at": (
+                        device.expires_at.isoformat() if device.expires_at else None
+                    ),
+                    "last_used_at": (
+                        device.last_used_at.isoformat() if device.last_used_at else None
+                    ),
+                    "is_active": bool(device.is_active),
+                    "browser": browser,
+                    "os": os_name,
+                    "platform": platform,
+                }
+            )
+        return result
+
+    @staticmethod
     def _write_csv_section(
         writer: CsvWriterProtocol,
         title: str,
@@ -237,6 +289,14 @@ class DataExportService:
         # Consent History Section
         DataExportService._write_csv_section(
             writer, "CONSENT HISTORY", data["consent_history"], "No consent history"
+        )
+
+        # Trusted Devices Section
+        DataExportService._write_csv_section(
+            writer,
+            "TRUSTED DEVICES",
+            data.get("trusted_devices", []),
+            "No trusted devices",
         )
 
         return output.getvalue()

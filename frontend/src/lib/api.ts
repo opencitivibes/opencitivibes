@@ -67,14 +67,18 @@ import type {
   TwoFactorVerifySetupResponse,
   TwoFactorStatusResponse,
   TwoFactorDisableRequest,
-  TwoFactorLoginRequest,
   LoginResponse,
   AdminRole,
   AdminRoleCreate,
   QualitySignalsResponse,
   WeightedScoreResponse,
   ScoreAnomaliesResponse,
+  TrustedDevice,
+  TrustedDeviceListResponse,
+  TokenWithDeviceToken,
+  TwoFactorLoginWithTrustRequest,
 } from '@/types';
+import { getDeviceToken, setDeviceToken, clearDeviceToken } from '@/lib/deviceToken';
 import type {
   FlagCreate,
   FlagResponse,
@@ -310,7 +314,15 @@ export const authAPI = {
     const formData = new FormData();
     formData.append('username', data.username);
     formData.append('password', data.password);
-    const response = await api.post<LoginResponse>('/auth/login', formData);
+
+    // Include device token if available (for trusted device 2FA bypass)
+    const deviceToken = getDeviceToken();
+    const headers: Record<string, string> = {};
+    if (deviceToken) {
+      headers['X-Device-Token'] = deviceToken;
+    }
+
+    const response = await api.post<LoginResponse>('/auth/login', formData, { headers });
     return response.data;
   },
 
@@ -469,9 +481,22 @@ export const authAPI = {
 
   /**
    * Verify 2FA code during login (after receiving temp_token)
+   * Supports device trust option (Law 25 compliant)
    */
-  verify2FALogin: async (request: TwoFactorLoginRequest): Promise<TokenResponse> => {
-    const response = await api.post<TokenResponse>('/auth/2fa/verify', request);
+  verify2FALogin: async (
+    request: TwoFactorLoginWithTrustRequest
+  ): Promise<TokenResponse | TokenWithDeviceToken> => {
+    const response = await api.post<TokenResponse | TokenWithDeviceToken>(
+      '/auth/2fa/verify',
+      request
+    );
+
+    // If device token is returned, store it with device_id for "current device" detection
+    const data = response.data as TokenWithDeviceToken;
+    if (data.device_token && data.device_expires_at) {
+      setDeviceToken(data.device_token, data.device_expires_at, data.device_id);
+    }
+
     return response.data;
   },
 
@@ -494,6 +519,53 @@ export const authAPI = {
   getBackupCodesCount: async (): Promise<{ remaining: number }> => {
     const response = await api.get<{ remaining: number }>('/auth/2fa/backup-codes/count');
     return response.data;
+  },
+
+  // ============================================================================
+  // Trusted Device Management (2FA Remember Device - Law 25 Compliance)
+  // ============================================================================
+
+  /**
+   * Get all trusted devices for the current user
+   */
+  getTrustedDevices: async (): Promise<TrustedDeviceListResponse> => {
+    const response = await api.get<TrustedDeviceListResponse>('/auth/2fa/devices');
+    return response.data;
+  },
+
+  /**
+   * Rename a trusted device
+   */
+  renameDevice: async (deviceId: number, newName: string): Promise<TrustedDevice> => {
+    const response = await api.patch<TrustedDevice>(`/auth/2fa/devices/${deviceId}`, {
+      device_name: newName,
+    });
+    return response.data;
+  },
+
+  /**
+   * Revoke (delete) a specific trusted device
+   */
+  revokeDevice: async (deviceId: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`/auth/2fa/devices/${deviceId}`);
+    return response.data;
+  },
+
+  /**
+   * Revoke all trusted devices for the current user
+   */
+  revokeAllDevices: async (): Promise<{ message: string; count: number }> => {
+    const response = await api.delete<{ message: string; count: number }>('/auth/2fa/devices');
+    // Also clear local device token since this device was likely revoked
+    clearDeviceToken();
+    return response.data;
+  },
+
+  /**
+   * Clear local device token (for logout)
+   */
+  clearLocalDeviceToken: (): void => {
+    clearDeviceToken();
   },
 };
 

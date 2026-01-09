@@ -154,6 +154,7 @@ class AccountDeletionService:
         deletion_repo.delete_backup_codes(user_id)
         deletion_repo.delete_email_login_codes(user_id)
         deletion_repo.delete_admin_roles(user_id)
+        deletion_repo.delete_trusted_devices(user_id)
 
     @staticmethod
     def _anonymize_user_content(

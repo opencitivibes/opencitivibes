@@ -280,9 +280,15 @@ class TOTPService:
         is_backup_code: bool = False,
         ip_address: str | None = None,
         user_agent: str | None = None,
-    ) -> schemas.Token:
+        trust_device: bool = False,
+        trust_duration_days: int = 30,
+        consent_given: bool = False,
+    ) -> Union[schemas.Token, schemas.TokenWithDeviceToken]:
         """
         Verify 2FA code and complete login.
+
+        If trust_device=True, creates a device token for future 2FA bypass.
+        CRITICAL: consent_given MUST be True if trust_device=True (Law 25).
 
         Args:
             db: Database session
@@ -291,15 +297,21 @@ class TOTPService:
             is_backup_code: True if using backup code
             ip_address: Client IP address for security logging
             user_agent: Client user agent for security logging
+            trust_device: If True, trust this device for future logins
+            trust_duration_days: Trust duration in days (1-30, default 30)
+            consent_given: User explicitly consented (REQUIRED if trust_device=True)
 
         Returns:
-            Full access token
+            Token (or TokenWithDeviceToken if trust_device=True)
 
         Raises:
             TwoFactorTempTokenExpiredException: If temp token expired/invalid
             TwoFactorNotEnabledException: If 2FA is not enabled
             TwoFactorInvalidCodeException: If code is invalid
+            ValidationException: If trust_device=True but consent_given=False
         """
+        from models.exceptions import ValidationException
+
         user_id = TOTPService.verify_temp_token(temp_token)
         if not user_id:
             raise TwoFactorTempTokenExpiredException()
@@ -390,6 +402,66 @@ class TOTPService:
         access_token = create_access_token(
             data={"sub": str(user.email)}, expires_delta=access_token_expires
         )
+
+        # Handle device trust (Remember Device feature)
+        device_token: str | None = None
+        device_id: int | None = None
+        device_expires_at: datetime | None = None
+
+        if trust_device:
+            # CRITICAL: Verify consent (Law 25 requirement)
+            if not consent_given:
+                raise ValidationException(
+                    "Explicit consent is required to trust this device (Law 25)"
+                )
+
+            try:
+                from services.trusted_device_service import TrustedDeviceService
+
+                # Trust the device
+                plain_token, device = TrustedDeviceService.trust_device(
+                    db=db,
+                    user_id=user_id,
+                    user_agent=user_agent,
+                    ip_address=ip_address,
+                    duration_days=trust_duration_days,
+                    consent_given=True,  # Already verified above
+                )
+                device_token = plain_token
+                device_id = device.id
+                device_expires_at = device.expires_at
+
+                # Send email notification (Law 25 - User Awareness)
+                try:
+                    from services.email_service import EmailService
+
+                    # Get user locale (default to French for Quebec users)
+                    user_locale = "fr"  # Could be enhanced with user preference
+
+                    EmailService.send_device_trusted_email(
+                        to_email=str(user.email),
+                        device_name=str(device.device_name),
+                        trusted_at=device.trusted_at,
+                        expires_at=device.expires_at,
+                        display_name=str(user.display_name),
+                        language=user_locale,
+                    )
+                except Exception:
+                    pass  # Don't let email failure break auth
+
+            except Exception:
+                pass  # Don't let device trust failure break auth
+
+        # Return token (with device token if trusted)
+        if device_token:
+            return schemas.TokenWithDeviceToken(
+                access_token=access_token,
+                token_type="bearer",  # nosec B106
+                device_token=device_token,
+                device_id=device_id,
+                device_expires_at=device_expires_at,
+            )
+
         # nosec B106: "bearer" is OAuth2 token type, not a password
         return schemas.Token(access_token=access_token, token_type="bearer")  # nosec B106
 
@@ -560,6 +632,166 @@ class TOTPService:
             )
         except Exception:
             pass  # Don't let logging failure break auth flow
+
+        # Track login for retention policy (Law 25 Phase 3)
+        from services.auth_service import AuthService
+
+        AuthService.update_last_login(db, user)
+
+        # No 2FA - issue full token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(user.email)}, expires_delta=access_token_expires
+        )
+        # nosec B106: "bearer" is OAuth2 token type, not a password
+        return schemas.Token(access_token=access_token, token_type="bearer")  # nosec B106
+
+    @staticmethod
+    def login_with_2fa_check_and_device(
+        db: Session,
+        email: str,
+        password: str,
+        device_token: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> Union[schemas.Token, schemas.TwoFactorRequiredResponse]:
+        """
+        Login with 2FA check and device trust verification.
+
+        Enhanced version of login_with_2fa_check that also checks for trusted devices.
+        If a valid device token is provided, 2FA code entry can be bypassed.
+
+        Key Security Principle: Device trust bypasses TOTP code but does NOT
+        bypass password authentication. A valid password is still required.
+
+        Flow:
+        1. Authenticate with password
+        2. If 2FA not enabled: return full token
+        3. If 2FA enabled AND device_token provided AND valid: return full token
+        4. If 2FA enabled AND device_token invalid/missing: return temp_token
+
+        Args:
+            db: Database session
+            email: User email
+            password: User password
+            device_token: Optional device token from cookie/header
+            ip_address: Client IP address for security logging
+            user_agent: Client user agent for security logging
+
+        Returns:
+            Token or TwoFactorRequiredResponse
+
+        Raises:
+            InvalidCredentialsException: If email or password is incorrect
+        """
+        from authentication.auth import authenticate_user
+        from models.exceptions import InvalidCredentialsException
+        from repositories import db_models as models
+        from services.security_audit_service import SecurityAuditService
+
+        user = authenticate_user(db, email, password)
+        if not user:
+            # Determine failure reason
+            user_repo = UserRepository(db)
+            existing_user = user_repo.get_by_email(email)
+
+            if existing_user is None:
+                failure_reason = models.LoginFailureReason.USER_NOT_FOUND
+            elif not existing_user.is_active:
+                failure_reason = models.LoginFailureReason.ACCOUNT_INACTIVE
+            else:
+                failure_reason = models.LoginFailureReason.INVALID_PASSWORD
+
+            # Log the failure
+            try:
+                SecurityAuditService.log_login_failure(
+                    db=db,
+                    email=email,
+                    failure_reason=failure_reason,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    user_id=int(existing_user.id) if existing_user else None,
+                )
+            except Exception:
+                pass  # Don't let logging failure break auth flow
+
+            raise InvalidCredentialsException("Incorrect email or password")
+
+        user_id = int(user.id)
+
+        # Check if 2FA is enabled
+        if TOTPService.check_requires_2fa(user):
+            # If device_token provided, try to verify it
+            if device_token:
+                try:
+                    from services.trusted_device_service import TrustedDeviceService
+
+                    is_trusted = TrustedDeviceService.verify_trusted_device(
+                        db=db,
+                        user_id=user_id,
+                        device_token=device_token,
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                    )
+
+                    if is_trusted:
+                        # Device is trusted - skip 2FA and issue full token
+                        try:
+                            import json
+
+                            SecurityAuditService.log_login_success(
+                                db=db,
+                                user_id=user_id,
+                                email=str(user.email),
+                                ip_address=ip_address,
+                                user_agent=user_agent,
+                                metadata_json=json.dumps(
+                                    {"2fa_bypass": "device_trust"}
+                                ),
+                            )
+                        except Exception:
+                            pass
+
+                        # Track login for retention policy
+                        from services.auth_service import AuthService
+
+                        AuthService.update_last_login(db, user)
+
+                        # Issue full access token
+                        access_token_expires = timedelta(
+                            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+                        )
+                        access_token = create_access_token(
+                            data={"sub": str(user.email)},
+                            expires_delta=access_token_expires,
+                        )
+                        # nosec B106: "bearer" is OAuth2 token type, not a password
+                        return schemas.Token(
+                            access_token=access_token,
+                            token_type="bearer",  # nosec B106
+                        )
+                except Exception:
+                    # If device verification fails, fall through to 2FA flow
+                    pass
+
+            # Device not trusted or verification failed - require 2FA
+            temp_token = TOTPService.create_temp_token(user_id)
+            return schemas.TwoFactorRequiredResponse(
+                requires_2fa=True,
+                temp_token=temp_token,
+            )
+
+        # 2FA not enabled - log success and issue full token
+        try:
+            SecurityAuditService.log_login_success(
+                db=db,
+                user_id=user_id,
+                email=str(user.email),
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+        except Exception:
+            pass
 
         # Track login for retention policy (Law 25 Phase 3)
         from services.auth_service import AuthService

@@ -194,6 +194,23 @@ class Token(BaseModel):
     token_type: str
 
 
+class TokenWithDeviceToken(Token):
+    """Token response with optional device trust token (2FA Remember Device)."""
+
+    device_token: Optional[str] = Field(
+        default=None,
+        description="Device token for 2FA bypass (ONLY returned when trust_device=True)",
+    )
+    device_id: Optional[int] = Field(
+        default=None,
+        description="Device ID for identifying this device (used for 'current device' badge)",
+    )
+    device_expires_at: Optional[datetime] = Field(
+        default=None,
+        description="When the device trust expires",
+    )
+
+
 class TokenData(BaseModel):
     email: Optional[str] = None
 
@@ -1488,6 +1505,21 @@ class TwoFactorLoginRequest(BaseModel):
     is_backup_code: bool = Field(
         default=False, description="True if using a backup code"
     )
+    # Device trust options (2FA Remember Device - Law 25 Compliance)
+    trust_device: bool = Field(
+        default=False,
+        description="Trust this device to skip 2FA next time",
+    )
+    trust_duration_days: int = Field(
+        default=30,
+        ge=1,
+        le=30,
+        description="Trust duration in days (1-30, default 30 - Law 25 max)",
+    )
+    consent_given: bool = Field(
+        default=False,
+        description="User explicitly consents to device trust (REQUIRED if trust_device=True - Law 25)",
+    )
 
 
 class TwoFactorRequiredResponse(BaseModel):
@@ -1516,6 +1548,98 @@ class MessageResponse(BaseModel):
     """Simple message response."""
 
     message: str
+
+
+# ============================================================================
+# Trusted Device Schemas (2FA Remember Device - Law 25 Compliance)
+# ============================================================================
+
+
+class PasswordConfirmation(BaseModel):
+    """Request requiring password confirmation for sensitive operations (CSRF protection)."""
+
+    password: str = Field(
+        ...,
+        min_length=1,
+        description="Current password for verification",
+    )
+
+
+class TrustedDeviceCreate(BaseModel):
+    """Request to trust a device for 2FA bypass."""
+
+    duration_days: int = Field(
+        default=30,
+        ge=1,
+        le=30,
+        description="Trust duration in days (1-30, default 30 - Law 25 max)",
+    )
+    device_name: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description="Custom device name (auto-generated if not provided)",
+    )
+    consent_given: bool = Field(
+        ...,
+        description="User explicitly consents to device trust (REQUIRED - Law 25)",
+    )
+
+
+class TrustedDeviceRename(BaseModel):
+    """Request to rename a trusted device."""
+
+    device_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="New device name",
+    )
+
+
+class TrustedDeviceFingerprint(BaseModel):
+    """Partial device fingerprint (privacy-safe subset)."""
+
+    browser: Optional[str] = None
+    os: Optional[str] = None
+    platform: Optional[str] = None
+
+
+class TrustedDeviceResponse(BaseModel):
+    """Response with trusted device information."""
+
+    id: int
+    device_name: str
+    fingerprint: Optional[TrustedDeviceFingerprint] = Field(
+        default=None,
+        description="Partial device fingerprint (browser, OS, platform)",
+    )
+    trusted_at: datetime
+    last_used_at: Optional[datetime] = None
+    expires_at: datetime
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TrustedDeviceCreateResponse(BaseModel):
+    """Response after creating a trusted device."""
+
+    device_token: str = Field(
+        ...,
+        description="Device token (store securely - ONLY shown once)",
+    )
+    device: TrustedDeviceResponse
+    warning: str = Field(
+        default="Store this device token securely. It cannot be retrieved again.",
+        description="Security warning about token storage",
+    )
+
+
+class TrustedDeviceListResponse(BaseModel):
+    """Response with list of trusted devices."""
+
+    devices: List[TrustedDeviceResponse]
+    total: int = Field(description="Total number of devices")
 
 
 # ============================================================================
@@ -1892,6 +2016,27 @@ class ConsentLogExport(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TrustedDeviceExport(BaseModel):
+    """Trusted device data for export (Law 25 - Right to Access).
+
+    Note: Device token hash is NOT exported (security).
+    Full IP addresses are NOT exported (privacy).
+    """
+
+    id: int
+    device_name: str
+    trusted_at: datetime
+    expires_at: datetime
+    last_used_at: Optional[datetime] = None
+    is_active: bool
+    # Privacy-safe subset of fingerprint
+    browser: Optional[str] = None
+    os: Optional[str] = None
+    platform: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserDataExport(BaseModel):
     """Complete user data export for Law 25 compliance."""
 
@@ -1902,6 +2047,10 @@ class UserDataExport(BaseModel):
     comments: List[CommentExport]
     votes: List[VoteExport]
     consent_history: List[ConsentLogExport]
+    trusted_devices: List[TrustedDeviceExport] = Field(
+        default_factory=list,
+        description="Trusted devices for 2FA bypass (Law 25 Right to Access)",
+    )
 
     model_config = ConfigDict(from_attributes=True)
 

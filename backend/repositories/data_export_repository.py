@@ -136,3 +136,30 @@ class DataExportRepository(BaseRepository[db_models.User]):
             .order_by(db_models.ConsentLog.created_at.desc())
             .all()
         )
+
+    def get_user_trusted_devices_for_export(
+        self, user_id: int
+    ) -> list[db_models.TrustedDevice]:
+        """
+        Get all trusted devices for a user (active only).
+
+        Law 25 Compliance: Right to Access (Article 27)
+        Users can export their trusted device data.
+
+        Note: Device token hash is NOT included in export (security).
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            List of trusted devices
+        """
+        return (
+            self.db.query(db_models.TrustedDevice)
+            .filter(
+                db_models.TrustedDevice.user_id == user_id,
+                db_models.TrustedDevice.is_active.is_(True),
+            )
+            .order_by(db_models.TrustedDevice.trusted_at.desc())
+            .all()
+        )

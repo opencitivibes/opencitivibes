@@ -216,6 +216,28 @@ class Settings(BaseSettings):
         description="Number of backup codes to generate",
     )
 
+    # 2FA Trusted Device Settings (Remember Device Feature - Law 25 Compliance)
+    TOTP_DEVICE_TRUST_DEFAULT_DAYS: int = Field(
+        default=30,
+        description="Default duration for device trust in days",
+    )
+    TOTP_DEVICE_TRUST_MAX_DAYS: int = Field(
+        default=30,
+        description="Maximum allowed trust duration in days (MUST NOT exceed 30 - Law 25)",
+    )
+    TOTP_DEVICE_TOKEN_LENGTH: int = Field(
+        default=32,
+        description="Length of device token in bytes (32 bytes = 256 bits)",
+    )
+    TOTP_MAX_TRUSTED_DEVICES_PER_USER: int = Field(
+        default=10,
+        description="Maximum number of trusted devices per user (prevent abuse)",
+    )
+    TOTP_REVOKED_DEVICE_RETENTION_DAYS: int = Field(
+        default=7,
+        description="Days to retain revoked devices before permanent deletion (Law 25)",
+    )
+
     # Legal Document Versions (Law 25 Compliance)
     TERMS_VERSION: str = Field(
         default="1.0",

@@ -1,6 +1,6 @@
 ---
-version: "1.0"
-lastUpdated: "2025-01-01"
+version: "1.1"
+lastUpdated: "2026-01-08"
 ---
 
 # Politica de Privacidad
@@ -73,6 +73,43 @@ No vendemos sus datos personales. Sus datos solo pueden ser compartidos:
 
 Utilizamos cookies esenciales para la funcionalidad del sitio (autenticacion, preferencias de idioma). No utilizamos cookies publicitarias ni de rastreo.
 
-## 10. Contacto y Reclamaciones
+## 10. Dispositivo de Confianza (Recordar Dispositivo 2FA)
+
+Si habilita la autenticacion de dos factores (2FA), puede elegir confiar en un dispositivo para omitir la entrada del codigo TOTP en futuros inicios de sesion.
+
+**Datos recopilados al confiar en un dispositivo:**
+
+- Identificador del dispositivo (tipo de navegador, sistema operativo)
+- Direccion IP anonimizada (solo subred, ultimo octeto eliminado)
+- Fecha de creacion y fecha de expiracion de la confianza
+- Fecha de ultimo uso
+
+**Finalidad:**
+
+- Reducir la friccion de autenticacion manteniendo la seguridad
+- La confianza del dispositivo SOLO omite la entrada del codigo TOTP, NO la autenticacion con contrasena
+
+**Duracion:**
+
+- Usted elige la duracion de la confianza (maximo 30 dias)
+- La confianza expira automaticamente despues del periodo seleccionado
+- Los dispositivos revocados se eliminan permanentemente despues de 7 dias
+
+**Sus derechos sobre dispositivos de confianza:**
+
+- **Ver**: Acceda a una lista de todos sus dispositivos de confianza en cualquier momento
+- **Renombrar**: De nombres personalizados a sus dispositivos para facilitar la identificacion
+- **Revocar**: Retire la confianza de cualquier dispositivo inmediatamente
+- **Revocar todos**: Elimine la confianza de todos los dispositivos a la vez
+
+**Notificaciones:**
+
+Cuando confia en un dispositivo, recibe una notificacion por correo electronico con el nombre del dispositivo, la fecha de confianza y la fecha de expiracion. Esto garantiza que este informado de todos los dispositivos que pueden omitir la 2FA.
+
+**Para gestionar sus dispositivos de confianza:**
+
+Visite Configuracion > Seguridad > Dispositivos de Confianza, o contactenos en {{contactEmail}}.
+
+## 11. Contacto y Reclamaciones
 
 Para cualquier pregunta o reclamacion sobre sus datos personales, contactenos en {{contactEmail}}. Tambien tiene derecho a presentar una reclamacion ante {{privacyAuthority}}.

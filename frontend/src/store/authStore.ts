@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { setUser } from '@/lib/sentry-utils';
 import { authAPI, setAuthFailureHandler } from '@/lib/api';
-import { isTwoFactorRequired } from '@/types';
+import { isTwoFactorRequired, hasDeviceToken } from '@/types';
 import type { User } from '@/types';
+import { clearDeviceToken } from '@/lib/deviceToken';
 
 // Refresh token 5 minutes before expiry
 const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000;
@@ -146,7 +147,12 @@ interface AuthState {
   clearEmailLoginState: () => void;
 
   // 2FA methods
-  verify2FA: (code: string, isBackupCode: boolean) => Promise<void>;
+  verify2FA: (
+    code: string,
+    isBackupCode: boolean,
+    trustDevice?: boolean,
+    consentGiven?: boolean
+  ) => Promise<boolean>; // Returns true if device was trusted
   clearTwoFactorState: () => void;
 }
 
@@ -263,6 +269,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Clear Sentry user context (no-op if Sentry disabled)
     setUser(null);
+
+    // Clear device trust token
+    clearDeviceToken();
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
@@ -407,7 +416,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // 2FA Methods
-  verify2FA: async (code: string, isBackupCode: boolean) => {
+  verify2FA: async (
+    code: string,
+    isBackupCode: boolean,
+    trustDevice = false,
+    consentGiven = false
+  ) => {
     const { twoFactor } = get();
     if (!twoFactor.twoFactorTempToken) {
       throw new Error('No 2FA session active');
@@ -419,6 +433,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         temp_token: twoFactor.twoFactorTempToken,
         code,
         is_backup_code: isBackupCode,
+        // Device trust options (Law 25 compliant)
+        trust_device: trustDevice,
+        trust_duration_days: 30, // Fixed 30 days per requirements
+        consent_given: consentGiven,
       });
 
       if (typeof window !== 'undefined') {
@@ -441,6 +459,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         twoFactor: initialTwoFactorState,
       });
+
+      // Return whether device was trusted (device_token was returned)
+      return hasDeviceToken(tokenResponse);
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -460,6 +481,9 @@ if (typeof window !== 'undefined') {
 
     // Clear Sentry user context (no-op if Sentry disabled)
     setUser(null);
+
+    // Clear device trust token
+    clearDeviceToken();
 
     // Set session expired flag and logout
     useAuthStore.setState({

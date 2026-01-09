@@ -1,6 +1,6 @@
 ---
-version: "1.0"
-lastUpdated: "2025-01-01"
+version: "1.1"
+lastUpdated: "2026-01-08"
 ---
 
 # Privacy Policy
@@ -73,6 +73,43 @@ We do not sell your personal data. Your data may only be shared:
 
 We use essential cookies for site functionality (authentication, language preferences). No advertising or tracking cookies are used.
 
-## 10. Contact and Complaints
+## 10. Device Trust (2FA Remember Device)
+
+If you enable two-factor authentication (2FA), you may choose to trust a device to bypass the TOTP code entry on future logins.
+
+**Data collected when trusting a device:**
+
+- Device identifier (browser type, operating system)
+- Anonymized IP address (subnet only, last octet removed)
+- Trust creation date and expiry date
+- Last usage date
+
+**Purpose:**
+
+- Reduce authentication friction while maintaining security
+- Device trust ONLY bypasses TOTP code entry, NOT password authentication
+
+**Duration:**
+
+- You choose the trust duration (maximum 30 days)
+- Trust automatically expires after the selected period
+- Revoked devices are permanently deleted after 7 days
+
+**Your rights regarding device trust:**
+
+- **View**: Access a list of all your trusted devices at any time
+- **Rename**: Give your devices friendly names for easy identification
+- **Revoke**: Withdraw trust from any device immediately
+- **Revoke all**: Remove trust from all devices at once
+
+**Notifications:**
+
+When you trust a device, you receive an email notification containing the device name, trust date, and expiry date. This ensures you are aware of all devices that can bypass 2FA.
+
+**To manage your trusted devices:**
+
+Visit Settings > Security > Trusted Devices, or contact us at {{contactEmail}}.
+
+## 11. Contact and Complaints
 
 For any questions or complaints regarding your personal data, contact us at {{contactEmail}}. You also have the right to file a complaint with {{privacyAuthority}}.

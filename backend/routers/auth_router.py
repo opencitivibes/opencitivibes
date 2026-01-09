@@ -56,17 +56,26 @@ def login(
     If user has 2FA enabled, returns TwoFactorRequiredResponse with temp_token.
     Call /auth/2fa/verify with the temp_token and TOTP code to complete login.
 
+    If a valid device token is provided (cookie or X-Device-Token header),
+    2FA verification may be bypassed for trusted devices.
+
     Domain exceptions are caught by centralized exception handlers.
     """
-    from helpers.request_utils import get_client_ip, get_user_agent
+    from helpers.request_utils import (
+        get_client_ip,
+        get_device_token_from_request,
+        get_user_agent,
+    )
 
     ip_address = get_client_ip(request)
     user_agent = get_user_agent(request)
+    device_token = get_device_token_from_request(request)
 
-    return TOTPService.login_with_2fa_check(
+    return TOTPService.login_with_2fa_check_and_device(
         db,
         form_data.username,
         form_data.password,
+        device_token=device_token,
         ip_address=ip_address,
         user_agent=user_agent,
     )

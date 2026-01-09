@@ -12,6 +12,8 @@ import {
   Key,
   RefreshCw,
   AlertTriangle,
+  Smartphone,
+  ChevronRight,
 } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -205,6 +207,31 @@ export default function SecuritySettingsPage() {
               </>
             )}
           </Card>
+
+          {/* Trusted Devices Section (only show if 2FA enabled) */}
+          {status?.enabled && (
+            <Card className="mt-6">
+              <Link
+                href="/settings/devices"
+                className="flex items-center justify-between p-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 -m-4 p-4 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {t('security.devices.sectionTitle')}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {t('security.devices.sectionDescription')}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </Link>
+            </Card>
+          )}
 
           {/* Info about 2FA */}
           <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">

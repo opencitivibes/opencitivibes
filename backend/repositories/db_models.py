@@ -278,6 +278,9 @@ class User(Base):
     consent_logs: Mapped[List["ConsentLog"]] = relationship(
         "ConsentLog", back_populates="user", cascade="all, delete-orphan"
     )
+    trusted_devices: Mapped[List["TrustedDevice"]] = relationship(
+        "TrustedDevice", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Category(Base):
@@ -1350,4 +1353,108 @@ class PrivacyIncident(Base):
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime, nullable=True, onupdate=_utc_now
+    )
+
+
+# ============================================================================
+# Trusted Device Models (2FA Remember Device - Law 25 Compliance)
+# ============================================================================
+
+
+class TrustedDevice(Base):
+    """
+    Trusted devices for 2FA "Remember This Device" feature.
+
+    Device tokens are stored as SHA-256 hashes for security.
+    IP addresses are anonymized for Law 25 compliance.
+    Consent is logged to ConsentLog table with consent_type="device_trust".
+    """
+
+    __tablename__ = "trusted_devices"
+    __table_args__ = (
+        Index(
+            "ix_trusted_devices_user_active_expires",
+            "user_id",
+            "is_active",
+            "expires_at",
+        ),
+        Index("ix_trusted_devices_token_hash", "device_token_hash"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    device_token_hash: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=False,
+        comment="SHA-256 hash of device token (never store plaintext)",
+    )
+    device_fingerprint: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="JSON blob with device signals (user_agent, ip_subnet, platform_info)",
+    )
+    device_name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="User-friendly name (e.g., 'Chrome on Windows')",
+    )
+    trusted_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+        comment="Timestamp when device was trusted",
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Timestamp of last successful verification",
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        comment="When trust expires (trusted_at + duration)",
+    )
+    ip_address_subnet: Mapped[Optional[str]] = mapped_column(
+        String(45),
+        nullable=True,
+        comment="Anonymized IP subnet (Law 25 - must use anonymize_ip())",
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="User agent string when trust was established",
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        comment="False if device has been revoked",
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Timestamp when user manually revoked device",
+    )
+    consent_logged_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+        comment="Timestamp when consent was logged (Law 25 audit trail)",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="trusted_devices",
     )

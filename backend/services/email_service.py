@@ -369,3 +369,150 @@ The Team"""
 <p style="color: #666; font-size: 14px;">If you didn't request this code, ignore this email.</p>
 </body></html>"""
         return text, html
+
+    # =========================================================================
+    # Device Trust Email (Law 25 - User Awareness)
+    # =========================================================================
+
+    @classmethod
+    def send_device_trusted_email(
+        cls,
+        to_email: str,
+        device_name: str,
+        trusted_at: "datetime",
+        expires_at: "datetime",
+        display_name: str,
+        language: str = "fr",
+    ) -> bool:
+        """
+        Send email notification when a device is trusted.
+
+        Law 25 Compliance: Users must be informed when a device is trusted
+        so they can take action if it wasn't them.
+
+        Args:
+            to_email: User's email address
+            device_name: Name of the trusted device (e.g., "Chrome on Windows 10")
+            trusted_at: When the device was trusted
+            expires_at: When the trust expires
+            display_name: User's display name
+            language: User's preferred language (en/fr)
+
+        Returns:
+            True if email sent successfully, False otherwise
+        """
+        app_name = cls._get_instance_name()
+
+        # Format dates for display
+        trusted_date = trusted_at.strftime("%Y-%m-%d %H:%M UTC")
+        expires_date = expires_at.strftime("%Y-%m-%d %H:%M UTC")
+
+        if language == "fr":
+            subject = f"Nouvel appareil de confiance ajouté - {app_name}"
+            text_body, html_body = cls._build_device_trusted_french(
+                display_name, device_name, trusted_date, expires_date, app_name
+            )
+        else:
+            subject = f"New trusted device added - {app_name}"
+            text_body, html_body = cls._build_device_trusted_english(
+                display_name, device_name, trusted_date, expires_date, app_name
+            )
+
+        provider = get_email_provider()
+        return provider.send(to_email, subject, html_body, text_body)
+
+    @staticmethod
+    def _build_device_trusted_french(
+        display_name: str,
+        device_name: str,
+        trusted_date: str,
+        expires_date: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build French device trusted email."""
+        text = f"""Bonjour {display_name},
+
+Un nouvel appareil a été ajouté à votre liste d'appareils de confiance pour la vérification en deux étapes.
+
+Appareil: {device_name}
+Date d'ajout: {trusted_date}
+Expire le: {expires_date}
+
+Si ce n'était pas vous, veuillez révoquer immédiatement cet appareil depuis vos paramètres de sécurité.
+
+Pour gérer vos appareils de confiance, connectez-vous à votre compte et accédez à Paramètres > Sécurité > Appareils de confiance.
+
+Cordialement,
+L'équipe {app_name}"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #333;">Nouvel appareil de confiance</h2>
+<p>Bonjour {display_name},</p>
+<p>Un nouvel appareil a été ajouté à votre liste d'appareils de confiance pour la vérification en deux étapes.</p>
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<p><strong>Appareil:</strong> {device_name}</p>
+<p><strong>Date d'ajout:</strong> {trusted_date}</p>
+<p><strong>Expire le:</strong> {expires_date}</p>
+</div>
+<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">
+<p style="margin: 0; color: #856404;">
+<strong>⚠️ Si ce n'était pas vous</strong>, veuillez révoquer immédiatement cet appareil depuis vos paramètres de sécurité.
+</p>
+</div>
+<p style="color: #666; font-size: 14px;">
+Pour gérer vos appareils de confiance, connectez-vous à votre compte et accédez à<br>
+<strong>Paramètres > Sécurité > Appareils de confiance</strong>
+</p>
+<p style="color: #666; font-size: 14px;">Cordialement,<br>L'équipe {app_name}</p>
+</body></html>"""
+        return text, html
+
+    @staticmethod
+    def _build_device_trusted_english(
+        display_name: str,
+        device_name: str,
+        trusted_date: str,
+        expires_date: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build English device trusted email."""
+        text = f"""Hello {display_name},
+
+A new device has been added to your trusted devices for two-factor authentication.
+
+Device: {device_name}
+Added on: {trusted_date}
+Expires on: {expires_date}
+
+If this wasn't you, please revoke this device immediately from your security settings.
+
+To manage your trusted devices, log in to your account and go to Settings > Security > Trusted Devices.
+
+Best regards,
+The {app_name} Team"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #333;">New Trusted Device</h2>
+<p>Hello {display_name},</p>
+<p>A new device has been added to your trusted devices for two-factor authentication.</p>
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<p><strong>Device:</strong> {device_name}</p>
+<p><strong>Added on:</strong> {trusted_date}</p>
+<p><strong>Expires on:</strong> {expires_date}</p>
+</div>
+<div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">
+<p style="margin: 0; color: #856404;">
+<strong>⚠️ If this wasn't you</strong>, please revoke this device immediately from your security settings.
+</p>
+</div>
+<p style="color: #666; font-size: 14px;">
+To manage your trusted devices, log in to your account and go to<br>
+<strong>Settings > Security > Trusted Devices</strong>
+</p>
+<p style="color: #666; font-size: 14px;">Best regards,<br>The {app_name} Team</p>
+</body></html>"""
+        return text, html

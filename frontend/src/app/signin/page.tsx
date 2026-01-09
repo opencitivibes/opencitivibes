@@ -15,6 +15,7 @@ import { EmailLoginForm } from '@/components/EmailLoginForm';
 import { EmailCodeVerification } from '@/components/EmailCodeVerification';
 import { TwoFactorVerify } from '@/components/TwoFactorVerify';
 import { getSafeRedirect } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type EmailLoginStep = 'form' | 'verify';
 
@@ -88,9 +89,19 @@ export default function SignInPage() {
   };
 
   // 2FA verification handlers
-  const handle2FAVerify = async (code: string, isBackupCode: boolean) => {
-    await verify2FA(code, isBackupCode);
+  const handle2FAVerify = async (
+    code: string,
+    isBackupCode: boolean,
+    trustDevice?: boolean,
+    consentGiven?: boolean
+  ): Promise<boolean> => {
+    const wasTrusted = await verify2FA(code, isBackupCode, trustDevice, consentGiven);
     router.push(redirectUrl);
+    return wasTrusted;
+  };
+
+  const handleDeviceTrusted = () => {
+    toast.success(t('security.devices.trustedSuccess'));
   };
 
   const handle2FACancel = () => {
@@ -107,6 +118,7 @@ export default function SignInPage() {
           email={twoFactor.twoFactorEmail || email}
           onVerify={handle2FAVerify}
           onCancel={handle2FACancel}
+          onDeviceTrusted={handleDeviceTrusted}
         />
       </PageContainer>
     );

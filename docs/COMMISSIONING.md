@@ -72,6 +72,26 @@ newgrp docker
 docker ps
 ```
 
+### Rootless Docker: Enable Linger
+
+**Critical for rootless Docker deployments:** If Docker is running in rootless mode (check with `docker context ls`), you must enable `loginctl linger` to keep containers running after you log out:
+
+```bash
+# Enable linger for your user
+sudo loginctl enable-linger $USER
+
+# Verify it's enabled
+ls /var/lib/systemd/linger/
+# Should show your username
+```
+
+**Why this is needed:** Rootless Docker runs as a systemd user service using a socket at `/run/user/<uid>/docker.sock`. Without linger, this user runtime directory is cleaned up when you log out, stopping the Docker daemon and all containers.
+
+**Symptoms if linger is not enabled:**
+- Containers show "Up 1 second" every time you SSH in
+- Website returns 521 (Web server down) after you disconnect
+- `docker ps` shows containers restarting on each login
+
 ### File Permissions (Development)
 
 The development Docker configuration (`docker-compose.dev.yml`) runs containers as your current user instead of root. This prevents permission issues with mounted volumes (e.g., `frontend/.next` or `backend/data` being owned by root).
@@ -590,6 +610,24 @@ docker compose logs -f frontend
 ## Troubleshooting
 
 ### Common Issues
+
+#### Containers stop when SSH session ends (rootless Docker)
+
+If your containers shut down every time you disconnect from SSH:
+
+```bash
+# Check if Docker is running in rootless mode
+docker context ls
+# If "rootless" is marked with *, you're using rootless Docker
+
+# Enable linger to keep containers running after logout
+sudo loginctl enable-linger $USER
+
+# Verify linger is enabled
+ls /var/lib/systemd/linger/
+```
+
+See [Rootless Docker: Enable Linger](#rootless-docker-enable-linger) for details.
 
 #### Services not starting
 ```bash

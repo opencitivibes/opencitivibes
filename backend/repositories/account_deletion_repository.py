@@ -89,6 +89,25 @@ class AccountDeletionRepository(BaseRepository[db_models.User]):
             .delete(synchronize_session=False)
         )
 
+    def delete_trusted_devices(self, user_id: int) -> int:
+        """
+        Delete all trusted devices for a user.
+
+        Law 25 Compliance: Right to Erasure
+        When account is deleted, all trusted devices are permanently deleted.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Number of deleted records
+        """
+        return (
+            self.db.query(db_models.TrustedDevice)
+            .filter(db_models.TrustedDevice.user_id == user_id)
+            .delete(synchronize_session=False)
+        )
+
     def get_vote_ids_by_user(self, user_id: int) -> list[int]:
         """
         Get all vote IDs for a user.
