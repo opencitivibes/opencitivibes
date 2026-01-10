@@ -148,6 +148,9 @@ def set_device_token_cookie(
 
     # Calculate max_age from expires_at
     now = datetime.now(timezone.utc)
+    # Ensure expires_at is timezone-aware (assume UTC if naive)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     max_age = int((expires_at - now).total_seconds())
 
     if max_age <= 0:
