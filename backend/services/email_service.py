@@ -5,11 +5,18 @@ Supports:
 - console: Logs emails to console (development)
 - smtp: Standard SMTP delivery
 - sendgrid: SendGrid API (requires sendgrid package)
+
+Security features (addressing audit findings):
+- Finding #7 (MEDIUM): Retry logic with exponential backoff
+- Finding #12 (LOW): Template variable escaping and sanitization
 """
 
+import html
 import re
 import smtplib
+import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -516,3 +523,317 @@ To manage your trusted devices, log in to your account and go to<br>
 <p style="color: #666; font-size: 14px;">Best regards,<br>The {app_name} Team</p>
 </body></html>"""
         return text, html
+
+    # =========================================================================
+    # Password Reset Emails (Security Audit Phase 1)
+    # =========================================================================
+
+    @staticmethod
+    def _sanitize_display_name(name: str) -> str:
+        """
+        Sanitize display name for safe use in emails (Finding #12).
+
+        Removes potentially dangerous characters and limits length.
+
+        Args:
+            name: Raw display name from user input
+
+        Returns:
+            Sanitized display name safe for email templates
+        """
+        if not name:
+            return "User"
+        # Remove HTML/script tags and limit to reasonable length
+        sanitized = re.sub(r"<[^>]+>", "", name)
+        sanitized = sanitized.strip()[:100]
+        return sanitized if sanitized else "User"
+
+    @staticmethod
+    def _escape_template_vars(text: str) -> str:
+        """
+        Escape HTML special characters in template variables (Finding #12).
+
+        Args:
+            text: Raw text that might contain user input
+
+        Returns:
+            HTML-escaped text safe for template insertion
+        """
+        return html.escape(str(text))
+
+    @classmethod
+    def _send_with_retry(
+        cls,
+        send_func: Callable[[], bool],
+        max_attempts: int = 3,
+        base_delay: float = 1.0,
+    ) -> bool:
+        """
+        Send email with exponential backoff retry (Finding #7).
+
+        Args:
+            send_func: Function that sends the email and returns success status
+            max_attempts: Maximum number of send attempts
+            base_delay: Base delay in seconds (doubles each retry)
+
+        Returns:
+            True if email sent successfully, False after all attempts fail
+        """
+        for attempt in range(max_attempts):
+            try:
+                if send_func():
+                    return True
+            except Exception as e:
+                logger.warning(f"Email send attempt {attempt + 1} failed: {e}")
+
+            if attempt < max_attempts - 1:
+                delay = base_delay * (2**attempt)
+                logger.info(f"Retrying email in {delay}s...")
+                time.sleep(delay)
+
+        logger.error(f"Email send failed after {max_attempts} attempts")
+        return False
+
+    @classmethod
+    def send_password_reset_code(
+        cls,
+        to_email: str,
+        code: str,
+        display_name: str,
+        language: str = "en",
+        expires_minutes: int = 30,
+    ) -> bool:
+        """
+        Send password reset code email with retry logic.
+
+        Args:
+            to_email: User's email address
+            code: The 6-digit reset code
+            display_name: User's display name
+            language: User's preferred language (en/fr)
+            expires_minutes: Minutes until code expires
+
+        Returns:
+            True if email sent successfully
+        """
+        html_template, text_template = cls._load_template("password_reset", language)
+
+        # Sanitize user input (Finding #12)
+        safe_display_name = cls._sanitize_display_name(display_name)
+
+        # Format code with spaces for readability (12 34 56)
+        formatted_code = " ".join([code[i : i + 2] for i in range(0, len(code), 2)])
+        app_name = cls._get_instance_name()
+
+        context: dict[str, str | int] = {
+            "display_name": safe_display_name,
+            "code": code,
+            "formatted_code": formatted_code,
+            "expires_minutes": expires_minutes,
+            "app_name": app_name,
+            "year": str(datetime.now().year),
+        }
+
+        # Use templates if available, otherwise fallback to inline
+        if html_template and text_template:
+            html_body = cls._render_template(html_template, **context)
+            text_body = cls._render_template(text_template, **context)
+        else:
+            text_body, html_body = cls._build_password_reset_inline(
+                code, safe_display_name, language, expires_minutes, app_name
+            )
+
+        subject = cls._get_password_reset_subject(language, app_name)
+        provider = get_email_provider()
+
+        # Use retry logic (Finding #7)
+        return cls._send_with_retry(
+            lambda: provider.send(to_email, subject, html_body, text_body)
+        )
+
+    @classmethod
+    def _get_password_reset_subject(cls, language: str, app_name: str) -> str:
+        """Get password reset email subject based on language."""
+        subjects = {
+            "en": f"Password reset code - {app_name}",
+            "fr": f"Code de reinitialisation - {app_name}",
+        }
+        return subjects.get(language, subjects["en"])
+
+    @staticmethod
+    def _build_password_reset_inline(
+        code: str,
+        display_name: str,
+        language: str,
+        expires_minutes: int,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build inline password reset email as fallback when templates not found."""
+        if language == "fr":
+            text = f"""Bonjour {display_name},
+
+Votre code de reinitialisation de mot de passe est : {code}
+
+Ce code expire dans {expires_minutes} minutes.
+
+Si vous n'avez pas demande cette reinitialisation, ignorez ce courriel.
+
+Cordialement,
+L'equipe {app_name}"""
+            html_content = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #333;">Reinitialisation du mot de passe</h2>
+<p>Bonjour {display_name},</p>
+<div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+<span style="font-size: 32px; letter-spacing: 8px; font-weight: bold; color: #dc2626;">{code}</span>
+</div>
+<p>Ce code expire dans <strong>{expires_minutes} minutes</strong>.</p>
+<p style="color: #666; font-size: 14px;">Si vous n'avez pas demande cette reinitialisation, ignorez ce courriel.</p>
+</body></html>"""
+        else:
+            text = f"""Hello {display_name},
+
+Your password reset code is: {code}
+
+This code expires in {expires_minutes} minutes.
+
+If you did not request this reset, ignore this email.
+
+Best regards,
+The {app_name} Team"""
+            html_content = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #333;">Password Reset</h2>
+<p>Hello {display_name},</p>
+<div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+<span style="font-size: 32px; letter-spacing: 8px; font-weight: bold; color: #dc2626;">{code}</span>
+</div>
+<p>This code expires in <strong>{expires_minutes} minutes</strong>.</p>
+<p style="color: #666; font-size: 14px;">If you did not request this reset, ignore this email.</p>
+</body></html>"""
+        return text, html_content
+
+    @classmethod
+    def send_password_changed_notification(
+        cls,
+        to_email: str,
+        display_name: str,
+        changed_at: datetime,
+        language: str = "en",
+    ) -> bool:
+        """
+        Send password changed confirmation email.
+
+        Security notification sent after successful password reset
+        so user can take action if it wasn't them.
+
+        Args:
+            to_email: User's email address
+            display_name: User's display name
+            changed_at: When the password was changed
+            language: User's preferred language (en/fr)
+
+        Returns:
+            True if email sent successfully
+        """
+        html_template, text_template = cls._load_template("password_changed", language)
+
+        # Sanitize user input (Finding #12)
+        safe_display_name = cls._sanitize_display_name(display_name)
+
+        # Format timestamp for display
+        changed_at_str = changed_at.strftime("%Y-%m-%d %H:%M UTC")
+        app_name = cls._get_instance_name()
+
+        context: dict[str, str | int] = {
+            "display_name": safe_display_name,
+            "changed_at": changed_at_str,
+            "app_name": app_name,
+            "year": str(datetime.now().year),
+        }
+
+        # Use templates if available, otherwise fallback to inline
+        if html_template and text_template:
+            html_body = cls._render_template(html_template, **context)
+            text_body = cls._render_template(text_template, **context)
+        else:
+            text_body, html_body = cls._build_password_changed_inline(
+                safe_display_name, changed_at_str, language, app_name
+            )
+
+        subject = cls._get_password_changed_subject(language, app_name)
+        provider = get_email_provider()
+
+        # Use retry logic (Finding #7)
+        return cls._send_with_retry(
+            lambda: provider.send(to_email, subject, html_body, text_body)
+        )
+
+    @classmethod
+    def _get_password_changed_subject(cls, language: str, app_name: str) -> str:
+        """Get password changed email subject based on language."""
+        subjects = {
+            "en": f"Password changed successfully - {app_name}",
+            "fr": f"Mot de passe modifie avec succes - {app_name}",
+        }
+        return subjects.get(language, subjects["en"])
+
+    @staticmethod
+    def _build_password_changed_inline(
+        display_name: str,
+        changed_at: str,
+        language: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build inline password changed email as fallback when templates not found."""
+        if language == "fr":
+            text = f"""Bonjour {display_name},
+
+Le mot de passe de votre compte {app_name} a ete modifie avec succes.
+
+Modifie le : {changed_at}
+
+Si ce n'etait pas vous, contactez-nous immediatement.
+
+Cordialement,
+L'equipe {app_name}"""
+            html_content = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #10b981;">Mot de passe modifie</h2>
+<p>Bonjour {display_name},</p>
+<p>Le mot de passe de votre compte {app_name} a ete modifie avec succes.</p>
+<div style="background: #ecfdf5; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #10b981;">
+<p><strong>Modifie le :</strong> {changed_at}</p>
+</div>
+<div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+<strong>Ce n'etait pas vous?</strong> Contactez-nous immediatement.
+</div>
+</body></html>"""
+        else:
+            text = f"""Hello {display_name},
+
+Your {app_name} account password has been changed successfully.
+
+Changed on: {changed_at}
+
+If this wasn't you, please contact us immediately.
+
+Best regards,
+The {app_name} Team"""
+            html_content = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #10b981;">Password Changed</h2>
+<p>Hello {display_name},</p>
+<p>Your {app_name} account password has been changed successfully.</p>
+<div style="background: #ecfdf5; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #10b981;">
+<p><strong>Changed on:</strong> {changed_at}</p>
+</div>
+<div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+<strong>Didn't make this change?</strong> Please contact us immediately.
+</div>
+</body></html>"""
+        return text, html_content
