@@ -1,7 +1,7 @@
 """Add trusted_devices table for 2FA remember device feature
 
 Revision ID: f9hl88i75j0g
-Revises: e8gk77h64i9f
+Revises: 04dd2ce31e3f
 Create Date: 2026-01-08
 
 This migration adds the trusted_devices table to support the "Remember This Device"
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "f9hl88i75j0g"
-down_revision = "e8gk77h64i9f"
+down_revision = "04dd2ce31e3f"
 branch_labels = None
 depends_on = None
 
