@@ -896,6 +896,90 @@ class EmailLoginCode(Base):
 
 
 # ============================================================================
+# Password Reset Token Models (Security Audit Phase 1)
+# ============================================================================
+
+
+class PasswordResetToken(Base):
+    """
+    Secure password reset tokens with bcrypt hashing.
+
+    Security features (addressing audit findings):
+    - Finding #1 (CRITICAL): Uses bcrypt with cost factor 12 instead of SHA-256
+    - Finding #4 (HIGH): Tracks attempts for account lockout enforcement
+    - Finding #11 (LOW): Context signature binding via HMAC
+    """
+
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (
+        Index("ix_password_reset_tokens_user_created", "user_id", "created_at"),
+        Index("ix_password_reset_tokens_expires", "expires_at"),
+        Index("ix_password_reset_tokens_reset_token", "reset_token"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Bcrypt hash of the 6-digit code (60 chars for bcrypt - Finding #1)
+    code_hash: Mapped[str] = mapped_column(
+        String(60),
+        nullable=False,
+        comment="bcrypt hash of reset code (NOT SHA-256 - Finding #1)",
+    )
+
+    # Phase 1: Code verification phase
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utc_now)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, comment="Code expiry timestamp"
+    )
+    attempts: Mapped[int] = mapped_column(
+        Integer, default=0, comment="Code verification attempts (Finding #2)"
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="When code was successfully verified"
+    )
+
+    # Phase 2: Reset token (issued after code verification)
+    reset_token: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        nullable=True,
+        unique=True,
+        comment="Token for password reset (issued after code verified)",
+    )
+    reset_token_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="Reset token expiry"
+    )
+    reset_token_attempts: Mapped[int] = mapped_column(
+        Integer, default=0, comment="Reset token usage attempts"
+    )
+
+    # Phase 3: Completion tracking
+    used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="When password was successfully reset"
+    )
+
+    # Context binding (Finding #11 - LOW)
+    context_signature: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="HMAC signature binding token to user context (Finding #11)",
+    )
+
+    # Audit logging (Finding #9)
+    ip_address: Mapped[Optional[str]] = mapped_column(
+        String(45), nullable=True, comment="IP address when code was requested"
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="User agent for audit logging (Finding #9)"
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", backref="password_reset_tokens")
+
+
+# ============================================================================
 # Two-Factor Authentication (2FA) Models
 # ============================================================================
 

@@ -90,7 +90,7 @@ def check_schema_version() -> None:
 
     # Expected latest migration revision (update when adding new migrations)
     EXPECTED_REVISION = (
-        "f9hl88i75j0g"  # add_trusted_devices  # pragma: allowlist secret
+        "g0im99j86k1h"  # add_password_reset_tokens  # pragma: allowlist secret
     )
 
     db = SessionLocal()
@@ -1156,6 +1156,188 @@ def _register_2fa_handlers(app_instance: FastAPI) -> None:
 
 # Register 2FA handlers
 _register_2fa_handlers(app)
+
+
+# ============================================================================
+# Password Reset Exception Handlers (Security Audit Phase 1)
+# ============================================================================
+
+
+def _register_password_reset_handlers(app_instance: FastAPI) -> None:
+    """Register password reset exception handlers with late import."""
+    from models.exceptions import (
+        PasswordResetAccountLockedException,
+        PasswordResetCodeExpiredException,
+        PasswordResetCodeInvalidException,
+        PasswordResetMaxAttemptsException,
+        PasswordResetRateLimitException,
+        PasswordResetTokenInvalidException,
+        PasswordResetUserNotFoundException,
+        PasswordValidationException,
+    )
+
+    @app_instance.exception_handler(PasswordResetCodeExpiredException)
+    async def password_reset_code_expired_handler(
+        request: Request, exc: PasswordResetCodeExpiredException
+    ) -> JSONResponse:
+        """Handle expired reset code (HTTP 410 Gone)."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset code expired: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_code_expired",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(PasswordResetCodeInvalidException)
+    async def password_reset_code_invalid_handler(
+        request: Request, exc: PasswordResetCodeInvalidException
+    ) -> JSONResponse:
+        """Handle invalid reset code."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset code invalid: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_code_invalid",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(PasswordResetMaxAttemptsException)
+    async def password_reset_max_attempts_handler(
+        request: Request, exc: PasswordResetMaxAttemptsException
+    ) -> JSONResponse:
+        """Handle max attempts exceeded."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset max attempts: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_max_attempts",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(PasswordResetRateLimitException)
+    async def password_reset_rate_limit_handler(
+        request: Request, exc: PasswordResetRateLimitException
+    ) -> JSONResponse:
+        """Handle password reset rate limit."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset rate limit: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_rate_limit",
+                "retry_after_seconds": exc.retry_after_seconds,
+                "correlation_id": exc.correlation_id,
+            },
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        )
+
+    @app_instance.exception_handler(PasswordResetUserNotFoundException)
+    async def password_reset_user_not_found_handler(
+        request: Request, exc: PasswordResetUserNotFoundException
+    ) -> JSONResponse:
+        """Handle email not found - use 400 to prevent email enumeration."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset user not found: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_user_not_found",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(PasswordResetTokenInvalidException)
+    async def password_reset_token_invalid_handler(
+        request: Request, exc: PasswordResetTokenInvalidException
+    ) -> JSONResponse:
+        """Handle invalid reset token."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password reset token invalid: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_token_invalid",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(PasswordResetAccountLockedException)
+    async def password_reset_account_locked_handler(
+        request: Request, exc: PasswordResetAccountLockedException
+    ) -> JSONResponse:
+        """Handle account lockout (Finding #4 - HTTP 423 Locked)."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        # Capture lockouts in Sentry for security monitoring
+        sentry_sdk.capture_exception(exc)
+        logger.warning(
+            f"Password reset account locked: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_423_LOCKED,
+            content={
+                "detail": exc.message,
+                "type": "password_reset_account_locked",
+                "retry_after_seconds": exc.retry_after_seconds,
+                "correlation_id": exc.correlation_id,
+            },
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        )
+
+    @app_instance.exception_handler(PasswordValidationException)
+    async def password_validation_handler(
+        request: Request, exc: PasswordValidationException
+    ) -> JSONResponse:
+        """Handle password validation failure."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Password validation failed: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "password_validation_failed",
+                "requirements": exc.requirements,
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+
+# Register password reset handlers
+_register_password_reset_handlers(app)
 
 
 # Include routers

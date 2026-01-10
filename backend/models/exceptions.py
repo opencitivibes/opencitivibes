@@ -590,3 +590,97 @@ class TrustedDeviceExpiredException(TrustedDeviceException):
 
     def __init__(self, message: str = "Device trust has expired."):
         super().__init__(message)
+
+
+# ============================================================================
+# Password Reset Exceptions (Security Audit Phase 1)
+# ============================================================================
+
+
+class PasswordResetException(DomainException):
+    """Base exception for password reset errors."""
+
+    pass
+
+
+class PasswordResetUserNotFoundException(PasswordResetException):
+    """Raised when email is not associated with any account."""
+
+    def __init__(self, message: str = "No account found with this email address."):
+        super().__init__(message)
+
+
+class PasswordResetRateLimitException(PasswordResetException):
+    """Raised when rate limit for password reset is exceeded."""
+
+    def __init__(
+        self,
+        message: str = "Too many password reset requests. Please try again later.",
+        retry_after_seconds: int = 3600,
+    ):
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
+class PasswordResetCodeExpiredException(PasswordResetException):
+    """Raised when reset code has expired."""
+
+    def __init__(
+        self,
+        message: str = "Reset code has expired. Please request a new one.",
+    ):
+        super().__init__(message)
+
+
+class PasswordResetCodeInvalidException(PasswordResetException):
+    """Raised when reset code is invalid."""
+
+    def __init__(
+        self,
+        message: str = "Invalid reset code. Please check and try again.",
+    ):
+        super().__init__(message)
+
+
+class PasswordResetMaxAttemptsException(PasswordResetException):
+    """Raised when maximum verification attempts exceeded."""
+
+    def __init__(
+        self,
+        message: str = "Too many failed attempts. Please request a new code.",
+    ):
+        super().__init__(message)
+
+
+class PasswordResetTokenInvalidException(PasswordResetException):
+    """Raised when reset token is invalid or expired."""
+
+    def __init__(
+        self,
+        message: str = "Invalid or expired reset token. Please start over.",
+    ):
+        super().__init__(message)
+
+
+class PasswordResetAccountLockedException(PasswordResetException):
+    """Raised when account is locked due to too many reset attempts (Finding #4)."""
+
+    def __init__(
+        self,
+        message: str = "Account locked due to too many password reset attempts. Please try again later.",
+        retry_after_seconds: int = 86400,  # 24 hours default
+    ):
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
+class PasswordValidationException(PasswordResetException):
+    """Raised when new password fails validation requirements."""
+
+    def __init__(
+        self,
+        message: str = "Password does not meet requirements.",
+        requirements: list[str] | None = None,
+    ):
+        super().__init__(message)
+        self.requirements = requirements or []

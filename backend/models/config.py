@@ -336,6 +336,44 @@ class Settings(BaseSettings):
         description="Beta access password (server-side only, never exposed to client)",
     )
 
+    # Password Reset Settings (Security Audit Phase 1)
+    PASSWORD_RESET_CODE_EXPIRY_MINUTES: int = Field(
+        default=30,
+        description="Minutes until password reset code expires",
+    )
+    PASSWORD_RESET_TOKEN_EXPIRY_MINUTES: int = Field(
+        default=15,
+        description="Minutes until verified reset token expires",
+    )
+    PASSWORD_RESET_MAX_ATTEMPTS: int = Field(
+        default=5,
+        description="Maximum verification attempts per code",
+    )
+    PASSWORD_RESET_CODES_PER_HOUR: int = Field(
+        default=3,
+        description="Maximum reset codes per email per hour",
+    )
+    PASSWORD_RESET_CODE_LENGTH: int = Field(
+        default=6,
+        description="Number of digits in reset code",
+    )
+    PASSWORD_RESET_BCRYPT_ROUNDS: int = Field(
+        default=12,
+        description="bcrypt cost factor for code hashing (Finding #1 - CRITICAL)",
+    )
+    PASSWORD_RESET_DAILY_LIMIT: int = Field(
+        default=10,
+        description="Maximum reset attempts per user per day (Finding #4)",
+    )
+    PASSWORD_RESET_WEEKLY_LIMIT: int = Field(
+        default=25,
+        description="Maximum reset attempts per user per week (Finding #4)",
+    )
+    PASSWORD_RESET_LOCKOUT_HOURS: int = Field(
+        default=24,
+        description="Lockout duration in hours after exceeding limits (Finding #4)",
+    )
+
     def get_search_backend(self) -> str:
         """Determine search backend from config or DATABASE_URL."""
         if self.SEARCH_BACKEND:
