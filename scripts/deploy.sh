@@ -94,6 +94,13 @@ check_requirements() {
         warn "platform.config.json not found - using defaults"
     fi
 
+    # Check legal documents
+    if [[ ! -d "$DEPLOY_PATH/backend/config/legal" ]]; then
+        warn "Legal documents directory not found at backend/config/legal/"
+        warn "Terms and Privacy pages will show 'content not available'"
+        warn "Upload from instances/{name}/legal/ before deployment"
+    fi
+
     log "Requirements check passed"
 }
 

@@ -285,8 +285,12 @@ cat > backend/config/platform.config.json << 'CONFIGEOF'
 CONFIGEOF
 
 echo "  - Created default platform.config.json (customize as needed)"
+echo ""
+echo "  NOTE: Legal documents and instance assets must be uploaded from your local"
+echo "  instances/ directory BEFORE starting containers. See step 4 below."
+echo ""
 echo "  - Instance assets directory: $DEPLOY_DIR/instance-assets/"
-echo "  - Upload your hero.png and logo.svg to this directory BEFORE starting containers"
+echo "  - Legal documents directory: $DEPLOY_DIR/backend/config/legal/"
 
 # Create admin seeding script for PostgreSQL
 echo "[8/10] Creating admin seeding script (PostgreSQL)..."
@@ -461,8 +465,11 @@ echo ""
 echo "3. Login to GitHub Container Registry:"
 echo "   echo \$GITHUB_TOKEN | docker login ghcr.io -u opencitivibes --password-stdin"
 echo ""
-echo "4. Upload instance assets BEFORE starting containers:"
-echo "   scp hero.png logo.svg ubuntu@${DOMAIN}:${DEPLOY_DIR}/instance-assets/"
+echo "4. Upload instance files BEFORE starting containers:"
+echo "   # From your local machine, in the project directory:"
+echo "   scp -r instances/montreal/images/* ubuntu@${DOMAIN}:${DEPLOY_DIR}/instance-assets/"
+echo "   scp -r instances/montreal/legal ubuntu@${DOMAIN}:${DEPLOY_DIR}/backend/config/"
+echo "   scp instances/montreal/platform.config.json ubuntu@${DOMAIN}:${DEPLOY_DIR}/backend/config/"
 echo ""
 echo "5. Pull and start containers with PRODUCTION profile:"
 echo "   docker compose --profile prod pull"
