@@ -9,6 +9,7 @@ import { useLocalizedField } from '@/hooks/useLocalizedField';
 import { Button } from '@/components/Button';
 import { Textarea } from '@/components/Textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { formatDistanceToNow } from 'date-fns';
 import type { AdminNote } from '@/types/moderation';
 
@@ -28,6 +29,8 @@ export function AdminNotesPanel({ userId }: AdminNotesPanelProps) {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
 
   const loadNotes = useCallback(async () => {
     try {
@@ -81,12 +84,17 @@ export function AdminNotesPanel({ userId }: AdminNotesPanelProps) {
     }
   };
 
-  const handleDeleteNote = async (noteId: number) => {
-    if (!confirm(t('adminModeration.notes.deleteConfirm'))) return;
+  const openDeleteDialog = (noteId: number) => {
+    setNoteToDelete(noteId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteNote = async () => {
+    if (!noteToDelete) return;
 
     try {
-      await adminModerationAPI.deleteNote(noteId);
-      setNotes(notes.filter((n) => n.id !== noteId));
+      await adminModerationAPI.deleteNote(noteToDelete);
+      setNotes(notes.filter((n) => n.id !== noteToDelete));
       success(t('adminModeration.notes.noteDeleted'), { isRaw: true });
     } catch (err) {
       console.error('Failed to delete note:', err);
@@ -205,7 +213,7 @@ export function AdminNotesPanel({ userId }: AdminNotesPanelProps) {
                         variant="secondary"
                         size="sm"
                         className="h-7 w-7 p-0 text-error-600 hover:text-error-700"
-                        onClick={() => handleDeleteNote(note.id)}
+                        onClick={() => openDeleteDialog(note.id)}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -216,6 +224,17 @@ export function AdminNotesPanel({ userId }: AdminNotesPanelProps) {
             </div>
           ))
         )}
+
+        {/* Delete Note Confirmation Dialog */}
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={t('adminModeration.notes.deleteTitle')}
+          description={t('adminModeration.notes.deleteDescription')}
+          confirmLabel={t('common.delete')}
+          variant="danger"
+          onConfirm={handleDeleteNote}
+        />
       </CardContent>
     </Card>
   );

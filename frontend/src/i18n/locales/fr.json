@@ -341,6 +341,10 @@
       "grantStatus": "Accorder le statut",
       "revokeConfirm": "Êtes-vous sûr de vouloir révoquer le statut de fonctionnaire de cet utilisateur?",
       "rejectConfirm": "Êtes-vous sûr de vouloir rejeter cette demande de fonctionnaire?",
+      "rejectTitle": "Rejeter la demande de fonctionnaire",
+      "rejectDescription": "Voulez-vous vraiment rejeter cette demande de fonctionnaire?",
+      "revokeTitle": "Révoquer le statut de fonctionnaire",
+      "revokeDescription": "Voulez-vous vraiment révoquer le statut de fonctionnaire de cet utilisateur?",
       "grantSuccess": "Statut de fonctionnaire accordé avec succès",
       "grantError": "Échec de l'attribution du statut de fonctionnaire",
       "revokeSuccess": "Statut de fonctionnaire révoqué",
@@ -370,6 +374,8 @@
       "actions": "Actions",
       "remove": "Retirer",
       "removeConfirm": "Voulez-vous vraiment retirer les droits de modérateur de catégorie de cet utilisateur?",
+      "removeTitle": "Retirer le modérateur de catégorie",
+      "removeDescription": "Voulez-vous vraiment retirer les droits de modérateur de catégorie de cet utilisateur?",
       "addTitle": "Ajouter un modérateur de catégorie",
       "addDescription": "Sélectionnez un utilisateur et une catégorie à modérer",
       "searchUser": "Rechercher un utilisateur",
@@ -928,6 +934,8 @@
       "revokeError": "Échec de la révocation de l'appareil",
       "revokeAll": "Tout révoquer",
       "revokeAllConfirm": "Êtes-vous sûr de vouloir révoquer la confiance de tous les appareils? Vous devrez vérifier le 2FA lors de votre prochaine connexion depuis n'importe quel appareil.",
+      "revokeAllTitle": "Révoquer tous les appareils",
+      "revokeAllDescription": "Voulez-vous vraiment révoquer la confiance de tous les appareils? Vous devrez vérifier le 2FA lors de votre prochaine connexion depuis n'importe quel appareil.",
       "revokedAll": "Confiance révoquée de {{count}} appareil(s)",
       "revokeAllError": "Échec de la révocation de tous les appareils",
       "revokeTitle": "Révoquer la confiance de l'appareil",
@@ -1480,7 +1488,9 @@
       "keywordEnabled": "Mot-clé activé",
       "keywordDisabled": "Mot-clé désactivé",
       "keywordDeleted": "Mot-clé supprimé",
-      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce mot-clé?"
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce mot-clé?",
+      "deleteTitle": "Supprimer le mot-clé",
+      "deleteDescription": "Voulez-vous vraiment supprimer ce mot-clé de la liste de surveillance?"
     },
     "comments": {
       "title": "Commentaires en attente",
@@ -1506,6 +1516,8 @@
       "placeholder": "Ajouter une note sur cet utilisateur...",
       "empty": "Aucune note pour l'instant",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette note?",
+      "deleteTitle": "Supprimer la note",
+      "deleteDescription": "Voulez-vous vraiment supprimer cette note d'administration?",
       "noteAdded": "Note ajoutée",
       "noteUpdated": "Note mise à jour",
       "noteDeleted": "Note supprimée"

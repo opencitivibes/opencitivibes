@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 
 export default function AdminOfficialsPage() {
   const { t, ready } = useTranslation();
@@ -39,6 +40,12 @@ export default function AdminOfficialsPage() {
   // Edit title state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
+
+  // Confirmation dialogs state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [officialToReject, setOfficialToReject] = useState<number | null>(null);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [officialToRevoke, setOfficialToRevoke] = useState<number | null>(null);
 
   // Check admin access
   useEffect(() => {
@@ -116,10 +123,15 @@ export default function AdminOfficialsPage() {
     }
   };
 
-  const handleRejectRequest = async (userId: number) => {
-    if (!confirm(t('admin.officials.rejectConfirm'))) return;
+  const openRejectDialog = (userId: number) => {
+    setOfficialToReject(userId);
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectRequest = async () => {
+    if (!officialToReject) return;
     try {
-      await adminAPI.officials.rejectRequest(userId);
+      await adminAPI.officials.rejectRequest(officialToReject);
       toast.success(t('admin.officials.rejectSuccess'));
       fetchData();
     } catch {
@@ -127,10 +139,15 @@ export default function AdminOfficialsPage() {
     }
   };
 
-  const handleRevoke = async (userId: number) => {
-    if (!confirm(t('admin.officials.revokeConfirm'))) return;
+  const openRevokeDialog = (userId: number) => {
+    setOfficialToRevoke(userId);
+    setRevokeDialogOpen(true);
+  };
+
+  const handleRevoke = async () => {
+    if (!officialToRevoke) return;
     try {
-      await adminAPI.officials.revoke(userId);
+      await adminAPI.officials.revoke(officialToRevoke);
       toast.success(t('admin.officials.revokeSuccess'));
       fetchData();
     } catch {
@@ -223,7 +240,7 @@ export default function AdminOfficialsPage() {
                     {t('admin.officials.approve')}
                   </button>
                   <button
-                    onClick={() => handleRejectRequest(request.id)}
+                    onClick={() => openRejectDialog(request.id)}
                     className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600
                       border border-red-200 dark:border-red-800 rounded-lg
                       hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -337,7 +354,7 @@ export default function AdminOfficialsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => handleRevoke(official.id)}
+                      onClick={() => openRevokeDialog(official.id)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm
                         text-red-600 hover:text-red-700 hover:bg-red-50
                         dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -473,6 +490,28 @@ export default function AdminOfficialsPage() {
           </div>
         </div>
       )}
+
+      {/* Reject Request Confirmation Dialog */}
+      <ConfirmationDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        title={t('admin.officials.rejectTitle')}
+        description={t('admin.officials.rejectDescription')}
+        confirmLabel={t('admin.officials.reject')}
+        variant="danger"
+        onConfirm={handleRejectRequest}
+      />
+
+      {/* Revoke Status Confirmation Dialog */}
+      <ConfirmationDialog
+        open={revokeDialogOpen}
+        onOpenChange={setRevokeDialogOpen}
+        title={t('admin.officials.revokeTitle')}
+        description={t('admin.officials.revokeDescription')}
+        confirmLabel={t('admin.officials.revoke')}
+        variant="warning"
+        onConfirm={handleRevoke}
+      />
     </div>
   );
 }

@@ -341,6 +341,10 @@
       "grantStatus": "Grant Status",
       "revokeConfirm": "Are you sure you want to revoke official status from this user?",
       "rejectConfirm": "Are you sure you want to reject this official request?",
+      "rejectTitle": "Reject Official Request",
+      "rejectDescription": "Are you sure you want to reject this official request?",
+      "revokeTitle": "Revoke Official Status",
+      "revokeDescription": "Are you sure you want to revoke official status from this user?",
       "grantSuccess": "Official status granted successfully",
       "grantError": "Failed to grant official status",
       "revokeSuccess": "Official status revoked",
@@ -370,6 +374,8 @@
       "actions": "Actions",
       "remove": "Remove",
       "removeConfirm": "Are you sure you want to remove category admin rights from this user?",
+      "removeTitle": "Remove Category Admin",
+      "removeDescription": "Are you sure you want to remove category admin rights from this user?",
       "addTitle": "Add Category Admin",
       "addDescription": "Select a user and a category to moderate",
       "searchUser": "Search User",
@@ -928,6 +934,8 @@
       "revokeError": "Failed to revoke device",
       "revokeAll": "Revoke All",
       "revokeAllConfirm": "Are you sure you want to revoke trust from all devices? You will need to verify 2FA on your next login from any device.",
+      "revokeAllTitle": "Revoke All Devices",
+      "revokeAllDescription": "Are you sure you want to revoke trust from all devices? You will need to verify 2FA on your next login from any device.",
       "revokedAll": "Revoked trust from {{count}} device(s)",
       "revokeAllError": "Failed to revoke all devices",
       "revokeTitle": "Revoke Device Trust",
@@ -1480,7 +1488,9 @@
       "keywordEnabled": "Keyword enabled",
       "keywordDisabled": "Keyword disabled",
       "keywordDeleted": "Keyword deleted",
-      "deleteConfirm": "Are you sure you want to delete this keyword?"
+      "deleteConfirm": "Are you sure you want to delete this keyword?",
+      "deleteTitle": "Delete Keyword",
+      "deleteDescription": "Are you sure you want to delete this keyword from the watchlist?"
     },
     "comments": {
       "title": "Pending Comments",
@@ -1506,6 +1516,8 @@
       "placeholder": "Add a note about this user...",
       "empty": "No notes yet",
       "deleteConfirm": "Are you sure you want to delete this note?",
+      "deleteTitle": "Delete Note",
+      "deleteDescription": "Are you sure you want to delete this admin note?",
       "noteAdded": "Note added",
       "noteUpdated": "Note updated",
       "noteDeleted": "Note deleted"

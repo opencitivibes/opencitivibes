@@ -13,6 +13,7 @@ import { PageContainer, PageHeader } from '@/components/PageContainer';
 import { Alert } from '@/components/Alert';
 import { TrustedDeviceCard } from '@/components/TrustedDeviceCard';
 import { RevokeDeviceDialog } from '@/components/RevokeDeviceDialog';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { useToast } from '@/hooks/useToast';
 import { getDeviceToken, getStoredDeviceId } from '@/lib/deviceToken';
 import type { TrustedDevice, TrustedDeviceListResponse } from '@/types';
@@ -31,6 +32,7 @@ export default function TrustedDevicesPage() {
     isCurrentDevice: boolean;
   }>({ device: null, isCurrentDevice: false });
   const [revokingAll, setRevokingAll] = useState(false);
+  const [revokeAllDialogOpen, setRevokeAllDialogOpen] = useState(false);
 
   // Get current device token for comparison
   const currentDeviceToken = typeof window !== 'undefined' ? getDeviceToken() : null;
@@ -87,8 +89,6 @@ export default function TrustedDevicesPage() {
 
   // Handle revoke all devices
   const handleRevokeAll = async () => {
-    if (!confirm(t('security.devices.revokeAllConfirm'))) return;
-
     setRevokingAll(true);
     try {
       const result = await authAPI.revokeAllDevices();
@@ -166,7 +166,7 @@ export default function TrustedDevicesPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleRevokeAll}
+                onClick={() => setRevokeAllDialogOpen(true)}
                 loading={revokingAll}
                 disabled={revokingAll}
                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
@@ -232,6 +232,18 @@ export default function TrustedDevicesPage() {
         }}
         onConfirm={handleRevokeConfirm}
         isCurrentDevice={revokeDialog.isCurrentDevice}
+      />
+
+      {/* Revoke All Devices Confirmation Dialog */}
+      <ConfirmationDialog
+        open={revokeAllDialogOpen}
+        onOpenChange={setRevokeAllDialogOpen}
+        title={t('security.devices.revokeAllTitle')}
+        description={t('security.devices.revokeAllDescription')}
+        confirmLabel={t('security.devices.revokeAll')}
+        variant="danger"
+        onConfirm={handleRevokeAll}
+        isLoading={revokingAll}
       />
     </PageContainer>
   );

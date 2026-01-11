@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { getBilingualField } from '@/lib/i18n/helpers';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 
 export default function CategoryAdminsPage() {
   const { t, i18n, ready } = useTranslation();
@@ -30,6 +31,8 @@ export default function CategoryAdminsPage() {
   const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [adminToRemove, setAdminToRemove] = useState<number | null>(null);
 
   // Check admin access
   useEffect(() => {
@@ -117,10 +120,15 @@ export default function CategoryAdminsPage() {
     }
   };
 
-  const handleDelete = async (roleId: number) => {
-    if (!confirm(t('admin.categoryAdmins.removeConfirm'))) return;
+  const openRemoveDialog = (roleId: number) => {
+    setAdminToRemove(roleId);
+    setRemoveDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!adminToRemove) return;
     try {
-      await adminRolesAPI.delete(roleId);
+      await adminRolesAPI.delete(adminToRemove);
       toast.success(t('admin.categoryAdmins.removeSuccess'));
       fetchData();
     } catch {
@@ -232,7 +240,7 @@ export default function CategoryAdminsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
-                        onClick={() => handleDelete(role.id)}
+                        onClick={() => openRemoveDialog(role.id)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm
                           text-red-600 hover:text-red-700 hover:bg-red-50
                           dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -377,6 +385,17 @@ export default function CategoryAdminsPage() {
           </div>
         </div>
       )}
+
+      {/* Remove Admin Confirmation Dialog */}
+      <ConfirmationDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        title={t('admin.categoryAdmins.removeTitle')}
+        description={t('admin.categoryAdmins.removeDescription')}
+        confirmLabel={t('admin.categoryAdmins.remove')}
+        variant="danger"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

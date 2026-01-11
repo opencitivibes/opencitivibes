@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import type { KeywordEntry, FlagReason } from '@/types/moderation';
 import { FLAG_REASON_LABELS, getLocalizedLabel } from '@/types/moderation';
 
@@ -44,6 +45,8 @@ export default function KeywordWatchlistPage() {
   const [testText, setTestText] = useState('');
   const [testResult, setTestResult] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [keywordToDelete, setKeywordToDelete] = useState<KeywordEntry | null>(null);
 
   const loadKeywords = useCallback(async () => {
     setIsLoading(true);
@@ -102,11 +105,16 @@ export default function KeywordWatchlistPage() {
     }
   };
 
-  const handleDeleteKeyword = async (keywordId: number) => {
-    if (!confirm(t('adminModeration.watchlist.deleteConfirm'))) return;
+  const openDeleteDialog = (keyword: KeywordEntry) => {
+    setKeywordToDelete(keyword);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteKeyword = async () => {
+    if (!keywordToDelete) return;
 
     try {
-      await adminModerationAPI.deleteKeyword(keywordId);
+      await adminModerationAPI.deleteKeyword(keywordToDelete.id);
       success(t('adminModeration.watchlist.keywordDeleted'), { isRaw: true });
       loadKeywords();
     } catch (err) {
@@ -242,7 +250,7 @@ export default function KeywordWatchlistPage() {
                             variant="secondary"
                             size="sm"
                             className="text-error-600 hover:text-error-700"
-                            onClick={() => handleDeleteKeyword(keyword.id)}
+                            onClick={() => openDeleteDialog(keyword)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -378,6 +386,17 @@ export default function KeywordWatchlistPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Keyword Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={t('adminModeration.watchlist.deleteTitle')}
+        description={t('adminModeration.watchlist.deleteDescription')}
+        confirmLabel={t('common.delete')}
+        variant="danger"
+        onConfirm={handleDeleteKeyword}
+      />
     </PageContainer>
   );
 }
