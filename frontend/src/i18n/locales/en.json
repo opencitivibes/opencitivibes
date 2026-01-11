@@ -692,7 +692,8 @@
     "backToHome": "Back to Home",
     "submitting": "Submitting...",
     "characters": "characters",
-    "optional": "Optional",
+    "optional": "optional",
+    "processing": "Processing...",
     "refresh": "Refresh",
     "previous": "Previous",
     "next": "Next",
@@ -1352,6 +1353,10 @@
     "refreshData": "Refresh data",
     "tryAgainLater": "Please try again in a moment."
   },
+  "confirmDialog": {
+    "title": "Confirmation",
+    "confirm": "Confirm"
+  },
   "cookies": {
     "title": "Cookie Notice",
     "notice": "This site uses essential cookies for authentication and your preferences. We do not use any tracking or advertising cookies.",
@@ -1488,7 +1493,12 @@
       "viewIdea": "View Idea",
       "approved": "Comment approved",
       "rejected": "Comment rejected",
-      "rejectConfirm": "Are you sure you want to reject this comment?"
+      "rejectConfirm": "Are you sure you want to reject this comment?",
+      "rejectTitle": "Reject Comment",
+      "rejectDescription": "You are about to reject a comment by @{{username}}. This action will remove the comment from the moderation queue.",
+      "contentToReject": "Comment to reject",
+      "rejectionReason": "Rejection reason",
+      "rejectionReasonPlaceholder": "Why is this comment being rejected? (optional)"
     },
     "notes": {
       "title": "Admin Notes",

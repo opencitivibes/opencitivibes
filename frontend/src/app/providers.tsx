@@ -77,7 +77,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               </div>
               <ScrollToTop />
               <CommandPalette />
-              <Toaster position="top-right" expand={false} richColors closeButton duration={4000} />
+              <Toaster
+                position="bottom-center"
+                expand={true}
+                richColors
+                closeButton
+                duration={4000}
+                gap={8}
+                visibleToasts={4}
+              />
             </TooltipProvider>
           </BetaAccessGate>
         </ConfigInitializer>

@@ -692,7 +692,8 @@
     "backToHome": "Retour à l'Accueil",
     "submitting": "Soumission en cours...",
     "characters": "caractères",
-    "optional": "Optionnel",
+    "optional": "facultatif",
+    "processing": "Traitement...",
     "refresh": "Actualiser",
     "previous": "Précédent",
     "next": "Suivant",
@@ -1352,6 +1353,10 @@
     "refreshData": "Actualiser les données",
     "tryAgainLater": "Veuillez réessayer dans un moment."
   },
+  "confirmDialog": {
+    "title": "Confirmation",
+    "confirm": "Confirmer"
+  },
   "cookies": {
     "title": "Avis sur les cookies",
     "notice": "Ce site utilise des cookies essentiels pour l'authentification et vos préférences. Nous n'utilisons aucun cookie de pistage ou publicitaire.",
@@ -1488,7 +1493,12 @@
       "viewIdea": "Voir l'idée",
       "approved": "Commentaire approuvé",
       "rejected": "Commentaire rejeté",
-      "rejectConfirm": "Êtes-vous sûr de vouloir rejeter ce commentaire?"
+      "rejectConfirm": "Êtes-vous sûr de vouloir rejeter ce commentaire?",
+      "rejectTitle": "Rejeter le commentaire",
+      "rejectDescription": "Vous allez rejeter un commentaire de @{{username}}. Cette action retirera le commentaire de la file de modération.",
+      "contentToReject": "Commentaire à rejeter",
+      "rejectionReason": "Raison du rejet",
+      "rejectionReasonPlaceholder": "Pourquoi ce commentaire est-il rejeté? (facultatif)"
     },
     "notes": {
       "title": "Notes d'administration",

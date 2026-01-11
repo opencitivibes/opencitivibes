@@ -11,6 +11,7 @@ import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { RejectCommentDialog } from '@/components/admin/RejectCommentDialog';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { RichTextDisplay } from '@/components/RichTextDisplay';
@@ -25,6 +26,10 @@ export default function PendingCommentsPage() {
   const [comments, setComments] = useState<PendingComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+
+  // State for reject dialog
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [commentToReject, setCommentToReject] = useState<PendingComment | null>(null);
 
   const loadComments = useCallback(async () => {
     setIsLoading(true);
@@ -65,9 +70,15 @@ export default function PendingCommentsPage() {
     }
   };
 
-  const handleReject = async (commentId: number) => {
-    if (!confirm(t('adminModeration.comments.rejectConfirm'))) return;
+  const openRejectDialog = (comment: PendingComment) => {
+    setCommentToReject(comment);
+    setRejectDialogOpen(true);
+  };
 
+  const handleRejectConfirm = async () => {
+    if (!commentToReject) return;
+
+    const commentId = commentToReject.id;
     setProcessingIds((prev) => new Set(prev).add(commentId));
     try {
       await adminModerationAPI.rejectComment(commentId);
@@ -76,6 +87,7 @@ export default function PendingCommentsPage() {
     } catch (err) {
       console.error('Failed to reject comment:', err);
       toastError(t('toast.error'), { isRaw: true });
+      throw err; // Re-throw so the dialog knows it failed
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);
@@ -188,7 +200,7 @@ export default function PendingCommentsPage() {
                     variant="primary"
                     size="sm"
                     className="bg-error-600 hover:bg-error-700 border-error-600 text-xs sm:text-sm"
-                    onClick={() => handleReject(comment.id)}
+                    onClick={() => openRejectDialog(comment)}
                     disabled={processingIds.has(comment.id)}
                   >
                     <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
@@ -200,6 +212,16 @@ export default function PendingCommentsPage() {
           ))}
         </div>
       )}
+
+      {/* Reject Comment Dialog */}
+      <RejectCommentDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        commentContent={commentToReject?.content || ''}
+        authorUsername={commentToReject?.author_username || ''}
+        onConfirm={handleRejectConfirm}
+        isLoading={commentToReject ? processingIds.has(commentToReject.id) : false}
+      />
     </PageContainer>
   );
 }
