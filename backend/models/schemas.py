@@ -1643,6 +1643,102 @@ class TrustedDeviceListResponse(BaseModel):
 
 
 # ============================================================================
+# Password Reset Schemas (Security Audit Phase 1)
+# ============================================================================
+
+
+class PasswordResetRequest(BaseModel):
+    """Request to initiate password reset flow."""
+
+    email: EmailStr = Field(..., description="Email address for password reset")
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"email": "user@example.com"}}
+    )
+
+
+class PasswordResetRequestResponse(BaseModel):
+    """Response after requesting password reset (same for existing/non-existing emails)."""
+
+    message: str = Field(
+        default="If this email is registered, you will receive a password reset code shortly.",
+        description="Consistent message to prevent email enumeration",
+    )
+    expires_in_seconds: int = Field(
+        default=1800,
+        description="Code expiry time in seconds (30 minutes default)",
+    )
+
+
+class PasswordResetVerify(BaseModel):
+    """Request to verify password reset code."""
+
+    email: EmailStr = Field(..., description="Email address")
+    code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$",
+        description="6-digit verification code",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"email": "user@example.com", "code": "123456"}}
+    )
+
+
+class PasswordResetVerifyResponse(BaseModel):
+    """Response after successful code verification."""
+
+    message: str = Field(
+        default="Code verified. You can now reset your password.",
+        description="Success message",
+    )
+    reset_token: str = Field(..., description="Token to use for password reset")
+    expires_in_seconds: int = Field(
+        default=900,
+        description="Token expiry time in seconds (15 minutes default)",
+    )
+
+
+class PasswordResetComplete(BaseModel):
+    """Request to complete password reset with new password."""
+
+    email: EmailStr = Field(..., description="Email address")
+    reset_token: str = Field(
+        ...,
+        min_length=64,
+        max_length=64,
+        description="Reset token from verification step",
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password (min 8 characters)",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "reset_token": "abc123...",
+                "new_password": "NewSecurePassword123!",
+            }
+        }
+    )
+
+
+class PasswordResetCompleteResponse(BaseModel):
+    """Response after successful password reset."""
+
+    message: str = Field(
+        default="Password has been reset successfully. You can now log in with your new password.",
+        description="Success message",
+    )
+
+
+# ============================================================================
 # Privacy Settings Schemas (Law 25 Compliance - Phase 4)
 # ============================================================================
 

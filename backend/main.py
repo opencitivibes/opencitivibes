@@ -1429,6 +1429,11 @@ from routers import beta_router
 
 app.include_router(beta_router.router, prefix="/api")
 
+# Password reset router (Security Audit Phase 3)
+from routers import password_reset_router
+
+app.include_router(password_reset_router.router, prefix="/api")
+
 
 @app.get("/")
 def root() -> dict:

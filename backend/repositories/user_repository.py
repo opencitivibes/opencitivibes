@@ -774,3 +774,32 @@ class UserRepository(BaseRepository[db_models.User]):
             .limit(limit)
             .all()
         )
+
+    def update_password(
+        self, user_id: int, password_hash: str, increment_token_version: bool = False
+    ) -> Optional[db_models.User]:
+        """
+        Update user password.
+
+        Security Finding #17: Optionally increments token_version to invalidate
+        all existing sessions after password reset.
+
+        Args:
+            user_id: User ID
+            password_hash: New bcrypt password hash
+            increment_token_version: If True, invalidates all existing sessions
+
+        Returns:
+            Updated user if found, None otherwise
+        """
+        user = self.get_by_id(user_id)
+        if not user:
+            return None
+
+        user.hashed_password = password_hash
+
+        if increment_token_version:
+            # Increment token_version to invalidate all existing JWT tokens
+            user.token_version = (user.token_version or 0) + 1
+
+        return user
