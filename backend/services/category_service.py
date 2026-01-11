@@ -103,7 +103,7 @@ class CategoryService:
         return categories
 
     @staticmethod
-    def get_category_by_id(db: Session, category_id: int) -> db_models.Category | None:
+    def get_category_by_id(db: Session, category_id: int) -> db_models.Category:
         """
         Get category by ID.
 
@@ -112,11 +112,16 @@ class CategoryService:
             category_id: Category ID
 
         Returns:
-            Category object or None
-        """
+            Category object
 
+        Raises:
+            NotFoundException: If category does not exist
+        """
         category_repo = CategoryRepository(db)
-        return category_repo.get_by_id(category_id)
+        category = category_repo.get_by_id(category_id)
+        if category is None:
+            raise NotFoundException(f"Category with ID {category_id} not found")
+        return category
 
     @staticmethod
     def create_category(
