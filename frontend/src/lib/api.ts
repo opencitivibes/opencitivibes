@@ -77,6 +77,9 @@ import type {
   TrustedDeviceListResponse,
   TokenWithDeviceToken,
   TwoFactorLoginWithTrustRequest,
+  PasswordResetRequestResponse,
+  PasswordResetVerifyResponse,
+  PasswordResetCompleteResponse,
 } from '@/types';
 import { getDeviceToken, setDeviceToken, clearDeviceToken } from '@/lib/deviceToken';
 import type {
@@ -566,6 +569,51 @@ export const authAPI = {
    */
   clearLocalDeviceToken: (): void => {
     clearDeviceToken();
+  },
+
+  // ============================================================================
+  // Password Reset
+  // ============================================================================
+
+  /**
+   * Request a password reset code
+   * Returns same response whether email exists or not (prevents enumeration)
+   */
+  requestPasswordReset: async (email: string): Promise<PasswordResetRequestResponse> => {
+    const response = await api.post<PasswordResetRequestResponse>('/auth/password-reset/request', {
+      email,
+    });
+    return response.data;
+  },
+
+  /**
+   * Verify password reset code and get reset token
+   */
+  verifyPasswordResetCode: async (
+    email: string,
+    code: string
+  ): Promise<PasswordResetVerifyResponse> => {
+    const response = await api.post<PasswordResetVerifyResponse>('/auth/password-reset/verify', {
+      email,
+      code,
+    });
+    return response.data;
+  },
+
+  /**
+   * Complete password reset with new password
+   */
+  resetPassword: async (
+    email: string,
+    resetToken: string,
+    newPassword: string
+  ): Promise<PasswordResetCompleteResponse> => {
+    const response = await api.post<PasswordResetCompleteResponse>('/auth/password-reset/reset', {
+      email,
+      reset_token: resetToken,
+      new_password: newPassword,
+    });
+    return response.data;
   },
 };
 

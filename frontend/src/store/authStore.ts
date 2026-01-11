@@ -37,6 +37,23 @@ const initialTwoFactorState: TwoFactorState = {
   twoFactorEmail: null,
 };
 
+// Password reset state interface
+interface PasswordResetState {
+  email: string | null;
+  step: 'request' | 'verify' | 'reset' | 'success';
+  expiresAt: Date | null;
+  resetToken: string | null;
+  tokenExpiresAt: Date | null;
+}
+
+const initialPasswordResetState: PasswordResetState = {
+  email: null,
+  step: 'request',
+  expiresAt: null,
+  resetToken: null,
+  tokenExpiresAt: null,
+};
+
 /**
  * Decode JWT payload without verification (for reading expiry).
  * Validates payload structure to prevent prototype pollution and crashes.
@@ -121,6 +138,9 @@ interface AuthState {
   // 2FA state
   twoFactor: TwoFactorState;
 
+  // Password reset state
+  passwordReset: PasswordResetState;
+
   // Existing methods
   login: (email: string, password: string) => Promise<void>;
   register: (
@@ -154,6 +174,13 @@ interface AuthState {
     consentGiven?: boolean
   ) => Promise<boolean>; // Returns true if device was trusted
   clearTwoFactorState: () => void;
+
+  // Password reset methods
+  requestPasswordReset: (email: string) => Promise<number>;
+  verifyPasswordResetCode: (email: string, code: string) => Promise<void>;
+  resetPassword: (newPassword: string) => Promise<void>;
+  clearPasswordResetState: () => void;
+  clearSensitiveResetData: () => void; // For unmount cleanup (Finding #5)
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -164,6 +191,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   accountDeleted: false,
   emailLogin: initialEmailLoginState,
   twoFactor: initialTwoFactorState,
+  passwordReset: initialPasswordResetState,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
@@ -470,6 +498,96 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearTwoFactorState: () => {
     set({ twoFactor: initialTwoFactorState });
+  },
+
+  // Password Reset Methods
+  requestPasswordReset: async (email: string) => {
+    set({ isLoading: true });
+    try {
+      const response = await authAPI.requestPasswordReset(email);
+
+      const expiresAt = new Date(Date.now() + response.expires_in_seconds * 1000);
+
+      set({
+        isLoading: false,
+        passwordReset: {
+          email,
+          step: 'verify',
+          expiresAt,
+          resetToken: null,
+          tokenExpiresAt: null,
+        },
+      });
+
+      return response.expires_in_seconds;
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  verifyPasswordResetCode: async (email: string, code: string) => {
+    set({ isLoading: true });
+    try {
+      const response = await authAPI.verifyPasswordResetCode(email, code);
+
+      const tokenExpiresAt = new Date(Date.now() + response.expires_in_seconds * 1000);
+
+      set({
+        isLoading: false,
+        passwordReset: {
+          email,
+          step: 'reset',
+          expiresAt: null,
+          resetToken: response.reset_token,
+          tokenExpiresAt,
+        },
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  resetPassword: async (newPassword: string) => {
+    const { passwordReset } = get();
+    if (!passwordReset.email || !passwordReset.resetToken) {
+      throw new Error('No password reset session active');
+    }
+
+    set({ isLoading: true });
+    try {
+      await authAPI.resetPassword(passwordReset.email, passwordReset.resetToken, newPassword);
+
+      set({
+        isLoading: false,
+        passwordReset: {
+          ...initialPasswordResetState,
+          step: 'success',
+        },
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  clearPasswordResetState: () => {
+    set({ passwordReset: initialPasswordResetState });
+  },
+
+  // Security: Clear sensitive data on unmount (Finding #5)
+  clearSensitiveResetData: () => {
+    const { passwordReset } = get();
+    if (passwordReset.resetToken) {
+      set({
+        passwordReset: {
+          ...passwordReset,
+          resetToken: null,
+          tokenExpiresAt: null,
+        },
+      });
+    }
   },
 }));
 

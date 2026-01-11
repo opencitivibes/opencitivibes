@@ -14,10 +14,14 @@ import { LoginMethodSelector, type LoginMethod } from '@/components/LoginMethodS
 import { EmailLoginForm } from '@/components/EmailLoginForm';
 import { EmailCodeVerification } from '@/components/EmailCodeVerification';
 import { TwoFactorVerify } from '@/components/TwoFactorVerify';
+import { ForgotPasswordForm } from '@/components/ForgotPasswordForm';
+import { VerifyResetCodeForm } from '@/components/VerifyResetCodeForm';
+import { NewPasswordForm } from '@/components/NewPasswordForm';
 import { getSafeRedirect } from '@/lib/utils';
 import { toast } from 'sonner';
 
 type EmailLoginStep = 'form' | 'verify';
+type PasswordResetStep = 'request' | 'verify' | 'reset' | 'success';
 
 export default function SignInPage() {
   const { t } = useTranslation();
@@ -29,6 +33,9 @@ export default function SignInPage() {
   const twoFactor = useAuthStore((state) => state.twoFactor);
   const verify2FA = useAuthStore((state) => state.verify2FA);
   const clearTwoFactorState = useAuthStore((state) => state.clearTwoFactorState);
+  const passwordReset = useAuthStore((state) => state.passwordReset);
+  const requestPasswordReset = useAuthStore((state) => state.requestPasswordReset);
+  const clearPasswordResetState = useAuthStore((state) => state.clearPasswordResetState);
   const redirectUrl = getSafeRedirect(searchParams.get('redirect'));
 
   // Password login state
@@ -41,6 +48,7 @@ export default function SignInPage() {
   // Login method state
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
   const [emailLoginStep, setEmailLoginStep] = useState<EmailLoginStep>('form');
+  const [passwordResetStep, setPasswordResetStep] = useState<PasswordResetStep | null>(null);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +118,39 @@ export default function SignInPage() {
     setPassword('');
   };
 
+  // Password reset handlers
+  const handleForgotPassword = () => {
+    setPasswordResetStep('request');
+  };
+
+  const handlePasswordResetCodeSent = () => {
+    setPasswordResetStep('verify');
+  };
+
+  const handlePasswordResetCodeVerified = () => {
+    setPasswordResetStep('reset');
+  };
+
+  const handlePasswordResetSuccess = () => {
+    setPasswordResetStep('success');
+    toast.success(t('auth.passwordResetSuccess'));
+    // Return to login after a short delay
+    setTimeout(() => {
+      handleBackToLogin();
+    }, 2000);
+  };
+
+  const handleBackToLogin = () => {
+    setPasswordResetStep(null);
+    clearPasswordResetState();
+  };
+
+  const handleResendResetCode = async () => {
+    if (passwordReset.email) {
+      await requestPasswordReset(passwordReset.email);
+    }
+  };
+
   // Render 2FA verification flow
   if (twoFactor.twoFactorRequired && twoFactor.twoFactorTempToken) {
     return (
@@ -120,6 +161,62 @@ export default function SignInPage() {
           onCancel={handle2FACancel}
           onDeviceTrusted={handleDeviceTrusted}
         />
+      </PageContainer>
+    );
+  }
+
+  // Render password reset flow
+  if (passwordResetStep) {
+    return (
+      <PageContainer maxWidth="md" paddingY="xl">
+        <Card className="max-w-md mx-auto">
+          {passwordResetStep === 'request' && (
+            <ForgotPasswordForm
+              onCodeSent={handlePasswordResetCodeSent}
+              onBack={handleBackToLogin}
+            />
+          )}
+          {passwordResetStep === 'verify' && passwordReset.email && passwordReset.expiresAt && (
+            <VerifyResetCodeForm
+              email={passwordReset.email}
+              expiresAt={passwordReset.expiresAt}
+              onVerified={handlePasswordResetCodeVerified}
+              onBack={handleBackToLogin}
+              onResend={handleResendResetCode}
+            />
+          )}
+          {passwordResetStep === 'reset' && passwordReset.email && passwordReset.tokenExpiresAt && (
+            <NewPasswordForm
+              email={passwordReset.email}
+              tokenExpiresAt={passwordReset.tokenExpiresAt}
+              onSuccess={handlePasswordResetSuccess}
+              onBack={handleBackToLogin}
+            />
+          )}
+          {passwordResetStep === 'success' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-green-600 dark:text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                {t('auth.passwordResetComplete')}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('auth.redirectingToLogin')}</p>
+            </div>
+          )}
+        </Card>
       </PageContainer>
     );
   }
@@ -221,6 +318,15 @@ export default function SignInPage() {
                     />
                   </svg>
                 )}
+              </button>
+            </div>
+            <div className="mt-1 text-right">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+              >
+                {t('auth.forgotPassword')}
               </button>
             </div>
           </div>

@@ -334,6 +334,37 @@ export interface EmailLoginStatus {
   expires_in_seconds: number;
 }
 
+// Password Reset Types
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetRequestResponse {
+  message: string;
+  expires_in_seconds: number;
+}
+
+export interface PasswordResetVerify {
+  email: string;
+  code: string;
+}
+
+export interface PasswordResetVerifyResponse {
+  message: string;
+  reset_token: string;
+  expires_in_seconds: number;
+}
+
+export interface PasswordResetComplete {
+  email: string;
+  reset_token: string;
+  new_password: string;
+}
+
+export interface PasswordResetCompleteResponse {
+  message: string;
+}
+
 export interface UserManagement {
   id: number;
   email: string;
