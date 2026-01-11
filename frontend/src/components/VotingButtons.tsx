@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { voteAPI } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
 import { QualityPopover } from './QualityPopover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { VoteType, QualityType } from '@/types';
 
 interface VotingButtonsProps {
@@ -111,38 +112,44 @@ export function VotingButtons({
       )}
 
       <div className="relative">
-        <button
-          ref={upvoteRef}
-          onClick={(e) => handleVote('upvote', e)}
-          disabled={isVoting || !user}
-          aria-label={t('vote.upvote')}
-          aria-pressed={userVote === 'upvote'}
-          title={!user ? t('auth.signIn') : t('vote.upvote')}
-          className={`${baseButtonClass} ${upvoteClass} relative
-            ${isVoting || !user ? 'opacity-50 cursor-not-allowed' : ''}
-            ${voteAnimating === 'up' ? 'animate-bounce-once' : ''}`}
-          style={
-            userVote === 'upvote'
-              ? { backgroundColor: '#22c55e', color: 'white', borderColor: '#16a34a' }
-              : undefined
-          }
-        >
-          {userVote === 'upvote' && (
-            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full flex items-center justify-center ring-2 ring-success-500">
-              <Check className="w-2.5 h-2.5 text-success-600" strokeWidth={3} />
-            </span>
-          )}
-          <ThumbsUp
-            className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110
-              ${userVote === 'upvote' ? 'fill-white' : ''}`}
-            aria-hidden="true"
-          />
-          <span
-            className={`text-sm font-medium tabular-nums ${voteAnimating === 'up' ? 'animate-vote-pulse' : ''}`}
-          >
-            {upvotes}
-          </span>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              ref={upvoteRef}
+              onClick={(e) => handleVote('upvote', e)}
+              disabled={isVoting || !user}
+              aria-label={t('vote.upvote')}
+              aria-pressed={userVote === 'upvote'}
+              className={`${baseButtonClass} ${upvoteClass} relative
+                ${isVoting || !user ? 'opacity-50 cursor-not-allowed' : ''}
+                ${voteAnimating === 'up' ? 'animate-bounce-once' : ''}`}
+              style={
+                userVote === 'upvote'
+                  ? { backgroundColor: '#22c55e', color: 'white', borderColor: '#16a34a' }
+                  : undefined
+              }
+            >
+              {userVote === 'upvote' && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full flex items-center justify-center ring-2 ring-success-500">
+                  <Check className="w-2.5 h-2.5 text-success-600" strokeWidth={3} />
+                </span>
+              )}
+              <ThumbsUp
+                className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110
+                  ${userVote === 'upvote' ? 'fill-white' : ''}`}
+                aria-hidden="true"
+              />
+              <span
+                className={`text-sm font-medium tabular-nums ${voteAnimating === 'up' ? 'animate-vote-pulse' : ''}`}
+              >
+                {upvotes}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{user ? t('vote.upvote') : t('vote.signInToVote')}</p>
+          </TooltipContent>
+        </Tooltip>
         <QualityPopover
           ideaId={ideaId}
           isOpen={showQualityPopover}
@@ -152,37 +159,43 @@ export function VotingButtons({
         />
       </div>
 
-      <button
-        onClick={(e) => handleVote('downvote', e)}
-        disabled={isVoting || !user}
-        aria-label={t('vote.downvote')}
-        aria-pressed={userVote === 'downvote'}
-        title={!user ? t('auth.signIn') : t('vote.downvote')}
-        className={`${baseButtonClass} ${downvoteClass} relative
-          ${isVoting || !user ? 'opacity-50 cursor-not-allowed' : ''}
-          ${voteAnimating === 'down' ? 'animate-bounce-once' : ''}`}
-        style={
-          userVote === 'downvote'
-            ? { backgroundColor: '#ef4444', color: 'white', borderColor: '#dc2626' }
-            : undefined
-        }
-      >
-        {userVote === 'downvote' && (
-          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full flex items-center justify-center ring-2 ring-error-500">
-            <Check className="w-2.5 h-2.5 text-error-600" strokeWidth={3} />
-          </span>
-        )}
-        <ThumbsDown
-          className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110
-            ${userVote === 'downvote' ? 'fill-white' : ''}`}
-          aria-hidden="true"
-        />
-        <span
-          className={`text-sm font-medium tabular-nums ${voteAnimating === 'down' ? 'animate-vote-pulse' : ''}`}
-        >
-          {downvotes}
-        </span>
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={(e) => handleVote('downvote', e)}
+            disabled={isVoting || !user}
+            aria-label={t('vote.downvote')}
+            aria-pressed={userVote === 'downvote'}
+            className={`${baseButtonClass} ${downvoteClass} relative
+              ${isVoting || !user ? 'opacity-50 cursor-not-allowed' : ''}
+              ${voteAnimating === 'down' ? 'animate-bounce-once' : ''}`}
+            style={
+              userVote === 'downvote'
+                ? { backgroundColor: '#ef4444', color: 'white', borderColor: '#dc2626' }
+                : undefined
+            }
+          >
+            {userVote === 'downvote' && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white rounded-full flex items-center justify-center ring-2 ring-error-500">
+                <Check className="w-2.5 h-2.5 text-error-600" strokeWidth={3} />
+              </span>
+            )}
+            <ThumbsDown
+              className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110
+                ${userVote === 'downvote' ? 'fill-white' : ''}`}
+              aria-hidden="true"
+            />
+            <span
+              className={`text-sm font-medium tabular-nums ${voteAnimating === 'down' ? 'animate-vote-pulse' : ''}`}
+            >
+              {downvotes}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{user ? t('vote.downvote') : t('vote.signInToVote')}</p>
+        </TooltipContent>
+      </Tooltip>
 
       {/* Optional slot for badges/indicators */}
       {children}

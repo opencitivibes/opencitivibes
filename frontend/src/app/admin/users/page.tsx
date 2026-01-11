@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { UserManagement, UserStatistics } from '@/types';
 
 type ModalMode = 'stats' | 'delete' | null;
@@ -540,128 +541,160 @@ export default function AdminUsersPage() {
                             aria-label={t('admin.users.actions')}
                           >
                             {/* Stats - Chart icon */}
-                            <button
-                              onClick={() => handleOpenStats(u)}
-                              className="p-2 rounded-lg text-gray-500 hover:text-info-600 hover:bg-info-50
-                                       dark:text-gray-400 dark:hover:text-info-400 dark:hover:bg-info-900/30
-                                       transition-colors focus:outline-none focus:ring-2 focus:ring-info-500"
-                              title={t('admin.users.stats')}
-                              aria-label={t('admin.users.stats')}
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                />
-                              </svg>
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleOpenStats(u)}
+                                  className="p-2 rounded-lg text-gray-500 hover:text-info-600 hover:bg-info-50
+                                           dark:text-gray-400 dark:hover:text-info-400 dark:hover:bg-info-900/30
+                                           transition-colors focus:outline-none focus:ring-2 focus:ring-info-500"
+                                  aria-label={t('admin.users.stats')}
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                    />
+                                  </svg>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t('admin.users.stats')}</p>
+                              </TooltipContent>
+                            </Tooltip>
 
                             {/* Toggle Active - Power icon */}
-                            <button
-                              onClick={() => handleToggleActive(u)}
-                              disabled={isSubmitting || u.id === user.id}
-                              className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2
-                                        ${
-                                          u.is_active
-                                            ? 'text-gray-500 hover:text-warning-600 hover:bg-warning-50 dark:text-gray-400 dark:hover:text-warning-400 dark:hover:bg-warning-900/30 focus:ring-warning-500'
-                                            : 'text-gray-500 hover:text-success-600 hover:bg-success-50 dark:text-gray-400 dark:hover:text-success-400 dark:hover:bg-success-900/30 focus:ring-success-500'
-                                        }
-                                        disabled:opacity-50 disabled:cursor-not-allowed`}
-                              title={
-                                u.is_active
-                                  ? t('admin.users.deactivate')
-                                  : t('admin.users.activate')
-                              }
-                              aria-label={
-                                u.is_active
-                                  ? t('admin.users.deactivate')
-                                  : t('admin.users.activate')
-                              }
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                                />
-                              </svg>
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleToggleActive(u)}
+                                  disabled={isSubmitting || u.id === user.id}
+                                  className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2
+                                            ${
+                                              u.is_active
+                                                ? 'text-gray-500 hover:text-warning-600 hover:bg-warning-50 dark:text-gray-400 dark:hover:text-warning-400 dark:hover:bg-warning-900/30 focus:ring-warning-500'
+                                                : 'text-gray-500 hover:text-success-600 hover:bg-success-50 dark:text-gray-400 dark:hover:text-success-400 dark:hover:bg-success-900/30 focus:ring-success-500'
+                                            }
+                                            disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  aria-label={
+                                    u.is_active
+                                      ? t('admin.users.deactivate')
+                                      : t('admin.users.activate')
+                                  }
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                    />
+                                  </svg>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {u.is_active
+                                    ? t(
+                                        'admin.users.deactivateTooltip',
+                                        'Prevent user from logging in'
+                                      )
+                                    : t('admin.users.activateTooltip', 'Allow user to log in')}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
 
                             {/* Toggle Admin - Shield icon */}
-                            <button
-                              onClick={() => handleToggleAdmin(u)}
-                              disabled={isSubmitting || u.id === user.id}
-                              className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2
-                                        ${
-                                          u.is_global_admin
-                                            ? 'text-primary-500 hover:text-gray-600 hover:bg-gray-100 dark:text-primary-400 dark:hover:text-gray-300 dark:hover:bg-gray-700'
-                                            : 'text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:text-gray-400 dark:hover:text-primary-400 dark:hover:bg-primary-900/30'
-                                        }
-                                        focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed`}
-                              title={
-                                u.is_global_admin
-                                  ? t('admin.users.removeAdmin')
-                                  : t('admin.users.makeAdmin')
-                              }
-                              aria-label={
-                                u.is_global_admin
-                                  ? t('admin.users.removeAdmin')
-                                  : t('admin.users.makeAdmin')
-                              }
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill={u.is_global_admin ? 'currentColor' : 'none'}
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                                />
-                              </svg>
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleToggleAdmin(u)}
+                                  disabled={isSubmitting || u.id === user.id}
+                                  className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2
+                                            ${
+                                              u.is_global_admin
+                                                ? 'text-primary-500 hover:text-gray-600 hover:bg-gray-100 dark:text-primary-400 dark:hover:text-gray-300 dark:hover:bg-gray-700'
+                                                : 'text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:text-gray-400 dark:hover:text-primary-400 dark:hover:bg-primary-900/30'
+                                            }
+                                            focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  aria-label={
+                                    u.is_global_admin
+                                      ? t('admin.users.removeAdmin')
+                                      : t('admin.users.makeAdmin')
+                                  }
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill={u.is_global_admin ? 'currentColor' : 'none'}
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                    />
+                                  </svg>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {u.is_global_admin
+                                    ? t('admin.users.removeAdminTooltip', 'Remove admin privileges')
+                                    : t('admin.users.makeAdminTooltip', 'Grant admin privileges')}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
 
                             {/* Delete - Trash icon */}
-                            <button
-                              onClick={() => handleOpenDelete(u)}
-                              disabled={u.id === user.id}
-                              className="p-2 rounded-lg text-gray-500 hover:text-error-600 hover:bg-error-50
-                                       dark:text-gray-400 dark:hover:text-error-400 dark:hover:bg-error-900/30
-                                       transition-colors focus:outline-none focus:ring-2 focus:ring-error-500
-                                       disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={t('admin.users.delete')}
-                              aria-label={t('admin.users.delete')}
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleOpenDelete(u)}
+                                  disabled={u.id === user.id}
+                                  className="p-2 rounded-lg text-gray-500 hover:text-error-600 hover:bg-error-50
+                                           dark:text-gray-400 dark:hover:text-error-400 dark:hover:bg-error-900/30
+                                           transition-colors focus:outline-none focus:ring-2 focus:ring-error-500
+                                           disabled:opacity-50 disabled:cursor-not-allowed"
+                                  aria-label={t('admin.users.delete')}
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {t(
+                                    'admin.users.deleteTooltip',
+                                    'Permanently delete user and all their content'
+                                  )}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </td>
                       </tr>

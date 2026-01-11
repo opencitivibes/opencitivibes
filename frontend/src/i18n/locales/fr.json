@@ -192,8 +192,11 @@
     "categoryRequired": "La catégorie est requise",
     "descriptionRequired": "La description est requise",
     "titlePlaceholder": "Entrez un titre clair et concis",
+    "titleHelp": "Un titre clair et concis aide les autres à comprendre votre idée rapidement. Limitez-vous à 100 caractères.",
     "descriptionHelp": "Décrivez précisément comment votre idée améliorera la vie des résidents",
+    "descriptionHelpExtended": "Décrivez votre idée en détail: le problème qu'elle résout, comment elle fonctionne, et les avantages pour les citoyens de {{config.entityName}}.",
     "descriptionPlaceholder": "Décrivez votre idée en détail...",
+    "tagsHelp": "Les étiquettes aident à catégoriser votre idée. Choisissez jusqu'à 5 étiquettes pertinentes ou créez-en de nouvelles. Appuyez sur Entrée pour ajouter.",
     "submitDescription": "Partagez vos idées novatrices pour améliorer {{config.entityName}}",
     "noPendingIdeas": "Pas d'idées en attente",
     "allIdeasReviewed": "Toutes les idées ont été revues!",
@@ -566,6 +569,11 @@
       "makeAdmin": "Rendre Admin",
       "removeAdmin": "Retirer Admin",
       "delete": "Supprimer",
+      "deactivateTooltip": "Empêcher l'utilisateur de se connecter",
+      "activateTooltip": "Permettre à l'utilisateur de se connecter",
+      "makeAdminTooltip": "Accorder les privilèges d'administrateur",
+      "removeAdminTooltip": "Retirer les privilèges d'administrateur",
+      "deleteTooltip": "Supprimer définitivement l'utilisateur et tout son contenu",
       "userStatistics": "Statistiques de l'Utilisateur",
       "deleteUser": "Supprimer l'Utilisateur",
       "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer cet utilisateur? Toutes leurs idées, votes et commentaires seront également supprimés.",
@@ -662,6 +670,13 @@
         "newUsers": "Nouveaux utilisateurs (7 jours)"
       }
     }
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Tapez une commande ou recherchez...",
+    "noResults": "Aucun résultat trouvé.",
+    "navigation": "Navigation",
+    "admin": "Administration",
+    "account": "Compte"
   },
   "common": {
     "loading": "Chargement...",

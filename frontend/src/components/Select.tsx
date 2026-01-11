@@ -1,5 +1,15 @@
 import React, { useId } from 'react';
 
+/**
+ * @deprecated Use Shadcn Select component from @/components/ui/select instead.
+ * This component is kept for backward compatibility but should be migrated.
+ *
+ * Migration guide:
+ * - Replace `<Select>` with CategorySelect for category dropdowns
+ * - For other selects, use Shadcn Select directly
+ * - See: frontend/src/components/CategorySelect.tsx for example
+ */
+
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: boolean;
   success?: boolean;

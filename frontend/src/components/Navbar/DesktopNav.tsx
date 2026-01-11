@@ -90,6 +90,28 @@ export function DesktopNav({
         </>
       )}
 
+      {/* Command Palette Shortcut */}
+      <button
+        onClick={() => {
+          const event = new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true });
+          document.dispatchEvent(event);
+        }}
+        className="hidden lg:flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+        title={t('commandPalette.searchPlaceholder', 'Type a command or search...')}
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+        <span className="text-xs">
+          <kbd className="font-sans">⌘</kbd>K
+        </span>
+      </button>
+
       {/* Settings Cluster: Language + Theme */}
       <div className="flex items-center space-x-1 pb-1">
         <LanguageSelector />

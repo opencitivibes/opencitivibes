@@ -21,6 +21,8 @@ os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["CORS_ORIGINS"] = '["http://localhost:3000"]'
 os.environ["ADMIN_EMAIL"] = "admin@test.com"
 os.environ["ADMIN_PASSWORD"] = "TestAdmin123!"
+# Generate a valid Fernet key for TOTP encryption (base64-encoded 32 bytes)
+os.environ["TOTP_ENCRYPTION_KEY"] = "P0LYDU58oBna0xcCcu-fgUPuS02-HzzJRarCoSA1ySA="
 
 from authentication.auth import create_access_token, get_password_hash  # noqa: E402
 from repositories.database import Base, get_db  # noqa: E402

@@ -192,8 +192,11 @@
     "categoryRequired": "Category is required",
     "descriptionRequired": "Description is required",
     "titlePlaceholder": "Enter a clear and concise title",
+    "titleHelp": "A clear, concise title helps others understand your idea quickly. Keep it under 100 characters.",
     "descriptionHelp": "Be specific and explain how your idea will benefit {{config.entityName}}",
+    "descriptionHelpExtended": "Describe your idea in detail: the problem it solves, how it works, and the benefits for {{config.entityName}} citizens.",
     "descriptionPlaceholder": "Describe your idea in detail...",
+    "tagsHelp": "Tags help categorize your idea. Choose up to 5 relevant tags or create new ones. Press Enter to add.",
     "submitDescription": "Share your innovative ideas to improve {{config.entityName}}",
     "noPendingIdeas": "No pending ideas",
     "allIdeasReviewed": "All ideas have been reviewed!",
@@ -566,6 +569,11 @@
       "makeAdmin": "Make Admin",
       "removeAdmin": "Remove Admin",
       "delete": "Delete",
+      "deactivateTooltip": "Prevent user from logging in",
+      "activateTooltip": "Allow user to log in",
+      "makeAdminTooltip": "Grant admin privileges",
+      "removeAdminTooltip": "Remove admin privileges",
+      "deleteTooltip": "Permanently delete user and all their content",
       "userStatistics": "User Statistics",
       "deleteUser": "Delete User",
       "deleteConfirmation": "Are you sure you want to delete this user? All their ideas, votes, and comments will also be deleted.",
@@ -662,6 +670,13 @@
         "newUsers": "New Users (7 days)"
       }
     }
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "navigation": "Navigation",
+    "admin": "Administration",
+    "account": "Account"
   },
   "common": {
     "loading": "Loading...",

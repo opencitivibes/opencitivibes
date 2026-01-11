@@ -6,10 +6,10 @@ import { useConfigTranslation } from '@/hooks/useConfigTranslation';
 import { useAuthStore } from '@/store/authStore';
 import { ideaAPI, categoryAPI } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
-import { useLocalizedField } from '@/hooks/useLocalizedField';
 import { Input } from '@/components/Input';
 import { RichTextEditor } from '@/components/RichTextEditor';
-import { Select } from '@/components/Select';
+import { CategorySelect } from '@/components/CategorySelect';
+import { FormHelp } from '@/components/FormHelp';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
 import { PageContainer, PageHeader } from '@/components/PageContainer';
@@ -24,7 +24,6 @@ export default function SubmitIdeaPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const { success } = useToast();
-  const { getCategoryName } = useLocalizedField();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -166,46 +165,77 @@ export default function SubmitIdeaPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Input
-            type="text"
-            label={`${t('ideas.title')} *`}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            maxLength={200}
-            placeholder={t('ideas.titlePlaceholder', 'Enter a clear and concise title')}
-            helperText={`${title.length}/200 ${t('common.characters', 'characters')}`}
-          />
-
-          <Select
-            label={`${t('ideas.category')} *`}
-            value={categoryId}
-            onChange={(e) => setCategoryId(Number(e.target.value))}
-            required
-          >
-            <option value="">{t('ideas.selectCategory', 'Select a category')}</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {getCategoryName(category)}
-              </option>
-            ))}
-          </Select>
-
-          <RichTextEditor
-            label={`${t('ideas.description')} *`}
-            value={description}
-            onChange={setDescription}
-            placeholder="editor.placeholder"
-            helperText={tc('ideas.descriptionHelp')}
-            minHeight={200}
-            maxLength={10000}
-            showCharacterCount
-          />
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('ideas.title')} *
+              </label>
+              <FormHelp
+                content={t(
+                  'ideas.titleHelp',
+                  'A clear, concise title helps others understand your idea quickly. Keep it under 100 characters.'
+                )}
+              />
+            </div>
+            <Input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              maxLength={200}
+              placeholder={t('ideas.titlePlaceholder', 'Enter a clear and concise title')}
+              helperText={`${title.length}/200 ${t('common.characters', 'characters')}`}
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t('ideas.tags')} ({t('common.optional')})
+              {t('ideas.category')} *
             </label>
+            <CategorySelect
+              categories={categories}
+              value={categoryId ? Number(categoryId) : undefined}
+              onValueChange={(val) => setCategoryId(val || 0)}
+              placeholder={t('ideas.selectCategory', 'Select a category')}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('ideas.description')} *
+              </label>
+              <FormHelp
+                content={t(
+                  'ideas.descriptionHelpExtended',
+                  'Describe your idea in detail: the problem it solves, how it works, and the benefits for Montreal citizens.'
+                )}
+              />
+            </div>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="editor.placeholder"
+              helperText={tc('ideas.descriptionHelp')}
+              minHeight={200}
+              maxLength={10000}
+              showCharacterCount
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('ideas.tags')} ({t('common.optional')})
+              </label>
+              <FormHelp
+                content={t(
+                  'ideas.tagsHelp',
+                  'Tags help categorize your idea. Choose up to 5 relevant tags or create new ones. Press Enter to add.'
+                )}
+              />
+            </div>
             <TagInput
               selectedTags={tags}
               onTagsChange={setTags}

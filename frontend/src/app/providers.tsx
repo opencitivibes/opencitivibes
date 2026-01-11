@@ -10,10 +10,12 @@ import ScrollToTop from '@/components/ScrollToTop';
 import { BetaAccessGate } from '@/components/BetaAccessGate';
 import { useAuthStore } from '@/store/authStore';
 import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { PlatformConfigProvider, usePlatformConfig } from '@/lib/config/PlatformConfigProvider';
 import { initializeTheme, markThemeInitialized } from '@/lib/theme/themeConfig';
 import { initializeSiteConfig } from '@/lib/seo/metadata';
 import { DynamicHead } from '@/components/DynamicHead';
+import { CommandPalette } from '@/components/CommandPalette';
 
 /**
  * Initializes theme and SEO config from platform configuration.
@@ -66,14 +68,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <PlatformConfigProvider>
         <ConfigInitializer>
           <BetaAccessGate>
-            <LoadingBar />
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <CollapsibleFooter />
-            </div>
-            <ScrollToTop />
-            <Toaster position="top-right" expand={false} richColors closeButton duration={4000} />
+            <TooltipProvider delayDuration={300}>
+              <LoadingBar />
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <CollapsibleFooter />
+              </div>
+              <ScrollToTop />
+              <CommandPalette />
+              <Toaster position="top-right" expand={false} richColors closeButton duration={4000} />
+            </TooltipProvider>
           </BetaAccessGate>
         </ConfigInitializer>
       </PlatformConfigProvider>
