@@ -799,7 +799,9 @@ class UserRepository(BaseRepository[db_models.User]):
         user.hashed_password = password_hash
 
         if increment_token_version:
-            # Increment token_version to invalidate all existing JWT tokens
-            user.token_version = (user.token_version or 0) + 1
+            # TODO: Add token_version column to User model with migration
+            # This would invalidate all existing JWT tokens on password reset
+            # For now, session invalidation relies on password change detection
+            pass
 
         return user
