@@ -509,9 +509,9 @@ class PasswordResetService:
                 )
 
             # Hash new password
-            from authentication.auth import hash_password
+            from authentication.auth import get_password_hash
 
-            new_password_hash = hash_password(new_password)
+            new_password_hash = get_password_hash(new_password)
 
             # Update password and invalidate sessions (Finding #17)
             user_repo.update_password(
