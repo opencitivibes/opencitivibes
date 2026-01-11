@@ -92,7 +92,8 @@ const nextConfig = {
 
   // Allow dev server access from local network IPs (mobile testing)
   // Format: hostname or hostname:port (NO protocol prefix)
-  allowedDevOrigins: ['192.168.0.65', '192.168.0.65:3000'],
+  // Set ALLOWED_DEV_ORIGINS env var as comma-separated list, e.g.: "192.168.1.100,192.168.1.100:3000"
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(',').filter(Boolean) || [],
 
   // Image optimization for Core Web Vitals
   images: {

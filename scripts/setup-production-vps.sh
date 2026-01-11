@@ -24,12 +24,13 @@
 
 set -e
 
-# Configuration - customize these for your instance
+# Configuration - CUSTOMIZE THESE FOR YOUR INSTANCE
+# ================================================
 DEPLOY_DIR="/home/ubuntu/opencitivibes"
-DOMAIN="ideespourmontreal.opencitivibes.ovh"
-CONTAINER_PREFIX="idees-mtl"
-ADMIN_EMAIL="ideespourmontreal@opencitivibes.ovh"
-INSTANCE_NAME="Idées pour Montréal"
+DOMAIN="${DOMAIN:-your-domain.example.com}"           # Set via: DOMAIN=example.com bash setup-production-vps.sh
+CONTAINER_PREFIX="${CONTAINER_PREFIX:-your-prefix}"   # Container naming prefix
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"       # Admin email address
+INSTANCE_NAME="${INSTANCE_NAME:-Your Instance Name}"  # Display name for the instance
 
 echo "=== OpenCitiVibes Production Setup ==="
 echo "Deploy directory: $DEPLOY_DIR"
@@ -49,6 +50,7 @@ echo "[2/10] Generating secrets..."
 SECRET_KEY=$(openssl rand -hex 32)
 TOTP_ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
+ADMIN_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
 
 # Create .env file
 echo "[3/10] Creating .env file..."
@@ -96,9 +98,9 @@ POSTGRES_DB=opencitivibes
 PLATFORM_CONFIG_PATH=./config/platform.config.json
 
 # Admin credentials (used on first startup to seed the database)
-# IMPORTANT: Change the password before deploying!
+# Password is auto-generated - save it securely!
 ADMIN_EMAIL=${ADMIN_EMAIL}
-ADMIN_PASSWORD=ChangeThisPassword2024!
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # Timezone
 TZ=America/Montreal
@@ -129,12 +131,19 @@ SMTP_FROM_NAME=${INSTANCE_NAME}
 # Mail domain for Postfix DKIM signing
 MAIL_DOMAIN=opencitivibes.ovh
 
-# Monitoring - Sentry error tracking
-SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
-NEXT_PUBLIC_SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
+# Monitoring - Sentry error tracking (optional - get DSN from sentry.io)
+# SENTRY_DSN=https://your-sentry-dsn@sentry.io/project
+# NEXT_PUBLIC_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project
 EOF
 
-echo "  - Generated POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:0:8}..."
+echo ""
+echo "============================================"
+echo "GENERATED CREDENTIALS (save these!):"
+echo "  Admin Email: ${ADMIN_EMAIL}"
+echo "  Admin Password: ${ADMIN_PASSWORD}"
+echo "  PostgreSQL Password: ${POSTGRES_PASSWORD:0:8}... (full in .env)"
+echo "============================================"
+echo ""
 
 # Download docker-compose.yml from repo and patch for production
 echo "[4/10] Downloading and configuring docker-compose.yml..."

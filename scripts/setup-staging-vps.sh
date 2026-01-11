@@ -19,12 +19,13 @@
 
 set -e
 
-# Configuration - customize these for your instance
+# Configuration - CUSTOMIZE THESE FOR YOUR INSTANCE
+# ================================================
 DEPLOY_DIR="/home/ubuntu/opencitivibes"
-DOMAIN="ideespourmontreal.opencitivibes.ovh"
-CONTAINER_PREFIX="idees-mtl"
-ADMIN_EMAIL="ideespourmontreal@opencitivibes.ovh"
-INSTANCE_NAME="Idées pour Montréal"
+DOMAIN="${DOMAIN:-your-domain.example.com}"           # Set via: DOMAIN=example.com bash setup-staging-vps.sh
+CONTAINER_PREFIX="${CONTAINER_PREFIX:-your-prefix}"   # Container naming prefix
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"       # Admin email address
+INSTANCE_NAME="${INSTANCE_NAME:-Your Instance Name}"  # Display name for the instance
 
 echo "=== OpenCitiVibes Staging Setup ==="
 echo "Deploy directory: $DEPLOY_DIR"
@@ -38,10 +39,11 @@ echo "[1/9] Creating directory structure..."
 mkdir -p "$DEPLOY_DIR"/{nginx/conf.d,config/images,backend/config,ntfy,ssl,instance-assets}
 cd "$DEPLOY_DIR"
 
-# Generate secret key and TOTP encryption key
+# Generate secret key, TOTP encryption key, and admin password
 echo "[2/9] Generating secret keys..."
 SECRET_KEY=$(openssl rand -hex 32)
 TOTP_ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+ADMIN_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
 
 # Create .env file
 echo "[3/9] Creating .env file..."
@@ -82,9 +84,9 @@ LOG_LEVEL=INFO
 ENVIRONMENT=staging
 
 # Admin credentials (used on first startup to seed the database)
-# IMPORTANT: Change the password before deploying!
+# Password is auto-generated - save it securely!
 ADMIN_EMAIL=${ADMIN_EMAIL}
-ADMIN_PASSWORD=ChangeThisPassword2024!
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 
 # Timezone
 TZ=America/Montreal
@@ -116,10 +118,18 @@ SMTP_FROM_NAME=${INSTANCE_NAME}
 # Mail domain for Postfix DKIM signing
 MAIL_DOMAIN=opencitivibes.ovh
 
-# Monitoring - Sentry error tracking
-SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
-NEXT_PUBLIC_SENTRY_DSN=https://1eb724b5fca28813d484960716ee1f57@o4510607799549952.ingest.de.sentry.io/4510607890382928
+# Monitoring - Sentry error tracking (optional - get DSN from sentry.io)
+# SENTRY_DSN=https://your-sentry-dsn@sentry.io/project
+# NEXT_PUBLIC_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project
 EOF
+
+echo ""
+echo "============================================"
+echo "GENERATED ADMIN CREDENTIALS (save these!):"
+echo "  Email: ${ADMIN_EMAIL}"
+echo "  Password: ${ADMIN_PASSWORD}"
+echo "============================================"
+echo ""
 
 # Download docker-compose.yml from repo and patch for staging
 echo "[4/9] Downloading and configuring docker-compose.yml..."
