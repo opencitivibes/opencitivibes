@@ -161,7 +161,7 @@ typing-inspection==0.4.2
     #   backend
     #   pydantic
     #   pydantic-settings
-urllib3==2.6.2
+urllib3==2.6.3
     # via sentry-sdk
 uvicorn==0.38.0
     # via backend
