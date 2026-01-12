@@ -684,3 +684,63 @@ class PasswordValidationException(PasswordResetException):
     ):
         super().__init__(message)
         self.requirements = requirements or []
+
+
+# ============================================================================
+# Parental Consent Exceptions (Law 25 Minors)
+# ============================================================================
+
+
+class ParentalConsentException(DomainException):
+    """Base exception for parental consent errors."""
+
+    pass
+
+
+class ConsentTokenNotFoundException(ParentalConsentException):
+    """Raised when consent token is not found."""
+
+    def __init__(self, message: str = "Consent request not found."):
+        super().__init__(message)
+
+
+class ConsentTokenExpiredException(ParentalConsentException):
+    """Raised when consent token has expired."""
+
+    def __init__(self, message: str = "This consent request has expired."):
+        super().__init__(message)
+
+
+class ConsentAlreadyProcessedException(ParentalConsentException):
+    """Raised when trying to process already-processed consent."""
+
+    def __init__(
+        self, message: str = "This consent request has already been processed."
+    ):
+        super().__init__(message)
+
+
+class ConsentNotRequiredException(ParentalConsentException):
+    """Raised when user doesn't require parental consent."""
+
+    def __init__(self, message: str = "This user does not require parental consent."):
+        super().__init__(message)
+
+
+class ConsentAlreadyGrantedException(ParentalConsentException):
+    """Raised when consent has already been granted."""
+
+    def __init__(self, message: str = "Parental consent has already been granted."):
+        super().__init__(message)
+
+
+class ConsentResendRateLimitException(ParentalConsentException):
+    """Raised when too many consent resend requests."""
+
+    def __init__(
+        self,
+        message: str = "Too many consent request resends. Please try again later.",
+        retry_after_hours: int = 24,
+    ):
+        super().__init__(message)
+        self.retry_after_hours = retry_after_hours

@@ -18,17 +18,16 @@ import repositories.db_models as db_models
 
 @pytest.fixture
 def registration_data() -> dict:
-    """Valid registration data."""
+    """Valid registration data for adult user."""
     return {
         "email": "newuser@example.com",
         "username": "newuser",
         "password": "TestPassword123!",
         "display_name": "New User",
-        "consent_terms_accepted": True,
-        "consent_privacy_accepted": True,
-        "consent_terms_version": "1.0",
-        "consent_privacy_version": "1.0",
+        "accepts_terms": True,
+        "accepts_privacy_policy": True,
         "marketing_consent": False,
+        "date_of_birth": "1990-01-01T00:00:00",
     }
 
 
@@ -39,10 +38,14 @@ def test_register_new_user(client: TestClient, registration_data: dict):
     assert response.status_code in [200, 422]
     if response.status_code == 200:
         data = response.json()
-        assert data["email"] == registration_data["email"]
-        assert data["username"] == registration_data["username"]
-        assert data["display_name"] == registration_data["display_name"]
-        assert "hashed_password" not in data
+        # New response format: {"user": {...}, "requires_parental_consent": bool}
+        assert "user" in data
+        user = data["user"]
+        assert user["email"] == registration_data["email"]
+        assert user["username"] == registration_data["username"]
+        assert user["display_name"] == registration_data["display_name"]
+        assert "hashed_password" not in user
+        assert data["requires_parental_consent"] is False  # Adult user
 
 
 def test_register_duplicate_email(

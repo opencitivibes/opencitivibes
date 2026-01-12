@@ -426,7 +426,9 @@ class TestRegisterUser:
     """Tests for UserService.register_user."""
 
     def test_register_user(self, db_session: Session):
-        """Should register new user."""
+        """Should register new adult user (no consent required)."""
+        from datetime import datetime
+
         user_data = schemas.UserCreate(
             email="newuser@test.com",
             username="newuser",
@@ -434,15 +436,70 @@ class TestRegisterUser:
             password="SecurePass123!",
             accepts_terms=True,
             accepts_privacy_policy=True,
+            date_of_birth=datetime(1990, 1, 1),
         )
 
-        result = UserService.register_user(db_session, user_data)
+        user, needs_consent = UserService.register_user(db_session, user_data)
 
-        assert result.email == "newuser@test.com"
-        assert result.username == "newuser"
+        assert user.email == "newuser@test.com"
+        assert user.username == "newuser"
+        assert not needs_consent  # Adult user
+        assert user.is_active  # Adults are active immediately
+
+    def test_register_minor_user(self, db_session: Session):
+        """Should register minor user with consent required."""
+        from datetime import datetime, timedelta
+
+        # Create a date that makes user 12 years old
+        dob = datetime.now() - timedelta(days=12 * 365)
+
+        user_data = schemas.UserCreate(
+            email="minor@test.com",
+            username="minoruser",
+            display_name="Minor User",
+            password="SecurePass123!",
+            accepts_terms=True,
+            accepts_privacy_policy=True,
+            date_of_birth=dob,
+            parent_email="parent@test.com",
+        )
+
+        user, needs_consent = UserService.register_user(db_session, user_data)
+
+        assert user.email == "minor@test.com"
+        assert needs_consent  # Minor requires consent
+        assert not user.is_active  # Minors start inactive
+        assert user.is_minor
+        assert user.requires_parental_consent
+        assert user.parental_consent_status == "pending"
+
+    def test_register_minor_without_parent_email(self, db_session: Session):
+        """Should reject minor registration without parent email."""
+        from datetime import datetime, timedelta
+
+        # Create a date that makes user 10 years old
+        dob = datetime.now() - timedelta(days=10 * 365)
+
+        user_data = schemas.UserCreate(
+            email="minor2@test.com",
+            username="minor2",
+            display_name="Minor",
+            password="SecurePass123!",
+            accepts_terms=True,
+            accepts_privacy_policy=True,
+            date_of_birth=dob,
+            parent_email=None,
+        )
+
+        with pytest.raises(ValidationException) as exc_info:
+            UserService.register_user(db_session, user_data)
+
+        assert "Parent/guardian email is required" in str(exc_info.value)
 
     def test_register_user_weak_password(self, db_session: Session):
         """Should reject weak password."""
+        from datetime import datetime
+
         user_data = schemas.UserCreate(
             email="weak@test.com",
             username="weakpass",
@@ -450,6 +507,7 @@ class TestRegisterUser:
             password="weak",
             accepts_terms=True,
             accepts_privacy_policy=True,
+            date_of_birth=datetime(1990, 1, 1),
         )
 
         with pytest.raises(ValidationException):
@@ -459,6 +517,8 @@ class TestRegisterUser:
         self, db_session: Session, test_user: db_models.User
     ):
         """Should reject duplicate email."""
+        from datetime import datetime
+
         user_data = schemas.UserCreate(
             email=test_user.email,
             username="unique",
@@ -466,6 +526,7 @@ class TestRegisterUser:
             password="SecurePass123!",
             accepts_terms=True,
             accepts_privacy_policy=True,
+            date_of_birth=datetime(1990, 1, 1),
         )
 
         with pytest.raises(ValidationException) as exc_info:
@@ -477,6 +538,8 @@ class TestRegisterUser:
         self, db_session: Session, test_user: db_models.User
     ):
         """Should reject duplicate username."""
+        from datetime import datetime
+
         user_data = schemas.UserCreate(
             email="unique@test.com",
             username=test_user.username,
@@ -484,6 +547,7 @@ class TestRegisterUser:
             password="SecurePass123!",
             accepts_terms=True,
             accepts_privacy_policy=True,
+            date_of_birth=datetime(1990, 1, 1),
         )
 
         with pytest.raises(ValidationException) as exc_info:

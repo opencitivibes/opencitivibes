@@ -837,3 +837,511 @@ The {app_name} Team"""
 </div>
 </body></html>"""
         return text, html_content
+
+    # =========================================================================
+    # Parental Consent Emails (Law 25 Minors)
+    # =========================================================================
+
+    @classmethod
+    def send_parental_consent_request(
+        cls,
+        to_email: str,
+        child_username: str,
+        child_email: str,
+        child_age: int,
+        consent_url: str,
+        expires_at: datetime,
+        language: str = "fr",
+    ) -> bool:
+        """
+        Send parental consent request email.
+
+        Law 25 Compliance: This email contains all required information
+        about data collection and parent rights.
+
+        Args:
+            to_email: Parent's email address
+            child_username: Child's username
+            child_email: Child's email address
+            child_age: Child's age at registration
+            consent_url: URL for parent to grant/deny consent
+            expires_at: When the consent request expires
+            language: Preferred language (en/fr)
+
+        Returns:
+            True if email sent successfully
+        """
+        app_name = cls._get_instance_name()
+
+        # Sanitize inputs
+        safe_username = cls._sanitize_display_name(child_username)
+        safe_email = cls._escape_template_vars(child_email)
+        expires_str = expires_at.strftime("%Y-%m-%d %H:%M UTC")
+
+        if language == "fr":
+            subject = f"Demande de consentement parental - {app_name}"
+            text_body, html_body = cls._build_consent_request_french(
+                safe_username, safe_email, child_age, consent_url, expires_str, app_name
+            )
+        else:
+            subject = f"Parental consent request - {app_name}"
+            text_body, html_body = cls._build_consent_request_english(
+                safe_username, safe_email, child_age, consent_url, expires_str, app_name
+            )
+
+        provider = get_email_provider()
+        return cls._send_with_retry(
+            lambda: provider.send(to_email, subject, html_body, text_body)
+        )
+
+    @staticmethod
+    def _build_consent_request_french(
+        child_username: str,
+        child_email: str,
+        child_age: int,
+        consent_url: str,
+        expires_str: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build French parental consent request email."""
+        text = f"""Bonjour,
+
+Un enfant de {child_age} ans souhaite créer un compte sur {app_name}.
+
+INFORMATIONS DU COMPTE:
+- Nom d'utilisateur: {child_username}
+- Courriel: {child_email}
+- Âge: {child_age} ans
+
+DONNÉES COLLECTÉES:
+- Adresse courriel, nom d'utilisateur
+- Idées, commentaires et votes soumis
+- Horodatages d'activité
+- Adresses IP (sécurité seulement)
+
+FINALITÉS:
+- Participation civique et communautaire
+- Modération et sécurité de la plateforme
+
+CONSERVATION:
+Les données sont conservées pendant la durée de vie du compte + 30 jours après suppression.
+
+VOS DROITS (Loi 25):
+- Accéder aux données de l'enfant (via le compte ou export)
+- Rectifier les informations inexactes
+- Supprimer le compte à tout moment
+- Retirer votre consentement (entraîne la suppression du compte)
+
+VOTRE DÉCISION:
+Pour autoriser ou refuser ce compte, veuillez visiter:
+{consent_url}
+
+Cette demande expire le {expires_str}.
+
+Si vous n'avez pas demandé cette création de compte, vous pouvez ignorer ce courriel.
+
+Cordialement,
+L'équipe {app_name}"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+<h2 style="color: #333;">Demande de consentement parental</h2>
+<p>Bonjour,</p>
+<p>Un enfant de <strong>{child_age} ans</strong> souhaite créer un compte sur <strong>{app_name}</strong>.</p>
+
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #555;">Informations du compte</h3>
+<p><strong>Nom d'utilisateur:</strong> {child_username}</p>
+<p><strong>Courriel:</strong> {child_email}</p>
+<p><strong>Âge:</strong> {child_age} ans</p>
+</div>
+
+<div style="background: #fff3cd; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #ffc107;">
+<h3 style="margin-top: 0; color: #856404;">Données collectées</h3>
+<ul style="margin-bottom: 0;">
+<li>Adresse courriel et nom d'utilisateur</li>
+<li>Idées, commentaires et votes soumis</li>
+<li>Horodatages d'activité</li>
+<li>Adresses IP (pour la sécurité uniquement)</li>
+</ul>
+</div>
+
+<div style="background: #e8f4fd; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #0066cc;">Vos droits (Loi 25)</h3>
+<ul style="margin-bottom: 0;">
+<li>Accéder aux données de l'enfant</li>
+<li>Rectifier les informations inexactes</li>
+<li>Supprimer le compte à tout moment</li>
+<li>Retirer votre consentement</li>
+</ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+<a href="{consent_url}" style="display: inline-block; background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Prendre ma décision</a>
+</div>
+
+<p style="color: #666; font-size: 14px; text-align: center;">
+Cette demande expire le <strong>{expires_str}</strong>
+</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+<p style="color: #999; font-size: 12px;">
+Si vous n'avez pas demandé cette création de compte, vous pouvez ignorer ce courriel.<br>
+Cordialement, L'équipe {app_name}
+</p>
+</body></html>"""
+        return text, html
+
+    @staticmethod
+    def _build_consent_request_english(
+        child_username: str,
+        child_email: str,
+        child_age: int,
+        consent_url: str,
+        expires_str: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build English parental consent request email."""
+        text = f"""Hello,
+
+A {child_age}-year-old child wishes to create an account on {app_name}.
+
+ACCOUNT INFORMATION:
+- Username: {child_username}
+- Email: {child_email}
+- Age: {child_age} years old
+
+DATA COLLECTED:
+- Email address, username
+- Ideas, comments, and votes submitted
+- Activity timestamps
+- IP addresses (for security only)
+
+PURPOSES:
+- Civic engagement and community participation
+- Moderation and platform safety
+
+RETENTION:
+Data is retained for the lifetime of the account + 30 days after deletion.
+
+YOUR RIGHTS (Law 25):
+- Access your child's data (via account or export)
+- Rectify inaccurate information
+- Delete the account at any time
+- Withdraw your consent (results in account deletion)
+
+YOUR DECISION:
+To authorize or refuse this account, please visit:
+{consent_url}
+
+This request expires on {expires_str}.
+
+If you did not request this account creation, you can ignore this email.
+
+Best regards,
+The {app_name} Team"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+<h2 style="color: #333;">Parental Consent Request</h2>
+<p>Hello,</p>
+<p>A <strong>{child_age}-year-old child</strong> wishes to create an account on <strong>{app_name}</strong>.</p>
+
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #555;">Account Information</h3>
+<p><strong>Username:</strong> {child_username}</p>
+<p><strong>Email:</strong> {child_email}</p>
+<p><strong>Age:</strong> {child_age} years old</p>
+</div>
+
+<div style="background: #fff3cd; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #ffc107;">
+<h3 style="margin-top: 0; color: #856404;">Data Collected</h3>
+<ul style="margin-bottom: 0;">
+<li>Email address and username</li>
+<li>Ideas, comments, and votes submitted</li>
+<li>Activity timestamps</li>
+<li>IP addresses (for security only)</li>
+</ul>
+</div>
+
+<div style="background: #e8f4fd; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #0066cc;">Your Rights (Law 25)</h3>
+<ul style="margin-bottom: 0;">
+<li>Access your child's data</li>
+<li>Rectify inaccurate information</li>
+<li>Delete the account at any time</li>
+<li>Withdraw your consent</li>
+</ul>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+<a href="{consent_url}" style="display: inline-block; background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Make My Decision</a>
+</div>
+
+<p style="color: #666; font-size: 14px; text-align: center;">
+This request expires on <strong>{expires_str}</strong>
+</p>
+
+<hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+<p style="color: #999; font-size: 12px;">
+If you did not request this account creation, you can ignore this email.<br>
+Best regards, The {app_name} Team
+</p>
+</body></html>"""
+        return text, html
+
+    @classmethod
+    def send_consent_granted_notification(
+        cls,
+        to_email: str,
+        child_username: str,
+        language: str = "fr",
+    ) -> bool:
+        """
+        Send confirmation email when consent is granted.
+
+        Args:
+            to_email: Parent's email address
+            child_username: Child's username
+            language: Preferred language (en/fr)
+
+        Returns:
+            True if email sent successfully
+        """
+        app_name = cls._get_instance_name()
+        safe_username = cls._sanitize_display_name(child_username)
+
+        if language == "fr":
+            subject = f"Consentement accordé - {app_name}"
+            text_body, html_body = cls._build_consent_granted_french(
+                safe_username, app_name
+            )
+        else:
+            subject = f"Consent granted - {app_name}"
+            text_body, html_body = cls._build_consent_granted_english(
+                safe_username, app_name
+            )
+
+        provider = get_email_provider()
+        return cls._send_with_retry(
+            lambda: provider.send(to_email, subject, html_body, text_body)
+        )
+
+    @staticmethod
+    def _build_consent_granted_french(
+        child_username: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build French consent granted email."""
+        text = f"""Bonjour,
+
+Vous avez accordé votre consentement parental pour le compte de {child_username} sur {app_name}.
+
+Le compte est maintenant actif et l'enfant peut utiliser la plateforme.
+
+RAPPEL DE VOS DROITS:
+- Vous pouvez accéder aux données du compte à tout moment
+- Vous pouvez demander la suppression du compte
+- Vous pouvez retirer votre consentement (cela supprimera le compte)
+
+Si vous avez des questions, n'hésitez pas à nous contacter.
+
+Cordialement,
+L'équipe {app_name}"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #10b981;">Consentement accordé</h2>
+<p>Bonjour,</p>
+<p>Vous avez accordé votre consentement parental pour le compte de <strong>{child_username}</strong> sur <strong>{app_name}</strong>.</p>
+
+<div style="background: #ecfdf5; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #10b981;">
+<p style="margin: 0; color: #059669; font-weight: bold;">
+Le compte est maintenant actif.
+</p>
+</div>
+
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #555;">Rappel de vos droits</h3>
+<ul>
+<li>Accéder aux données du compte à tout moment</li>
+<li>Demander la suppression du compte</li>
+<li>Retirer votre consentement</li>
+</ul>
+</div>
+
+<p style="color: #666; font-size: 14px;">
+Cordialement,<br>L'équipe {app_name}
+</p>
+</body></html>"""
+        return text, html
+
+    @staticmethod
+    def _build_consent_granted_english(
+        child_username: str,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build English consent granted email."""
+        text = f"""Hello,
+
+You have granted parental consent for the account of {child_username} on {app_name}.
+
+The account is now active and the child can use the platform.
+
+REMINDER OF YOUR RIGHTS:
+- You can access the account data at any time
+- You can request account deletion
+- You can withdraw your consent (this will delete the account)
+
+If you have any questions, please contact us.
+
+Best regards,
+The {app_name} Team"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #10b981;">Consent Granted</h2>
+<p>Hello,</p>
+<p>You have granted parental consent for the account of <strong>{child_username}</strong> on <strong>{app_name}</strong>.</p>
+
+<div style="background: #ecfdf5; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #10b981;">
+<p style="margin: 0; color: #059669; font-weight: bold;">
+The account is now active.
+</p>
+</div>
+
+<div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+<h3 style="margin-top: 0; color: #555;">Reminder of Your Rights</h3>
+<ul>
+<li>Access the account data at any time</li>
+<li>Request account deletion</li>
+<li>Withdraw your consent</li>
+</ul>
+</div>
+
+<p style="color: #666; font-size: 14px;">
+Best regards,<br>The {app_name} Team
+</p>
+</body></html>"""
+        return text, html
+
+    @classmethod
+    def send_consent_denied_notification(
+        cls,
+        to_email: str,
+        child_username: str,
+        grace_period_days: int = 30,
+        language: str = "fr",
+    ) -> bool:
+        """
+        Send notification when consent is denied.
+
+        Args:
+            to_email: Parent's email address
+            child_username: Child's username
+            grace_period_days: Days before account deletion
+            language: Preferred language (en/fr)
+
+        Returns:
+            True if email sent successfully
+        """
+        app_name = cls._get_instance_name()
+        safe_username = cls._sanitize_display_name(child_username)
+
+        if language == "fr":
+            subject = f"Consentement refusé - {app_name}"
+            text_body, html_body = cls._build_consent_denied_french(
+                safe_username, grace_period_days, app_name
+            )
+        else:
+            subject = f"Consent denied - {app_name}"
+            text_body, html_body = cls._build_consent_denied_english(
+                safe_username, grace_period_days, app_name
+            )
+
+        provider = get_email_provider()
+        return cls._send_with_retry(
+            lambda: provider.send(to_email, subject, html_body, text_body)
+        )
+
+    @staticmethod
+    def _build_consent_denied_french(
+        child_username: str,
+        grace_period_days: int,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build French consent denied email."""
+        text = f"""Bonjour,
+
+Vous avez refusé le consentement parental pour le compte de {child_username} sur {app_name}.
+
+Le compte restera inactif et sera supprimé dans {grace_period_days} jours.
+
+Si vous changez d'avis, vous pouvez nous contacter avant cette date.
+
+Cordialement,
+L'équipe {app_name}"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #dc2626;">Consentement refusé</h2>
+<p>Bonjour,</p>
+<p>Vous avez refusé le consentement parental pour le compte de <strong>{child_username}</strong> sur <strong>{app_name}</strong>.</p>
+
+<div style="background: #fef2f2; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #dc2626;">
+<p style="margin: 0; color: #991b1b;">
+Le compte restera inactif et sera <strong>supprimé dans {grace_period_days} jours</strong>.
+</p>
+</div>
+
+<p>Si vous changez d'avis, vous pouvez nous contacter avant cette date.</p>
+
+<p style="color: #666; font-size: 14px;">
+Cordialement,<br>L'équipe {app_name}
+</p>
+</body></html>"""
+        return text, html
+
+    @staticmethod
+    def _build_consent_denied_english(
+        child_username: str,
+        grace_period_days: int,
+        app_name: str,
+    ) -> tuple[str, str]:
+        """Build English consent denied email."""
+        text = f"""Hello,
+
+You have denied parental consent for the account of {child_username} on {app_name}.
+
+The account will remain inactive and will be deleted in {grace_period_days} days.
+
+If you change your mind, you can contact us before that date.
+
+Best regards,
+The {app_name} Team"""
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<h2 style="color: #dc2626;">Consent Denied</h2>
+<p>Hello,</p>
+<p>You have denied parental consent for the account of <strong>{child_username}</strong> on <strong>{app_name}</strong>.</p>
+
+<div style="background: #fef2f2; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #dc2626;">
+<p style="margin: 0; color: #991b1b;">
+The account will remain inactive and will be <strong>deleted in {grace_period_days} days</strong>.
+</p>
+</div>
+
+<p>If you change your mind, you can contact us before that date.</p>
+
+<p style="color: #666; font-size: 14px;">
+Best regards,<br>The {app_name} Team
+</p>
+</body></html>"""
+        return text, html

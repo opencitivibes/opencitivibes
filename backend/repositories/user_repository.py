@@ -2,7 +2,7 @@
 User repository for database operations.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -804,4 +804,88 @@ class UserRepository(BaseRepository[db_models.User]):
             # For now, session invalidation relies on password change detection
             pass
 
+        return user
+
+    # =========================================================================
+    # Parental Consent Methods (Law 25 Compliance)
+    # =========================================================================
+
+    def get_pending_consent_users(self) -> List[db_models.User]:
+        """
+        Get all users with pending parental consent.
+
+        Law 25 Compliance: Used to track minors awaiting parental approval.
+
+        Returns:
+            List of users with pending parental consent status
+        """
+        return (
+            self.db.query(db_models.User)
+            .filter(
+                db_models.User.parental_consent_status == "pending",
+                db_models.User.is_active.is_(False),
+            )
+            .order_by(db_models.User.created_at.desc())
+            .all()
+        )
+
+    def get_expired_consent_users(self, days: int = 7) -> List[db_models.User]:
+        """
+        Get users whose consent request expired.
+
+        Law 25 Compliance: Identifies accounts where parental consent
+        was not received within the allowed timeframe.
+
+        Args:
+            days: Number of days after which consent request is considered expired
+
+        Returns:
+            List of users with expired pending consent
+        """
+        from datetime import timedelta
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        return (
+            self.db.query(db_models.User)
+            .filter(
+                db_models.User.parental_consent_status == "pending",
+                db_models.User.created_at < cutoff,
+            )
+            .order_by(db_models.User.created_at.asc())
+            .all()
+        )
+
+    def update_consent_status(
+        self,
+        user: db_models.User,
+        status: str,
+        granted_at: Optional[datetime] = None,
+        proof_id: Optional[str] = None,
+    ) -> db_models.User:
+        """
+        Update user's parental consent status.
+
+        Law 25 Compliance: Records consent decisions for audit trail.
+
+        Args:
+            user: User to update
+            status: New consent status (pending, granted, denied, expired)
+            granted_at: Timestamp when consent was granted (if applicable)
+            proof_id: Reference to consent proof document (if applicable)
+
+        Returns:
+            Updated user
+        """
+        user.parental_consent_status = status
+        if granted_at:
+            user.parental_consent_granted_at = granted_at
+        if proof_id:
+            user.parental_consent_proof_id = proof_id
+
+        # If consent is granted, activate the user account
+        if status == "granted":
+            user.is_active = True
+
+        self.commit()
+        self.refresh(user)
         return user

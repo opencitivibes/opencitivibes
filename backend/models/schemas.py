@@ -44,6 +44,13 @@ class UserCreate(UserBase):
     marketing_consent: bool = Field(
         default=False, description="Optional: User opts into marketing communications"
     )
+    # Law 25 Minors Compliance
+    date_of_birth: datetime = Field(
+        ..., description="User date of birth for age verification (Law 25)"
+    )
+    parent_email: Optional[EmailStr] = Field(
+        default=None, description="Parent/guardian email (required if user is under 14)"
+    )
 
 
 class UserLogin(BaseModel):
@@ -61,6 +68,20 @@ class User(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RegistrationResponse(BaseModel):
+    """Response for user registration (Law 25 compliance)."""
+
+    user: User
+    requires_parental_consent: bool = Field(
+        default=False,
+        description="True if user is under 14 and requires parental consent",
+    )
+    message: Optional[str] = Field(
+        default=None,
+        description="Status message (e.g., parental consent email sent)",
+    )
 
 
 # User Profile Management Schemas
@@ -2521,3 +2542,140 @@ class BetaStatusResponse(BaseModel):
 
     beta_mode_enabled: bool = Field(description="Whether beta mode is active")
     has_access: bool = Field(description="Whether user has beta access")
+
+
+# ============================================================================
+# Parental Consent Schemas (Law 25 Compliance - Minors Protection)
+# ============================================================================
+
+
+class ParentalConsentStatus(str, Enum):
+    """Parental consent status values."""
+
+    NOT_REQUIRED = "not_required"  # User >= 14 at registration
+    PENDING = "pending"  # User < 14, waiting for parent response
+    GRANTED = "granted"  # Parent approved account
+    DENIED = "denied"  # Parent denied account
+    EXPIRED = "expired"  # Consent request expired (no parent action)
+
+
+class ParentalConsentTokenCreate(BaseModel):
+    """Schema for creating a parental consent token."""
+
+    pending_user_id: int = Field(..., description="ID of user awaiting consent")
+    parent_email: EmailStr = Field(..., description="Parent/guardian email")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"pending_user_id": 123, "parent_email": "parent@example.com"}
+        }
+    )
+
+
+class ParentalConsentTokenResponse(BaseModel):
+    """Response schema for consent token creation."""
+
+    id: int
+    pending_user_id: int
+    parent_email: str
+    created_at: datetime
+    expires_at: datetime
+    expires_in_days: int = Field(default=7, description="Days until token expires")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ParentalConsentVerification(BaseModel):
+    """Request schema for verifying/responding to parental consent."""
+
+    token: str = Field(..., description="Consent token from email link")
+    decision: str = Field(
+        ...,
+        pattern="^(granted|denied)$",
+        description="Parent decision: 'granted' or 'denied'",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"token": "abc123...", "decision": "granted"}}
+    )
+
+
+class ParentalConsentVerificationResponse(BaseModel):
+    """Response schema after parent verifies consent."""
+
+    success: bool
+    decision: str = Field(description="The decision made: 'granted' or 'denied'")
+    message: str
+    user_id: int = Field(description="ID of the user affected")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ParentalConsentLogCreate(BaseModel):
+    """Schema for creating a parental consent log entry."""
+
+    user_id: int = Field(..., description="User this log entry relates to")
+    action: str = Field(
+        ...,
+        description="Action: request_sent, consent_granted, consent_denied, consent_expired",
+    )
+    parent_email: EmailStr = Field(..., description="Parent/guardian email")
+    token_id: Optional[int] = Field(
+        default=None, description="Related consent token ID"
+    )
+    ip_address: Optional[str] = Field(default=None, description="IP address")
+    user_agent: Optional[str] = Field(default=None, description="User agent")
+    notes: Optional[str] = Field(default=None, description="Additional notes")
+
+
+class ParentalConsentLogResponse(BaseModel):
+    """Response schema for parental consent log entry."""
+
+    id: int
+    user_id: int
+    action: str
+    parent_email: str
+    token_id: Optional[int] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MinorUserStatus(BaseModel):
+    """Status information for a minor user's parental consent."""
+
+    user_id: int
+    is_minor: bool
+    requires_parental_consent: bool
+    parental_consent_status: str
+    parent_email: Optional[str] = None
+    parental_consent_granted_at: Optional[datetime] = None
+    can_access_platform: bool = Field(
+        description="True if consent is not required or has been granted"
+    )
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConsentDetailsResponse(BaseModel):
+    """Response for token verification - displays consent request details to parent."""
+
+    child_username: str
+    child_email: str
+    child_age: Optional[int] = None
+    child_display_name: Optional[str] = None
+    requested_at: datetime
+    expires_at: datetime
+    parent_email: str
+    data_collected: List[str] = Field(
+        description="List of data types collected (Law 25 disclosure)"
+    )
+    data_purposes: List[str] = Field(
+        description="Purposes for data collection (Law 25 disclosure)"
+    )
+    retention_period: str = Field(
+        description="Data retention period (Law 25 disclosure)"
+    )
+    parent_rights: List[str] = Field(description="Parent's rights under Law 25")
+
+    model_config = ConfigDict(from_attributes=True)

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Trans, useTranslation } from 'react-i18next';
-import { Shield, Info, FileText } from 'lucide-react';
+import { Shield, Info, FileText, AlertCircle, Calendar, Mail } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
@@ -12,6 +12,20 @@ import { Alert } from '@/components/Alert';
 import { PageContainer } from '@/components/PageContainer';
 import { Card } from '@/components/Card';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import {
+  calculateAge,
+  isMinorRequiringConsent,
+  formatDateForInput,
+  getMinDateOfBirth,
+  getMaxDateOfBirth,
+  parseDateString,
+} from '@/utils/age';
+
+/** Success state for minors awaiting parental consent */
+interface PendingConsentState {
+  userId: number;
+  parentEmail: string;
+}
 
 export default function SignUpPage() {
   const { t } = useTranslation();
@@ -19,20 +33,51 @@ export default function SignUpPage() {
   const register = useAuthStore((state) => state.register);
   const errorRef = useRef<HTMLDivElement>(null);
 
+  // Basic form fields
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Law 25 minors protection fields
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
+  const [isMinor, setIsMinor] = useState(false);
+
+  // Official request fields
   const [requestsOfficial, setRequestsOfficial] = useState(false);
   const [officialTitleRequest, setOfficialTitleRequest] = useState('');
+
+  // Form state
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Success state for minors
+  const [pendingConsent, setPendingConsent] = useState<PendingConsentState | null>(null);
 
   // Law 25 consent fields
   const [acceptsTerms, setAcceptsTerms] = useState(false);
   const [acceptsPrivacy, setAcceptsPrivacy] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+
+  // Date constraints for the date picker
+  const minDate = formatDateForInput(getMinDateOfBirth());
+  const maxDate = formatDateForInput(getMaxDateOfBirth());
+
+  // Calculate age when date of birth changes
+  useEffect(() => {
+    if (dateOfBirth) {
+      const dob = parseDateString(dateOfBirth);
+      if (dob) {
+        setIsMinor(isMinorRequiringConsent(dob));
+      } else {
+        setIsMinor(false);
+      }
+    } else {
+      setIsMinor(false);
+    }
+  }, [dateOfBirth]);
 
   // Scroll to error when it appears
   useEffect(() => {
@@ -44,6 +89,37 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate date of birth
+    if (!dateOfBirth) {
+      setError(t('validation.dateOfBirthRequired'));
+      return;
+    }
+
+    const dob = parseDateString(dateOfBirth);
+    if (!dob) {
+      setError(t('validation.invalidDateOfBirth'));
+      return;
+    }
+
+    // Show age for validation
+    const age = calculateAge(dob);
+    if (age < 0 || age > 150) {
+      setError(t('validation.invalidDateOfBirth'));
+      return;
+    }
+
+    // Validate parent email for minors
+    if (isMinor) {
+      if (!parentEmail) {
+        setError(t('validation.parentEmailRequired'));
+        return;
+      }
+      if (parentEmail.toLowerCase() === email.toLowerCase()) {
+        setError(t('validation.parentEmailDifferent'));
+        return;
+      }
+    }
 
     // Validate consent checkboxes
     if (!acceptsTerms) {
@@ -66,9 +142,22 @@ export default function SignUpPage() {
         acceptsTerms,
         acceptsPrivacy,
         marketingConsent,
+        dateOfBirth,
+        isMinor ? parentEmail : undefined,
         requestsOfficial,
         officialTitleRequest
       );
+
+      // Handle parental consent required
+      if (result.requiresParentalConsent) {
+        setPendingConsent({
+          userId: result.pendingConsentId || 0,
+          parentEmail: result.parentEmail || parentEmail,
+        });
+        return;
+      }
+
+      // Standard registration flow
       if (result.requestedOfficial) {
         router.push('/signup/pending-official');
       } else {
@@ -89,6 +178,43 @@ export default function SignUpPage() {
       setIsLoading(false);
     }
   };
+
+  // If parental consent is pending, show success message
+  if (pendingConsent) {
+    return (
+      <PageContainer maxWidth="md" paddingY="xl">
+        <Card className="max-w-md mx-auto">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              {t('signup.pendingConsent.title')}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {t('signup.pendingConsent.message', { parentEmail: pendingConsent.parentEmail })}
+            </p>
+
+            <Alert variant="info" className="mb-6 text-left">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">{t('signup.pendingConsent.checkInbox')}</p>
+              </div>
+            </Alert>
+
+            <div className="space-y-3">
+              <Link
+                href="/"
+                className="block w-full px-4 py-2.5 text-center bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              >
+                {t('signup.goToHome')}
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer maxWidth="md" paddingY="xl">
@@ -133,6 +259,78 @@ export default function SignUpPage() {
             placeholder={t('auth.displayNamePlaceholder')}
             helperText={t('auth.displayNameHelp')}
           />
+
+          {/* Date of Birth - Law 25 requirement */}
+          <div>
+            <label
+              htmlFor="dateOfBirth"
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              <Calendar className="w-4 h-4" />
+              {t('auth.dateOfBirth')}
+              <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              id="dateOfBirth"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              required
+              min={minDate}
+              max={maxDate}
+              aria-describedby="dateOfBirthHelp"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+            <p id="dateOfBirthHelp" className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+              {t('auth.dateOfBirthHelp')}
+            </p>
+          </div>
+
+          {/* Parental Consent Alert - shown when user is under 14 */}
+          {isMinor && (
+            <div
+              className="p-4 border border-amber-200 dark:border-amber-700 rounded-xl bg-amber-50 dark:bg-amber-900/20"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {t('signup.parentalConsentRequired')}
+                  </h3>
+                  <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                    {t('signup.parentalConsentExplanation')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Parent Email Field */}
+              <div className="mt-4">
+                <label
+                  htmlFor="parentEmail"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  {t('auth.parentEmail')}
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="parentEmail"
+                  value={parentEmail}
+                  onChange={(e) => setParentEmail(e.target.value)}
+                  required={isMinor}
+                  aria-describedby="parentEmailHelp"
+                  placeholder="parent@email.com"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <p id="parentEmailHelp" className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+                  {t('auth.parentEmailHelp')}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

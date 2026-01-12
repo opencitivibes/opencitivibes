@@ -151,9 +151,16 @@ interface AuthState {
     acceptsTerms: boolean,
     acceptsPrivacyPolicy: boolean,
     marketingConsent: boolean,
+    dateOfBirth: string,
+    parentEmail?: string,
     requestsOfficialStatus?: boolean,
     officialTitleRequest?: string
-  ) => Promise<{ requestedOfficial: boolean }>;
+  ) => Promise<{
+    requestedOfficial: boolean;
+    requiresParentalConsent: boolean;
+    pendingConsentId?: number;
+    parentEmail?: string;
+  }>;
   logout: () => void;
   fetchUser: () => Promise<void>;
   clearSessionExpired: () => void;
@@ -243,12 +250,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     acceptsTerms: boolean,
     acceptsPrivacyPolicy: boolean,
     marketingConsent: boolean,
+    dateOfBirth: string,
+    parentEmail?: string,
     requestsOfficialStatus?: boolean,
     officialTitleRequest?: string
   ) => {
     set({ isLoading: true });
     try {
-      await authAPI.register({
+      const registerResponse = await authAPI.register({
         email,
         username,
         display_name: displayName,
@@ -256,10 +265,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         accepts_terms: acceptsTerms,
         accepts_privacy_policy: acceptsPrivacyPolicy,
         marketing_consent: marketingConsent,
+        date_of_birth: dateOfBirth,
+        parent_email: parentEmail,
         requests_official_status: requestsOfficialStatus,
         official_title_request: requestsOfficialStatus ? officialTitleRequest : null,
       });
-      // Auto-login after registration
+
+      // If parental consent is required, don't auto-login - account is pending
+      if (registerResponse.requires_parental_consent) {
+        set({ isLoading: false });
+        return {
+          requestedOfficial: requestsOfficialStatus || false,
+          requiresParentalConsent: true,
+          pendingConsentId: registerResponse.pending_consent_id,
+          parentEmail: parentEmail,
+        };
+      }
+
+      // Auto-login after registration (only for non-minor users)
       const tokenResponse = await authAPI.login({ username: email, password });
 
       // Newly registered users can't have 2FA enabled, so this should always be a token response
@@ -284,7 +307,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       set({ user, isLoading: false });
-      return { requestedOfficial: requestsOfficialStatus || false };
+      return {
+        requestedOfficial: requestsOfficialStatus || false,
+        requiresParentalConsent: false,
+      };
     } catch (error) {
       set({ isLoading: false });
       throw error;

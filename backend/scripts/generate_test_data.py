@@ -1265,6 +1265,16 @@ def create_qualities(session, categories):
     return qualities + category_specific
 
 
+def random_adult_birth_date() -> datetime:
+    """Generate a random birth date for an adult (18-65 years old)."""
+    today = datetime.now()
+    # Age between 18 and 65
+    age_years = random.randint(18, 65)
+    age_days = random.randint(0, 364)
+    birth_date = today - timedelta(days=age_years * 365 + age_days)
+    return birth_date
+
+
 def create_users(session, password_map: dict):
     """Create users with various roles."""
     users = []
@@ -1304,6 +1314,11 @@ def create_users(session, password_map: dict):
             show_avatar=True,
             show_activity=True,
             show_join_date=True,
+            # Law 25 Minors Compliance (adults only for admins)
+            date_of_birth=random_adult_birth_date(),
+            is_minor=False,
+            requires_parental_consent=False,
+            parental_consent_status="not_required",
         )
         session.add(user)
         users.append(user)
@@ -1344,6 +1359,11 @@ def create_users(session, password_map: dict):
             show_avatar=True,
             show_activity=True,
             show_join_date=True,
+            # Law 25 Minors Compliance (adults only for admins)
+            date_of_birth=random_adult_birth_date(),
+            is_minor=False,
+            requires_parental_consent=False,
+            parental_consent_status="not_required",
         )
         session.add(user)
         users.append(user)
@@ -1423,6 +1443,11 @@ def create_users(session, password_map: dict):
             show_avatar=random.random() > 0.15,  # 85% show
             show_activity=random.random() > 0.2,  # 80% show
             show_join_date=random.random() > 0.1,  # 90% show
+            # Law 25 Minors Compliance (adults only for regular users)
+            date_of_birth=random_adult_birth_date(),
+            is_minor=False,
+            requires_parental_consent=False,
+            parental_consent_status="not_required",
         )
         session.add(user)
         users.append(user)
