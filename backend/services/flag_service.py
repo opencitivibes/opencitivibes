@@ -300,9 +300,7 @@ class FlagService:
         user_repo = UserRepository(db)
         user = user_repo.get_by_id(author_id)
         if user:
-            user.total_flags_received = (
-                user.total_flags_received or 0
-            ) + 1
+            user.total_flags_received = (user.total_flags_received or 0) + 1
             user_repo.commit()
 
     @staticmethod

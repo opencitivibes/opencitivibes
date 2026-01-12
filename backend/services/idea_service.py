@@ -1023,9 +1023,7 @@ class IdeaService:
                 int(user.id),
             )
             admin_category_ids: list[int] = [
-                role.category_id
-                for role in admin_roles
-                if role.category_id is not None
+                role.category_id for role in admin_roles if role.category_id is not None
             ]
             pending_ideas = [
                 idea for idea in pending_ideas if idea.category_id in admin_category_ids
@@ -1074,9 +1072,7 @@ class IdeaService:
             raise InsufficientPermissionsException("Not enough permissions")
 
         category_ids: list[int] = [
-            role.category_id
-            for role in admin_roles
-            if role.category_id is not None
+            role.category_id for role in admin_roles if role.category_id is not None
         ]
         return repo.count_pending_ideas(category_ids)
 
@@ -1111,9 +1107,7 @@ class IdeaService:
             raise NotFoundException("Idea not found")
 
         # Check admin permissions for this category
-        category_id = (
-            int(idea.category_id) if idea.category_id else None
-        )
+        category_id = int(idea.category_id) if idea.category_id else None
 
         if not bool(user.is_global_admin):
             if category_id is None:
