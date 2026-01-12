@@ -155,7 +155,17 @@
     "passwordResetSuccess": "Mot de passe réinitialisé avec succès!",
     "passwordResetComplete": "Réinitialisation terminée",
     "redirectingToLogin": "Redirection vers la connexion...",
-    "passwordStrength.medium": "Moyen"
+    "passwordStrength.medium": "Moyen",
+    "dateOfBirth": "Date de naissance",
+    "dateOfBirthHelp": "Requis pour la vérification de l'âge (Loi 25)",
+    "parentEmail": "Courriel du parent/tuteur",
+    "parentEmailHelp": "Un courriel sera envoyé pour obtenir le consentement"
+  },
+  "validation": {
+    "dateOfBirthRequired": "La date de naissance est requise",
+    "invalidDateOfBirth": "Date de naissance invalide",
+    "parentEmailRequired": "Le courriel du parent est requis pour les moins de 14 ans",
+    "parentEmailDifferent": "Le courriel du parent doit être différent du vôtre"
   },
   "ideas": {
     "leaderboard": "Classement des Idées",
@@ -1165,6 +1175,77 @@
       "viewIdea": "Voir l'idée"
     }
   },
+  "consent": {
+    "pageTitle": "Consentement parental",
+    "subtitle": "Autorisation requise pour le compte de votre enfant",
+    "verifying": "Vérification du lien...",
+    "dateLocale": "fr-CA",
+    "childInfo": "Informations sur l'enfant",
+    "username": "Nom d'utilisateur",
+    "email": "Courriel",
+    "age": "Âge à l'inscription",
+    "yearsOld": "{{age}} ans",
+    "dataCollected": "Données collectées",
+    "dataCollectedItems": {
+      "email": "Courriel, nom d'utilisateur, nom d'affichage",
+      "content": "Idées, commentaires et votes soumis",
+      "activity": "Horodatages d'activité",
+      "security": "Adresses IP (sécurité uniquement)"
+    },
+    "purposeTitle": "Objectif et conservation",
+    "purpose": "Objectif de la collecte",
+    "purposeText": "Engagement civique et participation communautaire",
+    "retention": "Période de conservation",
+    "retentionText": "Durée du compte + 30 jours après suppression",
+    "parentRights": "Vos droits en tant que parent",
+    "rights": {
+      "access": "Accéder aux données de l'enfant",
+      "rectify": "Rectifier les informations inexactes",
+      "delete": "Supprimer le compte à tout moment",
+      "withdraw": "Retirer le consentement (entraîne la suppression)"
+    },
+    "expiresIn": "Ce lien expire le {{date}}",
+    "grantButton": "J'autorise ce compte",
+    "denyButton": "Je refuse l'autorisation",
+    "grantDescription": "Cliquez pour autoriser le compte de votre enfant",
+    "denyDescription": "Cliquez pour refuser l'autorisation et planifier la suppression du compte",
+    "denyConfirm": {
+      "title": "Confirmer le refus",
+      "message": "Êtes-vous sûr de vouloir refuser? Le compte sera supprimé dans 30 jours et toutes les données seront effacées.",
+      "confirm": "Oui, refuser",
+      "cancel": "Annuler"
+    },
+    "success": {
+      "granted": {
+        "title": "Consentement accordé",
+        "message": "Le compte de votre enfant est maintenant actif.",
+        "messageWithName": "Le compte de {{username}} est maintenant actif.",
+        "step1": "Le compte de votre enfant est maintenant actif",
+        "step2": "Votre enfant peut se connecter avec ses identifiants",
+        "step3": "Vous pouvez demander la suppression du compte à tout moment"
+      },
+      "denied": {
+        "title": "Consentement refusé",
+        "message": "Le compte sera supprimé dans 30 jours.",
+        "step1": "Le compte restera inactif",
+        "step2": "Toutes les données seront supprimées dans 30 jours",
+        "step3": "Votre enfant sera notifié par courriel"
+      },
+      "whatNext": "Que se passe-t-il ensuite?",
+      "closeWindow": "Fermer cette page"
+    },
+    "error": {
+      "invalid": "Lien de consentement invalide",
+      "invalidMessage": "Ce lien n'est pas valide. Vérifiez que vous avez utilisé le lien complet de votre courriel.",
+      "expired": "Ce lien a expiré",
+      "expiredMessage": "Le lien de consentement a expiré. Demandez à votre enfant de se réinscrire pour recevoir un nouveau lien.",
+      "used": "Ce lien a déjà été utilisé",
+      "usedMessage": "Une décision a déjà été prise pour cette demande de consentement.",
+      "resendInfo": "Si le lien a expiré, votre enfant peut s'inscrire à nouveau pour générer une nouvelle demande de consentement.",
+      "goHome": "Retour à l'accueil",
+      "contactSupport": "Si vous avez des questions, contactez-nous."
+    }
+  },
   "moderation": {
     "flag": "Signaler",
     "flagged": "Signalé",
@@ -1304,7 +1385,14 @@
     "acceptsPrivacy": "J'accepte la <privacyLink>Politique de confidentialité</privacyLink>",
     "acceptsPrivacyRequired": "Vous devez accepter la politique de confidentialité",
     "marketingConsent": "J'accepte de recevoir des communications optionnelles (nouveautés, mises à jour)",
-    "marketingOptional": "Optionnel"
+    "marketingOptional": "Optionnel",
+    "parentalConsentRequired": "Consentement parental requis",
+    "parentalConsentExplanation": "Les utilisateurs de moins de 14 ans nécessitent l'accord d'un parent conformément à la Loi 25 du Québec.",
+    "pendingConsent": {
+      "title": "Compte créé - En attente du consentement",
+      "message": "Un courriel a été envoyé à {{parentEmail}}. Votre compte sera activé après approbation parentale.",
+      "checkInbox": "Demandez à votre parent de vérifier sa boîte de réception."
+    }
   },
   "officials": {
     "dashboard": "Tableau de bord des élus",

@@ -15,6 +15,7 @@ import type {
   VoteCreate,
   LoginRequest,
   RegisterRequest,
+  RegisterResponse,
   TokenResponse,
   UserManagement,
   UserUpdate,
@@ -80,6 +81,8 @@ import type {
   PasswordResetRequestResponse,
   PasswordResetVerifyResponse,
   PasswordResetCompleteResponse,
+  ParentalConsentDetails,
+  ConsentActionResponse,
 } from '@/types';
 import { getDeviceToken, setDeviceToken, clearDeviceToken } from '@/lib/deviceToken';
 import type {
@@ -308,8 +311,8 @@ api.interceptors.response.use(
 
 // Auth APIs
 export const authAPI = {
-  register: async (data: RegisterRequest): Promise<User> => {
-    const response = await api.post('/auth/register', data);
+  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
+    const response = await api.post<RegisterResponse>('/auth/register', data);
     return response.data;
   },
 
@@ -1729,6 +1732,48 @@ export const betaAPI = {
    */
   getStatus: async (): Promise<BetaStatusResponse> => {
     const response = await api.get<BetaStatusResponse>('/beta/status');
+    return response.data;
+  },
+};
+
+// =============================================================================
+// Parental Consent API (Law 25 Minors Protection)
+// =============================================================================
+
+export const parentalConsentAPI = {
+  /**
+   * Verify a parental consent token and get consent details.
+   * Used when a parent clicks the consent link from email.
+   */
+  verify: async (token: string): Promise<ParentalConsentDetails> => {
+    const response = await api.get<ParentalConsentDetails>(`/parental-consent/verify/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Grant parental consent for a minor's account.
+   * Activates the child's account.
+   */
+  grant: async (token: string): Promise<ConsentActionResponse> => {
+    const response = await api.post<ConsentActionResponse>(`/parental-consent/grant/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Deny parental consent for a minor's account.
+   * Schedules the account for deletion.
+   */
+  deny: async (token: string): Promise<ConsentActionResponse> => {
+    const response = await api.post<ConsentActionResponse>(`/parental-consent/deny/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Request a new consent email to be sent.
+   * Used when the original token has expired.
+   */
+  resend: async (userId: number): Promise<ConsentActionResponse> => {
+    const response = await api.post<ConsentActionResponse>(`/parental-consent/resend/${userId}`);
     return response.data;
   },
 };

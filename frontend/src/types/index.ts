@@ -307,6 +307,20 @@ export interface RegisterRequest {
   accepts_terms: boolean;
   accepts_privacy_policy: boolean;
   marketing_consent?: boolean;
+  // Law 25 minors protection fields
+  date_of_birth: string; // ISO date string YYYY-MM-DD
+  parent_email?: string; // Required if user is under 14
+}
+
+/**
+ * Response from registration endpoint
+ * Includes requires_parental_consent for Law 25 minors
+ */
+export interface RegisterResponse {
+  user: User;
+  requires_parental_consent: boolean;
+  pending_consent_id?: number;
+  message: string;
 }
 
 export interface TokenResponse {
@@ -1044,3 +1058,36 @@ export interface ScoreAnomaliesResponse {
   anomalies: ScoreAnomaly[];
   count: number;
 }
+
+// ============================================================================
+// Parental Consent Types (Law 25 Minors Protection)
+// ============================================================================
+
+/** Consent details returned when verifying a parental consent token */
+export interface ParentalConsentDetails {
+  child_username: string;
+  child_email: string;
+  child_age: number | null;
+  child_display_name?: string;
+  parent_email: string;
+  requested_at: string;
+  expires_at: string;
+  data_collected: string[];
+  data_purposes: string[];
+  retention_period: string;
+  parent_rights: string[];
+}
+
+/** Response from grant/deny/resend consent endpoints */
+export interface ConsentActionResponse {
+  message: string;
+}
+
+/** Error types for parental consent verification (mapped from backend types) */
+export type ConsentErrorType = 'invalid' | 'expired' | 'used';
+
+/** Backend error type strings */
+export type ConsentBackendErrorType =
+  | 'consent_token_not_found'
+  | 'consent_token_expired'
+  | 'consent_already_processed';

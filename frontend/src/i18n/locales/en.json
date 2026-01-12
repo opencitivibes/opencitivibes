@@ -155,7 +155,17 @@
     "passwordResetSuccess": "Password Reset Successfully!",
     "passwordResetComplete": "Password Reset Complete",
     "redirectingToLogin": "Redirecting you to login...",
-    "passwordStrength.medium": "Medium"
+    "passwordStrength.medium": "Medium",
+    "dateOfBirth": "Date of Birth",
+    "dateOfBirthHelp": "Required for age verification (Law 25)",
+    "parentEmail": "Parent/Guardian Email",
+    "parentEmailHelp": "An email will be sent to request consent"
+  },
+  "validation": {
+    "dateOfBirthRequired": "Date of birth is required",
+    "invalidDateOfBirth": "Invalid date of birth",
+    "parentEmailRequired": "Parent email is required for users under 14",
+    "parentEmailDifferent": "Parent email must be different from yours"
   },
   "ideas": {
     "leaderboard": "Ideas Leaderboard",
@@ -1165,6 +1175,77 @@
       "viewIdea": "View Idea"
     }
   },
+  "consent": {
+    "pageTitle": "Parental Consent",
+    "subtitle": "Authorization required for your child's account",
+    "verifying": "Verifying link...",
+    "dateLocale": "en-CA",
+    "childInfo": "Child Information",
+    "username": "Username",
+    "email": "Email",
+    "age": "Age at Registration",
+    "yearsOld": "{{age}} years old",
+    "dataCollected": "Data Collected",
+    "dataCollectedItems": {
+      "email": "Email, username, display name",
+      "content": "Ideas, comments, and votes submitted",
+      "activity": "Activity timestamps",
+      "security": "IP addresses (security only)"
+    },
+    "purposeTitle": "Purpose & Retention",
+    "purpose": "Purpose of Collection",
+    "purposeText": "Civic engagement and community participation",
+    "retention": "Retention Period",
+    "retentionText": "Account lifetime + 30 days after deletion",
+    "parentRights": "Your Rights as a Parent",
+    "rights": {
+      "access": "Access your child's data",
+      "rectify": "Rectify inaccurate information",
+      "delete": "Delete the account at any time",
+      "withdraw": "Withdraw consent (results in deletion)"
+    },
+    "expiresIn": "This link expires on {{date}}",
+    "grantButton": "I Authorize This Account",
+    "denyButton": "I Deny Authorization",
+    "grantDescription": "Click to authorize your child's account",
+    "denyDescription": "Click to deny authorization and schedule account deletion",
+    "denyConfirm": {
+      "title": "Confirm Denial",
+      "message": "Are you sure you want to deny? The account will be deleted in 30 days and all data will be erased.",
+      "confirm": "Yes, Deny",
+      "cancel": "Cancel"
+    },
+    "success": {
+      "granted": {
+        "title": "Consent Granted",
+        "message": "Your child's account is now active.",
+        "messageWithName": "{{username}}'s account is now active.",
+        "step1": "Your child's account is now active",
+        "step2": "Your child can log in with their credentials",
+        "step3": "You can request account deletion at any time"
+      },
+      "denied": {
+        "title": "Consent Denied",
+        "message": "The account will be deleted in 30 days.",
+        "step1": "The account will remain inactive",
+        "step2": "All data will be deleted in 30 days",
+        "step3": "Your child will be notified by email"
+      },
+      "whatNext": "What happens next?",
+      "closeWindow": "Close this page"
+    },
+    "error": {
+      "invalid": "Invalid consent link",
+      "invalidMessage": "This link is not valid. Please make sure you used the complete link from your email.",
+      "expired": "This link has expired",
+      "expiredMessage": "The consent link has expired. Ask your child to register again to receive a new link.",
+      "used": "This link has already been used",
+      "usedMessage": "A decision has already been made for this consent request.",
+      "resendInfo": "If the link has expired, your child can register again to generate a new consent request.",
+      "goHome": "Go to Home",
+      "contactSupport": "If you have questions, please contact us."
+    }
+  },
   "moderation": {
     "flag": "Report",
     "flagged": "Reported",
@@ -1304,7 +1385,14 @@
     "acceptsPrivacy": "I accept the <privacyLink>Privacy Policy</privacyLink>",
     "acceptsPrivacyRequired": "You must accept the Privacy Policy",
     "marketingConsent": "I agree to receive optional communications (news, updates)",
-    "marketingOptional": "Optional"
+    "marketingOptional": "Optional",
+    "parentalConsentRequired": "Parental Consent Required",
+    "parentalConsentExplanation": "Users under 14 require parental consent under Quebec Law 25.",
+    "pendingConsent": {
+      "title": "Account Created - Awaiting Consent",
+      "message": "An email has been sent to {{parentEmail}}. Your account will be activated after parental approval.",
+      "checkInbox": "Ask your parent to check their inbox."
+    }
   },
   "officials": {
     "dashboard": "Official Dashboard",
