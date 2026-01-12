@@ -227,13 +227,13 @@ class FlagService:
                 raise CommentNotFoundException(
                     f"Comment with ID {content_id} not found"
                 )
-            return int(comment.user_id)  # type: ignore[return-value]
+            return int(comment.user_id)
         else:
             idea_repo = IdeaRepository(db)
             idea = idea_repo.get_by_id(content_id)
             if not idea:
                 raise IdeaNotFoundException(f"Idea with ID {content_id} not found")
-            return int(idea.user_id)  # type: ignore[return-value]
+            return int(idea.user_id)
 
     @staticmethod
     def _update_content_flag_count(
@@ -262,14 +262,14 @@ class FlagService:
             comment_repo = CommentRepository(db)
             comment = comment_repo.get_by_id(content_id)
             if comment:
-                comment.flag_count = flag_count  # type: ignore[assignment]
+                comment.flag_count = flag_count
                 if flag_count >= FLAG_THRESHOLD and not comment.is_hidden:
-                    comment.is_hidden = True  # type: ignore[assignment]
-                    comment.hidden_at = now  # type: ignore[assignment]
+                    comment.is_hidden = True
+                    comment.hidden_at = now
                 elif flag_count < FLAG_THRESHOLD and comment.is_hidden:
                     # Un-hide if flags were retracted
-                    comment.is_hidden = False  # type: ignore[assignment]
-                    comment.hidden_at = None  # type: ignore[assignment]
+                    comment.is_hidden = False
+                    comment.hidden_at = None
                 comment_repo.commit()
         else:
             from repositories.idea_repository import IdeaRepository
@@ -277,13 +277,13 @@ class FlagService:
             idea_repo = IdeaRepository(db)
             idea = idea_repo.get_by_id(content_id)
             if idea:
-                idea.flag_count = flag_count  # type: ignore[assignment]
+                idea.flag_count = flag_count
                 if flag_count >= FLAG_THRESHOLD and not idea.is_hidden:
-                    idea.is_hidden = True  # type: ignore[assignment]
-                    idea.hidden_at = now  # type: ignore[assignment]
+                    idea.is_hidden = True
+                    idea.hidden_at = now
                 elif flag_count < FLAG_THRESHOLD and idea.is_hidden:
-                    idea.is_hidden = False  # type: ignore[assignment]
-                    idea.hidden_at = None  # type: ignore[assignment]
+                    idea.is_hidden = False
+                    idea.hidden_at = None
                 idea_repo.commit()
 
     @staticmethod
@@ -300,7 +300,7 @@ class FlagService:
         user_repo = UserRepository(db)
         user = user_repo.get_by_id(author_id)
         if user:
-            user.total_flags_received = (  # type: ignore[assignment]
+            user.total_flags_received = (
                 user.total_flags_received or 0
             ) + 1
             user_repo.commit()

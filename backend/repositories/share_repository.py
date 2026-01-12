@@ -71,8 +71,8 @@ class ShareRepository(BaseRepository[db_models.ShareEvent]):
         )
 
         by_platform: dict[str, int] = {
-            row.platform.value: row.count
-            for row in counts  # type: ignore[misc]
+            row.platform.value: int(row[1])  # count is second column
+            for row in counts
         }
         total = sum(by_platform.values())
 

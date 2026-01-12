@@ -4,11 +4,9 @@ Base repository class providing common database operations.
 
 from typing import Generic, TypeVar
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import DeclarativeBase, Session
 
-from repositories.database import Base
-
-T = TypeVar("T", bound=Base)  # type: ignore[type-arg]
+T = TypeVar("T", bound=DeclarativeBase)
 
 
 class BaseRepository(Generic[T]):
@@ -39,7 +37,7 @@ class BaseRepository(Generic[T]):
         Returns:
             Entity if found, None otherwise
         """
-        return self.db.query(self.model).filter(self.model.id == id).first()
+        return self.db.query(self.model).filter(self.model.id == id).first()  # type: ignore[attr-defined]
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
         """
@@ -134,11 +132,12 @@ class BaseRepository(Generic[T]):
         """
         self.db.refresh(entity)
 
-    def add_all(self, entities: list[T]) -> None:
+    def add_all[E](self, entities: list[E]) -> None:
         """
         Add multiple entities to session without committing.
 
         Use this when you need to add multiple entities before a single commit.
+        Accepts any entity type, not just this repository's model type.
 
         Args:
             entities: List of entities to add

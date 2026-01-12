@@ -67,7 +67,7 @@ def search_ideas(
     Language prioritization: If Accept-Language header is provided, results
     within the same relevance tier will show preferred language first.
     """
-    user_id: int | None = current_user.id if current_user else None  # type: ignore[assignment]
+    user_id: int | None = current_user.id if current_user else None
     preferred_lang = parse_accept_language(accept_language)
     return SearchService.search_ideas(
         db=db,
@@ -200,7 +200,7 @@ def search_with_tags(
     - ideas: SearchResults object
     - matching_tags: List of matching tags with idea counts
     """
-    user_id: int | None = current_user.id if current_user else None  # type: ignore[assignment]
+    user_id: int | None = current_user.id if current_user else None
     return SearchService.search_with_tags(
         db=db,
         query=q,

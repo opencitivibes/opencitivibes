@@ -105,10 +105,15 @@ def check_file(filepath: Path) -> list[tuple[int, str]]:
         return []
 
     rules = LAYER_RULES[layer]
-    forbidden = rules["forbidden"]
+    forbidden_value = rules["forbidden"]
 
-    if not forbidden:
+    if not forbidden_value:
         return []
+
+    # Ensure forbidden is a list (type narrowing for pyright)
+    forbidden = (
+        forbidden_value if isinstance(forbidden_value, list) else [forbidden_value]
+    )
 
     try:
         content = filepath.read_text()

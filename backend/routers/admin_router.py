@@ -302,7 +302,7 @@ def delete_user(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Delete a user and all associated data."""
-    requesting_user_id: int = current_user.id  # type: ignore[assignment]
+    requesting_user_id: int = current_user.id
     UserService.delete_user(db, user_id, requesting_user_id)
     return {"message": "User deleted successfully"}
 
@@ -338,7 +338,7 @@ def get_approved_ideas(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Get all approved ideas for admin management with optional quality filtering."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return IdeaService.get_approved_ideas_for_admin(
         db,
         category_id,
@@ -404,18 +404,18 @@ def get_deleted_ideas(
 
     items = [
         schemas.DeletedIdeaSummary(
-            id=idea.id,  # type: ignore[arg-type]
+            id=idea.id,
             title=str(idea.title),
-            status=idea.status,  # type: ignore[arg-type]
+            status=idea.status,
             deleted_at=idea.deleted_at,  # type: ignore[arg-type]
-            deleted_by_id=idea.deleted_by,  # type: ignore[arg-type]
+            deleted_by_id=idea.deleted_by,
             deleted_by_name=(
                 idea.deleted_by_user.display_name if idea.deleted_by_user else None
             ),
-            deletion_reason=idea.deletion_reason,  # type: ignore[arg-type]
-            original_author_id=idea.user_id,  # type: ignore[arg-type]
+            deletion_reason=idea.deletion_reason,
+            original_author_id=idea.user_id,
             original_author_name=str(idea.author.display_name),
-            created_at=idea.created_at,  # type: ignore[arg-type]
+            created_at=idea.created_at,
         )
         for idea in ideas
     ]
@@ -456,15 +456,15 @@ def get_rejected_ideas(
 
     items = [
         schemas.RejectedIdeaSummary(
-            id=idea.id,  # type: ignore[arg-type]
+            id=idea.id,
             title=str(idea.title),
-            admin_comment=idea.admin_comment,  # type: ignore[arg-type]
-            author_id=idea.user_id,  # type: ignore[arg-type]
+            admin_comment=idea.admin_comment,
+            author_id=idea.user_id,
             author_name=str(idea.author.display_name),
-            category_id=idea.category_id,  # type: ignore[arg-type]
+            category_id=idea.category_id,
             category_name_en=str(idea.category.name_en),
             category_name_fr=str(idea.category.name_fr),
-            created_at=idea.created_at,  # type: ignore[arg-type]
+            created_at=idea.created_at,
         )
         for idea in ideas
     ]
@@ -496,7 +496,7 @@ def admin_delete_idea(
     - Reason is required for audit trail
     - Idea can be restored later
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     IdeaService.soft_delete_idea(
         db=db,
@@ -561,7 +561,7 @@ def admin_delete_comment(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Delete a comment (admin)."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     CommentService.admin_delete_comment(db, comment_id, admin_id, reason)
     return {"message": "Comment deleted successfully"}
 
@@ -595,7 +595,7 @@ def approve_comment(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Approve a pending comment from a new user."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     CommentService.approve_comment(db, comment_id, admin_id)
     return {"message": "Comment approved successfully"}
 
@@ -608,7 +608,7 @@ def reject_pending_comment(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Reject and delete a pending comment."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     CommentService.reject_pending_comment(db, comment_id, admin_id, reason)
     return {"message": "Comment rejected and deleted"}
 

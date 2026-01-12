@@ -124,7 +124,7 @@ class EmailLoginCodeRepository(BaseRepository[EmailLoginCode]):
             .update({EmailLoginCode.expires_at: now})
         )
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result
 
     def count_codes_in_window(self, user_id: int, hours: int = 1) -> int:
         """
@@ -164,7 +164,7 @@ class EmailLoginCodeRepository(BaseRepository[EmailLoginCode]):
         )
 
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result
 
     def get_active_code_for_user(self, user_id: int) -> Optional[EmailLoginCode]:
         """

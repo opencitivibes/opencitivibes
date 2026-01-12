@@ -2,7 +2,7 @@
 Tag repository for database operations.
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from repositories.base import BaseRepository
@@ -56,7 +56,7 @@ class TagRepository(BaseRepository[Tag]):
             .all()
         )
 
-    def get_popular_tags(self, limit: int = 20, min_ideas: int = 1) -> List[tuple]:
+    def get_popular_tags(self, limit: int = 20, min_ideas: int = 1) -> List[Any]:
         """
         Get most popular tags based on number of approved ideas.
 
@@ -78,7 +78,7 @@ class TagRepository(BaseRepository[Tag]):
             .limit(limit)
             .all()
         )
-        return results  # type: ignore[return-value]
+        return results
 
     def get_tags_for_idea(self, idea_id: int) -> List[Tag]:
         """

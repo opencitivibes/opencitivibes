@@ -124,25 +124,25 @@ class AccountDeletionService:
         user_id = user.id
 
         # Replace PII with anonymized values
-        user.email = f"deleted-user-{user_id}@deleted.local"  # type: ignore[assignment]
-        user.username = f"deleted-user-{user_id}"  # type: ignore[assignment]
-        user.display_name = "Deleted User"  # type: ignore[assignment]
-        user.avatar_url = None  # type: ignore[assignment]
+        user.email = f"deleted-user-{user_id}@deleted.local"
+        user.username = f"deleted-user-{user_id}"
+        user.display_name = "Deleted User"
+        user.avatar_url = None
         user.hashed_password = ""  # type: ignore[assignment]  # nosec B105
-        user.is_active = False  # type: ignore[assignment]
-        user.is_official = False  # type: ignore[assignment]
-        user.official_title = None  # type: ignore[assignment]
+        user.is_active = False
+        user.is_official = False
+        user.official_title = None
 
         # Mark official fields as cleared
-        user.requests_official_status = False  # type: ignore[assignment]
-        user.official_title_request = None  # type: ignore[assignment]
-        user.official_request_at = None  # type: ignore[assignment]
-        user.official_verified_at = None  # type: ignore[assignment]
+        user.requests_official_status = False
+        user.official_title_request = None
+        user.official_request_at = None
+        user.official_verified_at = None
 
         # Keep consent records for audit but mark withdrawn
-        user.consent_terms_accepted = False  # type: ignore[assignment]
-        user.consent_privacy_accepted = False  # type: ignore[assignment]
-        user.marketing_consent = False  # type: ignore[assignment]
+        user.consent_terms_accepted = False
+        user.consent_privacy_accepted = False
+        user.marketing_consent = False
 
     @staticmethod
     def _delete_sensitive_data(

@@ -30,7 +30,7 @@ def submit_appeal(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     appeal = AppealService.submit_appeal(
         db=db,
         penalty_id=appeal_data.penalty_id,
@@ -52,7 +52,7 @@ def get_my_appeals(
 
     Banned users can access this to check appeal status.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     appeals = AppealService.get_user_appeals(
         db=db,
         user_id=user_id,

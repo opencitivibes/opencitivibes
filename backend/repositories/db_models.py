@@ -37,7 +37,7 @@ class TSVectorType(TypeDecorator):
     impl = Text
     cache_ok = True
 
-    def load_dialect_impl(self, dialect):  # type: ignore[no-untyped-def]
+    def load_dialect_impl(self, dialect):
         if dialect.name == "postgresql":
             from sqlalchemy.dialects.postgresql import TSVECTOR
 
@@ -249,6 +249,47 @@ class User(Base):
         comment="Show account creation date on public profile",
     )
 
+    # Law 25 Minors Compliance Fields (Parental Consent)
+    date_of_birth: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="User date of birth for age verification (Law 25)",
+    )
+    is_minor: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="True if user was under 14 at registration",
+    )
+    requires_parental_consent: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="True if user required parental consent at registration",
+    )
+    parent_email: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Parent/guardian email for consent (minors only)",
+    )
+    parental_consent_status: Mapped[str] = mapped_column(
+        String(20),
+        default="not_required",
+        nullable=False,
+        comment="Status: not_required, pending, granted, denied, expired",
+    )
+    parental_consent_granted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="When parent granted consent",
+    )
+    parental_consent_proof_id: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="Reference to consent proof document/record",
+    )
+
     # Relationships
     ideas: Mapped[List["Idea"]] = relationship(
         "Idea",
@@ -280,6 +321,12 @@ class User(Base):
     )
     trusted_devices: Mapped[List["TrustedDevice"]] = relationship(
         "TrustedDevice", back_populates="user", cascade="all, delete-orphan"
+    )
+    parental_consent_tokens: Mapped[List["ParentalConsentToken"]] = relationship(
+        "ParentalConsentToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    parental_consent_logs: Mapped[List["ParentalConsentLog"]] = relationship(
+        "ParentalConsentLog", back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -1541,4 +1588,155 @@ class TrustedDevice(Base):
     user: Mapped["User"] = relationship(
         "User",
         back_populates="trusted_devices",
+    )
+
+
+# ============================================================================
+# Parental Consent Models (Law 25 Compliance - Minors Protection)
+# ============================================================================
+
+
+class ParentalConsentToken(Base):
+    """
+    Tokens for parental consent verification (users under 14).
+
+    Required by Quebec Law 25 for processing personal information of minors.
+    Token expiration is 7 days (configurable).
+    """
+
+    __tablename__ = "parental_consent_tokens"
+    __table_args__ = (
+        Index(
+            "ix_parental_consent_tokens_user_created", "pending_user_id", "created_at"
+        ),
+        Index("ix_parental_consent_tokens_expires", "expires_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pending_user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="User awaiting parental consent",
+    )
+    token_hash: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=False,
+        comment="SHA-256 hash of the consent token",
+    )
+    parent_email: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        comment="Parent/guardian email for consent request",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        comment="Token expiration (default 7 days)",
+    )
+    used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="When the token was used to grant/deny consent",
+    )
+    consent_decision: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="Parent decision: granted, denied (null if unused)",
+    )
+    ip_address: Mapped[Optional[str]] = mapped_column(
+        String(45),
+        nullable=True,
+        comment="IP address when consent was given/denied",
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="User agent when consent was given/denied",
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="parental_consent_tokens",
+    )
+    logs: Mapped[List["ParentalConsentLog"]] = relationship(
+        "ParentalConsentLog",
+        back_populates="token",
+    )
+
+
+class ParentalConsentLog(Base):
+    """
+    Audit log for parental consent actions (Law 25 compliance).
+
+    Tracks all consent-related events: request_sent, consent_granted,
+    consent_denied, consent_expired.
+    """
+
+    __tablename__ = "parental_consent_logs"
+    __table_args__ = (
+        Index("ix_parental_consent_logs_user_id", "user_id"),
+        Index("ix_parental_consent_logs_created_at", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="User this log entry relates to",
+    )
+    action: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        comment="Action: request_sent, consent_granted, consent_denied, consent_expired",
+    )
+    parent_email: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        comment="Parent/guardian email at time of action",
+    )
+    token_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("parental_consent_tokens.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Related consent token (if applicable)",
+    )
+    ip_address: Mapped[Optional[str]] = mapped_column(
+        String(45),
+        nullable=True,
+        comment="IP address when action occurred",
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="User agent when action occurred",
+    )
+    notes: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Additional notes about the action",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=_utc_now,
+        nullable=False,
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="parental_consent_logs",
+    )
+    token: Mapped[Optional["ParentalConsentToken"]] = relationship(
+        "ParentalConsentToken",
+        back_populates="logs",
     )

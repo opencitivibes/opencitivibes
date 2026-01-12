@@ -326,13 +326,13 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 # Add security headers middleware (runs last, so added first)
 # Note: Middleware runs in reverse order - security headers should wrap everything
-app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)  # type: ignore[arg-type]  # Starlette typing limitation
 
 # Add correlation ID middleware (runs after security, before logging)
-app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(CorrelationIdMiddleware)  # type: ignore[arg-type]  # Starlette typing limitation
 
 # Add request logging middleware
-app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RequestLoggingMiddleware)  # type: ignore[arg-type]  # Starlette typing limitation
 
 # Configure CORS from environment settings
 # In development, allow all origins for mobile/network testing
@@ -341,7 +341,7 @@ cors_origins = (
     ["*"] if settings.ENVIRONMENT == "development" else settings.CORS_ORIGINS
 )  # nosemgrep: cors-misconfiguration
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # type: ignore[arg-type]  # Starlette typing limitation
     allow_origins=cors_origins,  # nosemgrep
     allow_credentials=True if settings.ENVIRONMENT != "development" else False,
     allow_methods=["*"],
@@ -1340,6 +1340,143 @@ def _register_password_reset_handlers(app_instance: FastAPI) -> None:
 _register_password_reset_handlers(app)
 
 
+# ============================================================================
+# Parental Consent Exception Handlers (Law 25 Minors)
+# ============================================================================
+
+
+def _register_parental_consent_handlers(app_instance: FastAPI) -> None:
+    """Register parental consent exception handlers with late import."""
+    from models.exceptions import (
+        ConsentAlreadyGrantedException,
+        ConsentAlreadyProcessedException,
+        ConsentNotRequiredException,
+        ConsentResendRateLimitException,
+        ConsentTokenExpiredException,
+        ConsentTokenNotFoundException,
+    )
+
+    @app_instance.exception_handler(ConsentTokenNotFoundException)
+    async def consent_token_not_found_handler(
+        request: Request, exc: ConsentTokenNotFoundException
+    ) -> JSONResponse:
+        """Handle consent token not found exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Consent token not found: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "detail": exc.message,
+                "type": "consent_token_not_found",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(ConsentTokenExpiredException)
+    async def consent_token_expired_handler(
+        request: Request, exc: ConsentTokenExpiredException
+    ) -> JSONResponse:
+        """Handle consent token expired exception (HTTP 410 Gone)."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Consent token expired: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content={
+                "detail": exc.message,
+                "type": "consent_token_expired",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(ConsentAlreadyProcessedException)
+    async def consent_already_processed_handler(
+        request: Request, exc: ConsentAlreadyProcessedException
+    ) -> JSONResponse:
+        """Handle consent already processed exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Consent already processed: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "consent_already_processed",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(ConsentNotRequiredException)
+    async def consent_not_required_handler(
+        request: Request, exc: ConsentNotRequiredException
+    ) -> JSONResponse:
+        """Handle consent not required exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.info(
+            f"Consent not required: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "consent_not_required",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(ConsentAlreadyGrantedException)
+    async def consent_already_granted_handler(
+        request: Request, exc: ConsentAlreadyGrantedException
+    ) -> JSONResponse:
+        """Handle consent already granted exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.info(
+            f"Consent already granted: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "detail": exc.message,
+                "type": "consent_already_granted",
+                "correlation_id": exc.correlation_id,
+            },
+        )
+
+    @app_instance.exception_handler(ConsentResendRateLimitException)
+    async def consent_resend_rate_limit_handler(
+        request: Request, exc: ConsentResendRateLimitException
+    ) -> JSONResponse:
+        """Handle consent resend rate limit exception."""
+        sentry_sdk.set_tag("correlation_id", exc.correlation_id)
+        logger.warning(
+            f"Consent resend rate limit: {exc.message}",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": exc.message,
+                "type": "consent_resend_rate_limit",
+                "retry_after_hours": exc.retry_after_hours,
+                "correlation_id": exc.correlation_id,
+            },
+            headers={"Retry-After": str(exc.retry_after_hours * 3600)},
+        )
+
+
+# Register parental consent handlers
+_register_parental_consent_handlers(app)
+
+
 # Include routers
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(categories_router.router, prefix="/api")
@@ -1433,6 +1570,11 @@ app.include_router(beta_router.router, prefix="/api")
 from routers import password_reset_router
 
 app.include_router(password_reset_router.router, prefix="/api")
+
+# Parental consent router (Law 25 Minors Compliance - Phase 4)
+from routers import parental_consent_router
+
+app.include_router(parental_consent_router.router, prefix="/api")
 
 
 @app.get("/")

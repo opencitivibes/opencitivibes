@@ -161,7 +161,7 @@ class TOTPRepository(BaseRepository[UserTOTPSecret]):
             .delete()
         )
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result
 
     def get_provisioning_uri(self, secret: str, email: str) -> str:
         """
@@ -271,4 +271,4 @@ class BackupCodeRepository(BaseRepository[UserBackupCode]):
             .delete()
         )
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result

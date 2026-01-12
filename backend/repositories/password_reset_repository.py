@@ -373,7 +373,7 @@ class PasswordResetRepository(BaseRepository[PasswordResetToken]):
             .update({PasswordResetToken.expires_at: now})
         )
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result
 
     def count_codes_in_window(self, user_id: int, hours: int = 1) -> int:
         """
@@ -413,7 +413,7 @@ class PasswordResetRepository(BaseRepository[PasswordResetToken]):
         )
 
         self.db.flush()
-        return result  # type: ignore[return-value]
+        return result
 
     def get_active_code_for_user(self, user_id: int) -> Optional[PasswordResetToken]:
         """

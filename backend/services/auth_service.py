@@ -70,13 +70,13 @@ class AuthService:
         from repositories.user_repository import UserRepository
 
         now = datetime.now(timezone.utc)
-        user.last_login_at = now  # type: ignore[assignment]
-        user.last_activity_at = now  # type: ignore[assignment]
+        user.last_login_at = now
+        user.last_activity_at = now
 
         # Clear any scheduled anonymization since user is active
         if user.scheduled_anonymization_at is not None:
-            user.scheduled_anonymization_at = None  # type: ignore[assignment]
-            user.inactivity_warning_sent_at = None  # type: ignore[assignment]
+            user.scheduled_anonymization_at = None
+            user.inactivity_warning_sent_at = None
 
         UserRepository(db).commit()
 

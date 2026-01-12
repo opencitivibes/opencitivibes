@@ -80,7 +80,7 @@ def review_flags(
     - dismiss: Dismiss flags, unhide content
     - action: Delete content, update trust scores, optionally issue penalty
     """
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return ModerationService.review_flags(
         db=db,
         flag_ids=review_data.flag_ids,
@@ -126,7 +126,7 @@ def issue_penalty(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Issue a penalty to a user."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return PenaltyService.issue_penalty(
         db=db,
         user_id=penalty_data.user_id,
@@ -174,7 +174,7 @@ def revoke_penalty(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Revoke an active penalty."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return PenaltyService.revoke_penalty(db, penalty_id, admin_id, revoke_data.reason)
 
 
@@ -203,7 +203,7 @@ def review_appeal(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Review and decide on an appeal."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return AppealService.review_appeal(
         db, appeal_id, admin_id, review_data.action, review_data.review_notes
     )
@@ -234,7 +234,7 @@ def add_user_note(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> dict:
     """Add an admin note to a user profile."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return AdminNoteService.add_note(db, user_id, note_data.content, admin_id)
 
 
@@ -246,7 +246,7 @@ def update_note(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> dict:
     """Update an admin note."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return AdminNoteService.update_note(db, note_id, note_data.content, admin_id)
 
 
@@ -257,7 +257,7 @@ def delete_note(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ) -> dict:
     """Delete an admin note."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     AdminNoteService.delete_note(db, note_id, admin_id)
     return {"message": "Note deleted successfully"}
 
@@ -286,7 +286,7 @@ def add_keyword(
     current_user: db_models.User = Depends(auth.get_admin_user),
 ):
     """Add a keyword to the watchlist."""
-    admin_id: int = current_user.id  # type: ignore[assignment]
+    admin_id: int = current_user.id
     return WatchlistService.add_keyword(
         db,
         keyword_data.keyword,

@@ -9,34 +9,73 @@ from sqlalchemy.orm import Session
 import authentication.auth as auth
 import models.schemas as schemas
 import repositories.db_models as db_models
+from helpers.age_utils import calculate_age
 from helpers.rate_limiter import limiter
+from models.config import settings
 from repositories.database import get_db
 from services import UserService
 from services.auth_service import AuthService
+from services.email_service import EmailService
+from services.parental_consent_service import ParentalConsentService
 from services.totp_service import TOTPService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=schemas.User)
+@router.post("/register", response_model=schemas.RegistrationResponse)
 @limiter.limit("3/minute")
 def register(
     request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)
-) -> db_models.User:
+) -> schemas.RegistrationResponse:
     """
     Register a new user.
 
     Requires explicit consent to Terms of Service and Privacy Policy.
     Rate limited to 3 per minute.
+
+    Law 25 Compliance: Users under 14 require parental consent.
+    If parental consent is required, the account is created but inactive,
+    and an email is sent to the parent.
     """
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent", "")[:500]
 
-    return UserService.register_user(
+    new_user, needs_consent = UserService.register_user(
         db=db,
         user_data=user,
         ip_address=ip_address,
         user_agent=user_agent,
+    )
+
+    # If minor, initiate parental consent flow
+    if needs_consent and user.parent_email:
+        token, plain_token = ParentalConsentService.initiate_consent_request(
+            db=db,
+            user=new_user,
+            parent_email=user.parent_email,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        # Send email to parent
+        consent_url = f"{settings.APP_URL}/consent/{plain_token}"
+        child_age = calculate_age(user.date_of_birth)
+        EmailService.send_parental_consent_request(
+            to_email=user.parent_email,
+            child_username=str(new_user.username),
+            child_email=str(new_user.email),
+            child_age=child_age,
+            consent_url=consent_url,
+            expires_at=token.expires_at,
+            language="fr",  # Default to French for Quebec Law 25
+        )
+
+    return schemas.RegistrationResponse(
+        user=schemas.User.model_validate(new_user),
+        requires_parental_consent=needs_consent,
+        message="Parental consent email sent. Account will be activated upon approval."
+        if needs_consent
+        else None,
     )
 
 
@@ -109,7 +148,7 @@ async def update_profile(
     db: Session = Depends(get_db),
 ) -> db_models.User:
     """Update user profile (display_name, email)."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return UserService.update_profile(db, user_id, profile_update)
 
 
@@ -120,7 +159,7 @@ async def change_password(
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
     """Change user password."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     UserService.change_password(
         db,
         user_id,
@@ -136,7 +175,7 @@ async def get_activity_history(
     db: Session = Depends(get_db),
 ) -> schemas.UserActivityHistory:
     """Get user activity history."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return UserService.get_activity_history(db, user_id)
 
 
@@ -147,7 +186,7 @@ async def upload_avatar(
     db: Session = Depends(get_db),
 ) -> schemas.AvatarUploadResponse:
     """Upload user avatar."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return UserService.upload_avatar(db, user_id, file)
 
 
@@ -166,7 +205,7 @@ async def get_consent_status(
 
     Returns whether user needs to re-consent due to policy updates.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return UserService.get_consent_status(db, user_id)
 
 
@@ -188,7 +227,7 @@ async def update_consent(
     """
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent", "")[:500]
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     return UserService.update_consent(
         db=db,
@@ -210,7 +249,7 @@ async def get_consent_history(
     Law 25 Compliance: Users have the right to access all their personal data,
     including the history of consent changes.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return UserService.get_consent_history(db, user_id)
 
 
@@ -252,7 +291,7 @@ async def export_my_data(
     if format not in ("json", "csv"):
         format = "json"
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     data = DataExportService.export_user_data(
         db=db,
         user_id=user_id,
@@ -280,7 +319,7 @@ async def export_my_data(
         comments=[schemas.CommentExport(**comment) for comment in data["comments"]],  # type: ignore[arg-type]
         votes=[schemas.VoteExport(**vote) for vote in data["votes"]],  # type: ignore[arg-type]
         consent_history=[
-            schemas.ConsentLogExport(**log)  # type: ignore[arg-type]
+            schemas.ConsentLogExport(**log)
             for log in data["consent_history"]  # type: ignore[arg-type]
         ],
     )
@@ -313,7 +352,7 @@ async def delete_my_account(
     from services.account_deletion_service import AccountDeletionService
 
     ip_address = request.client.host if request.client else None
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     return AccountDeletionService.delete_account(
         db=db,
@@ -340,7 +379,7 @@ async def get_privacy_settings(
     """
     from services.privacy_settings_service import PrivacySettingsService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return PrivacySettingsService.get_privacy_settings(db, user_id)
 
 
@@ -364,7 +403,7 @@ async def update_privacy_settings(
     """
     from services.privacy_settings_service import PrivacySettingsService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return PrivacySettingsService.update_privacy_settings(
         db=db,
         user_id=user_id,

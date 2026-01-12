@@ -138,7 +138,7 @@ class AdminNoteService:
                 "Only the original author can edit this note"
             )
 
-        note.content = content  # type: ignore[assignment]
+        note.content = content
         note_repo.commit()
         note_repo.refresh(note)
 

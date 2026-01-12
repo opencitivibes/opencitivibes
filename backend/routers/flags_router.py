@@ -31,7 +31,7 @@ def create_flag(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return FlagService.create_flag(
         db=db,
         content_type=flag_data.content_type,
@@ -54,7 +54,7 @@ def get_my_flags(
 
     Returns list of all flags the user has submitted, ordered by date.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return FlagService.get_user_flags(
         db=db,
         user_id=user_id,
@@ -76,7 +76,7 @@ def retract_flag(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     FlagService.retract_flag(
         db=db,
         flag_id=flag_id,
@@ -97,7 +97,7 @@ def check_flag_status(
 
     Used to show/hide flag button in UI.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     already_flagged = FlagService.check_user_already_flagged(
         db=db,
         content_type=content_type,

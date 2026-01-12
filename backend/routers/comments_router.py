@@ -54,9 +54,9 @@ def create_comment(
     """
     from fastapi.responses import JSONResponse
 
-    user_id: int = current_user.id  # type: ignore[assignment]
-    username: str = str(current_user.username)  # type: ignore[arg-type]
-    display_name: str = str(current_user.display_name)  # type: ignore[arg-type]
+    user_id: int = current_user.id
+    username: str = str(current_user.username)
+    display_name: str = str(current_user.display_name)
     created_comment, requires_approval = CommentService.create_comment(
         db=db,
         idea_id=idea_id,
@@ -91,7 +91,7 @@ def delete_comment(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     CommentService.delete_comment(db=db, comment_id=comment_id, user_id=user_id)
     return {"message": "Comment deleted successfully"}
 
@@ -113,5 +113,5 @@ def toggle_comment_like(
     """
     from services.comment_like_service import CommentLikeService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return CommentLikeService.toggle_like(db, comment_id, user_id)

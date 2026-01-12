@@ -69,7 +69,7 @@ class WatchlistService:
                     content_type=content_type,
                     content_id=content_id,
                     keyword=str(keyword.keyword),
-                    reason=keyword.auto_flag_reason,  # type: ignore[arg-type]
+                    reason=keyword.auto_flag_reason,
                 )
 
                 # Increment match count
@@ -173,13 +173,13 @@ class WatchlistService:
                     re.compile(entry.keyword)
                 except re.error as e:
                     raise InvalidRegexException(entry.keyword, str(e))
-            entry.is_regex = is_regex  # type: ignore[assignment]
+            entry.is_regex = is_regex
 
         if auto_flag_reason is not None:
-            entry.auto_flag_reason = auto_flag_reason  # type: ignore[assignment]
+            entry.auto_flag_reason = auto_flag_reason
 
         if is_active is not None:
-            entry.is_active = is_active  # type: ignore[assignment]
+            entry.is_active = is_active
 
         watchlist_repo.commit()
         watchlist_repo.refresh(entry)

@@ -138,7 +138,7 @@ def create_incident(
 
     Creates a new entry in the privacy incident register.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     return IncidentService.create_incident_response(
         db=db,

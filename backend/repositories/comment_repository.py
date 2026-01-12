@@ -153,7 +153,7 @@ class CommentRepository(BaseRepository[db_models.Comment]):
         """
         comment = self.get_by_id(comment_id)
         if comment:
-            comment.is_moderated = is_moderated  # type: ignore[assignment]
+            comment.is_moderated = is_moderated
             return self.update(comment)
         return None
 
@@ -266,9 +266,9 @@ class CommentRepository(BaseRepository[db_models.Comment]):
         if not comment:
             return False
 
-        comment.is_hidden = False  # type: ignore[assignment]
-        comment.hidden_at = None  # type: ignore[assignment]
-        comment.flag_count = 0  # type: ignore[assignment]
+        comment.is_hidden = False
+        comment.hidden_at = None
+        comment.flag_count = 0
         self.commit()
         return True
 
@@ -296,9 +296,9 @@ class CommentRepository(BaseRepository[db_models.Comment]):
             return None
 
         author_id = int(comment.user_id)
-        comment.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        comment.deleted_by = deleted_by  # type: ignore[assignment]
-        comment.deletion_reason = reason  # type: ignore[assignment]
+        comment.deleted_at = datetime.now(timezone.utc)
+        comment.deleted_by = deleted_by
+        comment.deletion_reason = reason
         self.commit()
         return author_id
 

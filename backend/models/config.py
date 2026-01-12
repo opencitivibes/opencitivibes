@@ -399,7 +399,7 @@ class Settings(BaseSettings):
 
 # Rely on pydantic BaseSettings to load `.env` and validate required fields.
 # Instantiating Settings() will raise pydantic.ValidationError if SECRET_KEY isn't set (including when absent from `.env`).
-settings = Settings()  # type: ignore[call-arg]
+settings = Settings()
 
 
 def get_settings() -> Settings:

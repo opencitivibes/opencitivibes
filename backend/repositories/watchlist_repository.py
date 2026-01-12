@@ -125,7 +125,7 @@ class WatchlistRepository(BaseRepository[KeywordWatchlist]):
         Args:
             keyword: Keyword entry to update
         """
-        keyword.match_count = (keyword.match_count or 0) + 1  # type: ignore[assignment]
+        keyword.match_count = (keyword.match_count or 0) + 1
 
     def commit_and_refresh_flags(self, flags: list[ContentFlag]) -> None:
         """

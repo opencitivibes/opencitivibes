@@ -405,7 +405,7 @@ class AnalyticsRepository:
         """Merge separate query results into unified period data."""
 
         # Get period key from either week or month attribute
-        def get_period(row) -> str:  # type: ignore[no-untyped-def]
+        def get_period(row) -> str:
             if hasattr(row, "week"):
                 return str(row.week)
             return str(row.month)
@@ -681,7 +681,7 @@ class AnalyticsRepository:
                 "user_id": c.id,
                 "display_name": c.display_name or c.username,
                 "username": c.username,
-                "count": int(c.count) if c.count else 0,  # type: ignore[arg-type]
+                "count": int(c[3]) if c[3] else 0,  # count is 4th column
                 "rank": idx + 1,
             }
             for idx, c in enumerate(contributors)
@@ -910,7 +910,7 @@ class AnalyticsRepository:
         elif sort_by == "score":
             order_col = func.coalesce(score_subquery.c.score, 0)
         else:
-            order_col = Idea.created_at  # type: ignore[assignment]
+            order_col = Idea.created_at
 
         if sort_order == "desc":
             query = query.order_by(desc(order_col))

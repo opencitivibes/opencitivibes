@@ -512,7 +512,7 @@ class UserService:
             email=str(user.email),
             is_active=bool(user.is_active),
             is_global_admin=bool(user.is_global_admin),
-            created_at=user.created_at,  # type: ignore[arg-type]
+            created_at=user.created_at,
             ideas=schemas.UserIdeaStats(
                 total=total_ideas,
                 approved=approved_ideas,
@@ -532,7 +532,7 @@ class UserService:
             ),
             comments_made=comments_made,
             moderation=schemas.UserModerationStats(
-                trust_score=int(user.trust_score),  # type: ignore[arg-type]
+                trust_score=int(user.trust_score),
                 flags_received=schemas.UserFlagsReceived(
                     total=idea_flags + comment_flags,
                     on_ideas=idea_flags,
@@ -551,9 +551,12 @@ class UserService:
         user_data: schemas.UserCreate,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-    ) -> db_models.User:
+    ) -> tuple[db_models.User, bool]:
         """
         Register a new user with consent tracking.
+
+        Law 25 Compliance: If user is under 14, requires parental consent.
+        Account will be inactive until parent grants consent.
 
         Args:
             db: Database session
@@ -562,12 +565,14 @@ class UserService:
             user_agent: Client user agent for consent audit log
 
         Returns:
-            Created user
+            Tuple of (created user, requires_parental_consent: bool)
 
         Raises:
             ValidationException: If email/username exists, password invalid,
-                                 or required consents not provided
+                                 required consents not provided, or minor
+                                 without parent email
         """
+        from helpers.age_utils import requires_parental_consent
         from helpers.password_validation import validate_password_complexity
 
         from models.config import settings
@@ -595,6 +600,13 @@ class UserService:
         if user_repo.get_by_username(user_data.username):
             raise ValidationException("Username already taken")
 
+        # Check age for parental consent requirement (Law 25)
+        needs_consent = requires_parental_consent(user_data.date_of_birth)
+        if needs_consent and not user_data.parent_email:
+            raise ValidationException(
+                "Parent/guardian email is required for users under 14"
+            )
+
         # Get current policy versions
         current_terms_version = settings.TERMS_VERSION
         current_privacy_version = settings.PRIVACY_POLICY_VERSION
@@ -620,6 +632,14 @@ class UserService:
             consent_timestamp=now,
             marketing_consent=user_data.marketing_consent,
             marketing_consent_timestamp=now if user_data.marketing_consent else None,
+            # Law 25 Minors fields
+            date_of_birth=user_data.date_of_birth,
+            is_minor=needs_consent,
+            requires_parental_consent=needs_consent,
+            parent_email=user_data.parent_email if needs_consent else None,
+            parental_consent_status="pending" if needs_consent else "not_required",
+            # Account is inactive until parental consent is granted
+            is_active=not needs_consent,
         )
 
         user_repo.add(new_user)
@@ -657,11 +677,11 @@ class UserService:
                 )
             )
 
-        user_repo.add_all(consent_logs)  # type: ignore[arg-type]
+        user_repo.add_all(consent_logs)
         user_repo.commit()
         user_repo.refresh(new_user)
 
-        return new_user
+        return new_user, needs_consent
 
     @staticmethod
     def update_profile(
@@ -690,13 +710,13 @@ class UserService:
         # Check if email is being changed and if it's already taken
         if profile_update.email and profile_update.email != str(user.email):
             existing_user = user_repo.get_by_email(profile_update.email)
-            if existing_user and int(existing_user.id) != user_id:  # type: ignore[arg-type]
+            if existing_user and int(existing_user.id) != user_id:
                 raise ValidationException("Email already in use")
-            user.email = profile_update.email  # type: ignore[assignment]
+            user.email = profile_update.email
 
         # Update display_name if provided
         if profile_update.display_name:
-            user.display_name = profile_update.display_name  # type: ignore[assignment]
+            user.display_name = profile_update.display_name
 
         return user_repo.update(user)
 
@@ -737,7 +757,7 @@ class UserService:
             raise ValidationException("; ".join(errors))
 
         # Hash and update password
-        user.hashed_password = auth.get_password_hash(new_password)  # type: ignore[assignment]
+        user.hashed_password = auth.get_password_hash(new_password)
         user_repo.update(user)
         return True
 
@@ -881,7 +901,7 @@ class UserService:
             buffer.write(content)
 
         # Delete old avatar if exists
-        avatar_url_str = str(user.avatar_url) if user.avatar_url is not None else ""  # type: ignore[truthy-bool]
+        avatar_url_str = str(user.avatar_url) if user.avatar_url is not None else ""
         if avatar_url_str:
             # Convert forward slashes to system path separators
             old_file_path = Path(avatar_url_str.replace("/", os.sep))
@@ -890,7 +910,7 @@ class UserService:
 
         # Update user avatar_url (use forward slashes for URL compatibility)
         avatar_url = str(file_path).replace("\\", "/")
-        user.avatar_url = avatar_url  # type: ignore[assignment]
+        user.avatar_url = avatar_url
         user_repo.update(user)
 
         return schemas.AvatarUploadResponse(
@@ -1008,8 +1028,8 @@ class UserService:
             new_value = consent_update.marketing_consent
 
             if old_value != new_value:
-                user.marketing_consent = new_value  # type: ignore[assignment]
-                user.marketing_consent_timestamp = now  # type: ignore[assignment]
+                user.marketing_consent = new_value
+                user.marketing_consent_timestamp = now
 
                 consent_logs.append(
                     db_models.ConsentLog(
@@ -1024,9 +1044,9 @@ class UserService:
 
         # Handle terms re-consent
         if consent_update.accepts_terms is True:
-            user.consent_terms_accepted = True  # type: ignore[assignment]
-            user.consent_terms_version = settings.TERMS_VERSION  # type: ignore[assignment]
-            user.consent_timestamp = now  # type: ignore[assignment]
+            user.consent_terms_accepted = True
+            user.consent_terms_version = settings.TERMS_VERSION
+            user.consent_timestamp = now
 
             consent_logs.append(
                 db_models.ConsentLog(
@@ -1041,9 +1061,9 @@ class UserService:
 
         # Handle privacy re-consent
         if consent_update.accepts_privacy_policy is True:
-            user.consent_privacy_accepted = True  # type: ignore[assignment]
-            user.consent_privacy_version = settings.PRIVACY_POLICY_VERSION  # type: ignore[assignment]
-            user.consent_timestamp = now  # type: ignore[assignment]
+            user.consent_privacy_accepted = True
+            user.consent_privacy_version = settings.PRIVACY_POLICY_VERSION
+            user.consent_timestamp = now
 
             consent_logs.append(
                 db_models.ConsentLog(
@@ -1058,7 +1078,7 @@ class UserService:
 
         # Save changes
         if consent_logs:
-            user_repo.add_all(consent_logs)  # type: ignore[arg-type]
+            user_repo.add_all(consent_logs)
         user_repo.commit()
         user_repo.refresh(user)
 

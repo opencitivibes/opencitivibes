@@ -376,10 +376,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
-                        id=int(tag.id),  # type: ignore[arg-type]
-                        name=str(tag.name),  # type: ignore[arg-type]
-                        display_name=str(tag.display_name),  # type: ignore[arg-type]
-                        created_at=tag.created_at,  # type: ignore[arg-type]
+                        id=int(tag.id),
+                        name=str(tag.name),
+                        display_name=str(tag.display_name),
+                        created_at=tag.created_at,
                     )
                     for tag in tags
                 ],
@@ -572,10 +572,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
-                        id=int(tag.id),  # type: ignore[arg-type]
-                        name=str(tag.name),  # type: ignore[arg-type]
-                        display_name=str(tag.display_name),  # type: ignore[arg-type]
-                        created_at=tag.created_at,  # type: ignore[arg-type]
+                        id=int(tag.id),
+                        name=str(tag.name),
+                        display_name=str(tag.display_name),
+                        created_at=tag.created_at,
                     )
                     for tag in tags
                 ],
@@ -783,10 +783,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
-                        id=int(tag.id),  # type: ignore[arg-type]
-                        name=str(tag.name),  # type: ignore[arg-type]
-                        display_name=str(tag.display_name),  # type: ignore[arg-type]
-                        created_at=tag.created_at,  # type: ignore[arg-type]
+                        id=int(tag.id),
+                        name=str(tag.name),
+                        display_name=str(tag.display_name),
+                        created_at=tag.created_at,
                     )
                     for tag in tags
                 ],
@@ -959,10 +959,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 "previous_status": result.Idea.previous_status,
                 "tags": [
                     schemas.Tag(
-                        id=int(tag.id),  # type: ignore[arg-type]
-                        name=str(tag.name),  # type: ignore[arg-type]
-                        display_name=str(tag.display_name),  # type: ignore[arg-type]
-                        created_at=tag.created_at,  # type: ignore[arg-type]
+                        id=int(tag.id),
+                        name=str(tag.name),
+                        display_name=str(tag.display_name),
+                        created_at=tag.created_at,
                     )
                     for tag in tags
                 ],
@@ -1030,9 +1030,9 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         """
         from datetime import datetime, timezone
 
-        idea.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        idea.deleted_by = deleted_by_id  # type: ignore[assignment]
-        idea.deletion_reason = reason  # type: ignore[assignment]
+        idea.deleted_at = datetime.now(timezone.utc)
+        idea.deleted_by = deleted_by_id
+        idea.deletion_reason = reason
         self.db.commit()
         self.db.refresh(idea)
         return idea
@@ -1047,9 +1047,9 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         Returns:
             The restored idea
         """
-        idea.deleted_at = None  # type: ignore[assignment]
-        idea.deleted_by = None  # type: ignore[assignment]
-        idea.deletion_reason = None  # type: ignore[assignment]
+        idea.deleted_at = None
+        idea.deleted_by = None
+        idea.deletion_reason = None
         self.db.commit()
         self.db.refresh(idea)
         return idea
@@ -1288,9 +1288,9 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
         if not idea:
             return False
 
-        idea.is_hidden = False  # type: ignore[assignment]
-        idea.hidden_at = None  # type: ignore[assignment]
-        idea.flag_count = 0  # type: ignore[assignment]
+        idea.is_hidden = False
+        idea.hidden_at = None
+        idea.flag_count = 0
         self.commit()
         return True
 
@@ -1316,9 +1316,9 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
             return None
 
         author_id = int(idea.user_id)
-        idea.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        idea.deleted_by = deleted_by  # type: ignore[assignment]
-        idea.deletion_reason = reason  # type: ignore[assignment]
+        idea.deleted_at = datetime.now(timezone.utc)
+        idea.deleted_by = deleted_by
+        idea.deletion_reason = reason
         self.commit()
         return author_id
 
@@ -1665,17 +1665,17 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
 
             if last_edit.year == now.year and last_edit.month == now.month:
                 # Same month, increment
-                idea.edit_count = int(idea.edit_count) + 1  # type: ignore[assignment]
+                idea.edit_count = int(idea.edit_count) + 1
             else:
                 # New month, reset to 1
-                idea.edit_count = 1  # type: ignore[assignment]
+                idea.edit_count = 1
         else:
             # First edit ever
-            idea.edit_count = 1  # type: ignore[assignment]
+            idea.edit_count = 1
 
-        idea.last_edit_at = now  # type: ignore[assignment]
-        idea.previous_status = previous_status  # type: ignore[assignment]
-        idea.status = db_models.IdeaStatus.PENDING_EDIT  # type: ignore[assignment]
+        idea.last_edit_at = now
+        idea.previous_status = previous_status
+        idea.status = db_models.IdeaStatus.PENDING_EDIT
 
         self.commit()
         self.refresh(idea)
@@ -1765,10 +1765,10 @@ class IdeaRepository(BaseRepository[db_models.Idea]):
                 idea.previous_status.lower(),
                 db_models.IdeaStatus.APPROVED,
             )
-            idea.status = restored_status  # type: ignore[assignment]
+            idea.status = restored_status
 
-        idea.previous_status = None  # type: ignore[assignment]
-        idea.validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        idea.previous_status = None
+        idea.validated_at = datetime.now(timezone.utc)
 
         self.commit()
         self.refresh(idea)

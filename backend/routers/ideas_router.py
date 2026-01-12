@@ -48,7 +48,7 @@ def create_idea(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return IdeaService.validate_and_create_idea(db, idea, user_id, language)
 
 
@@ -60,7 +60,7 @@ def get_my_ideas(
     current_user: db_models.User = Depends(auth.get_current_active_user),
 ):
     # Get all ideas (pending, approved, rejected) for current user
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return IdeaService.get_my_ideas(db, user_id, skip, limit)
 
 
@@ -75,7 +75,7 @@ def get_idea(
 
     Domain exceptions are caught by centralized exception handlers.
     """
-    current_user_id: int | None = int(current_user.id) if current_user else None  # type: ignore[arg-type]
+    current_user_id: int | None = int(current_user.id) if current_user else None
     return IdeaService.get_idea_with_score(
         db=db,
         idea_id=idea_id,
@@ -91,7 +91,7 @@ def update_idea(
     current_user: db_models.User = Depends(auth.get_current_active_user),
 ):
     # Use IdeaService to update idea
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return IdeaService.update_idea(db, idea_id, idea_update, user_id)
 
 
@@ -114,7 +114,7 @@ def delete_idea(
     - Reason is optional
     - Idea can be restored by admin
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     reason = request.reason if request else None
 
     IdeaService.soft_delete_idea(

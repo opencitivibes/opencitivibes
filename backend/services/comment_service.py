@@ -168,7 +168,7 @@ class CommentService:
             db=db,
             content=content,
             content_type=ContentType.COMMENT,
-            content_id=int(created_comment.id),  # type: ignore[arg-type]
+            content_id=int(created_comment.id),
         )
 
         # Notify admins if comment requires moderation (fire-and-forget)
@@ -177,19 +177,19 @@ class CommentService:
 
             idea_title = str(idea.title) if idea else f"Idea #{idea_id}"
             NotificationService.notify_new_comment(
-                comment_id=int(created_comment.id),  # type: ignore[arg-type]
+                comment_id=int(created_comment.id),
                 idea_title=idea_title,
                 author_display_name=display_name,
             )
 
         # Return with user info
         comment = schemas.Comment(
-            id=int(created_comment.id),  # type: ignore[arg-type]
-            idea_id=int(created_comment.idea_id),  # type: ignore[arg-type]
-            user_id=int(created_comment.user_id),  # type: ignore[arg-type]
-            content=str(created_comment.content),  # type: ignore[arg-type]
-            is_moderated=bool(created_comment.is_moderated),  # type: ignore[arg-type]
-            created_at=created_comment.created_at,  # type: ignore[arg-type]
+            id=int(created_comment.id),
+            idea_id=int(created_comment.idea_id),
+            user_id=int(created_comment.user_id),
+            content=str(created_comment.content),
+            is_moderated=bool(created_comment.is_moderated),
+            created_at=created_comment.created_at,
             author_username=username,
             author_display_name=display_name,
         )
@@ -217,7 +217,7 @@ class CommentService:
             raise CommentNotFoundException(f"Comment with ID {comment_id} not found")
 
         # Only the author can delete their comment
-        if int(comment.user_id) != user_id:  # type: ignore[arg-type]
+        if int(comment.user_id) != user_id:
             raise InsufficientPermissionsException(
                 "Not authorized to delete this comment"
             )

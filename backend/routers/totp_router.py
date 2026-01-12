@@ -24,7 +24,7 @@ async def setup_2fa(
     Returns secret and provisioning URI for QR code.
     User must verify with a code before 2FA is active.
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return TOTPService.setup_2fa(db, user_id)
 
 
@@ -39,7 +39,7 @@ async def verify_setup(
 
     Returns backup codes (show to user once, they cannot be retrieved again).
     """
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return TOTPService.verify_setup(db, user_id, request_body.code)
 
 
@@ -68,7 +68,7 @@ async def get_2fa_status(
     current_user: db_models.User = Depends(auth.get_current_active_user),
 ) -> schemas.TwoFactorStatusResponse:
     """Get current 2FA status for user."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     return TOTPService.get_status(db, user_id)
 
 
@@ -162,7 +162,7 @@ async def get_backup_codes_count(
     current_user: db_models.User = Depends(auth.get_current_active_user),
 ) -> schemas.BackupCodesCountResponse:
     """Get count of remaining unused backup codes."""
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     remaining = TOTPService.get_backup_codes_count(
         db, user_id, bool(current_user.totp_enabled)
     )
@@ -189,7 +189,7 @@ async def list_trusted_devices(
     """
     from services.trusted_device_service import TrustedDeviceService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     # Get devices from service
     devices = TrustedDeviceService.get_user_devices(db, user_id)
@@ -232,7 +232,7 @@ async def rename_trusted_device(
     """
     from services.trusted_device_service import TrustedDeviceService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
 
     device = TrustedDeviceService.rename_device(
         db,
@@ -268,7 +268,7 @@ async def revoke_trusted_device(
     from helpers.request_utils import get_client_ip, get_user_agent
     from services.trusted_device_service import TrustedDeviceService
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     ip_address = get_client_ip(request)
     user_agent = get_user_agent(request)
 
@@ -310,7 +310,7 @@ async def revoke_all_trusted_devices(
     ):
         raise InvalidCredentialsException("Invalid password")
 
-    user_id: int = current_user.id  # type: ignore[assignment]
+    user_id: int = current_user.id
     ip_address = get_client_ip(request)
     user_agent = get_user_agent(request)
 

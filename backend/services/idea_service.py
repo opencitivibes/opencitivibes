@@ -86,7 +86,7 @@ class IdeaService:
 
         # If idea is not approved, only owner can view it
         if db_idea.status != db_models.IdeaStatus.APPROVED:
-            if not current_user_id or int(db_idea.user_id) != current_user_id:  # type: ignore[arg-type]
+            if not current_user_id or int(db_idea.user_id) != current_user_id:
                 raise NotFoundException("Idea not found")
 
         # Use repository to get the specific idea with scores and user vote
@@ -167,7 +167,7 @@ class IdeaService:
 
         # Handle tags if provided
         if idea.tags is not None and len(idea.tags) > 0:
-            TagService.sync_idea_tags(db, int(db_idea.id), idea.tags)  # type: ignore[arg-type]
+            TagService.sync_idea_tags(db, int(db_idea.id), idea.tags)
             db.refresh(db_idea)
 
         # Check content against keyword watchlist
@@ -178,13 +178,13 @@ class IdeaService:
             db=db,
             content=f"{db_idea.title} {db_idea.description}",
             content_type=ContentType.IDEA,
-            content_id=int(db_idea.id),  # type: ignore[arg-type]
+            content_id=int(db_idea.id),
         )
 
         # Index the new idea for search
         from services.search import SearchService
 
-        SearchService.reindex_idea(db, int(db_idea.id))  # type: ignore[arg-type]
+        SearchService.reindex_idea(db, int(db_idea.id))
 
         # Notify admins of new pending idea (fire-and-forget)
         from repositories.user_repository import UserRepository
@@ -195,7 +195,7 @@ class IdeaService:
         author_name = author.display_name if author else "Unknown"
 
         NotificationService.notify_new_idea(
-            idea_id=int(db_idea.id),  # type: ignore[arg-type]
+            idea_id=int(db_idea.id),
             title=str(db_idea.title),
             category_name=str(category.name_en),
             author_display_name=str(author_name),
@@ -285,7 +285,7 @@ class IdeaService:
             raise NotFoundException("Idea not found")
 
         # Check ownership
-        if int(db_idea.user_id) != user_id:  # type: ignore[arg-type]
+        if int(db_idea.user_id) != user_id:
             raise PermissionDeniedException("You can only edit your own ideas")
 
         idea_repo = IdeaRepository(db)
@@ -362,8 +362,8 @@ class IdeaService:
             idea_repo.update_edit_tracking(db_idea, "approved")
         elif db_idea.status == db_models.IdeaStatus.REJECTED:
             # Reset rejected to pending
-            db_idea.status = db_models.IdeaStatus.PENDING  # type: ignore[assignment]
-            db_idea.admin_comment = None  # type: ignore[assignment]
+            db_idea.status = db_models.IdeaStatus.PENDING
+            db_idea.admin_comment = None
             idea_repo.commit()
             idea_repo.refresh(db_idea)
         else:
@@ -373,13 +373,13 @@ class IdeaService:
 
         # Update tags if provided
         if tags is not None:
-            TagService.sync_idea_tags(db, int(db_idea.id), tags)  # type: ignore[arg-type]
+            TagService.sync_idea_tags(db, int(db_idea.id), tags)
             db.refresh(db_idea)
 
         # Reindex for search after update
         from services.search import SearchService
 
-        SearchService.reindex_idea(db, int(db_idea.id))  # type: ignore[arg-type]
+        SearchService.reindex_idea(db, int(db_idea.id))
 
         return db_idea
 
@@ -443,7 +443,7 @@ class IdeaService:
             raise IdeaAlreadyDeletedException(idea_id)
 
         # Check ownership for non-admin users
-        if not is_admin and int(db_idea.user_id) != user_id:  # type: ignore[arg-type]
+        if not is_admin and int(db_idea.user_id) != user_id:
             raise CannotDeleteOthersIdeaException()
 
         # Remove from search index before soft delete
@@ -571,21 +571,21 @@ class IdeaService:
                 # Approve edit: restore to previous status (typically APPROVED)
                 # This keeps votes and comments intact
                 idea_repo.restore_previous_status(db_idea)
-                db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+                db_idea.admin_comment = moderation.admin_comment
             else:
                 # Reject edit: set to REJECTED
                 # Previous_status preserved for history
-                db_idea.status = moderation.status  # type: ignore[assignment]
-                db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+                db_idea.status = moderation.status
+                db_idea.admin_comment = moderation.admin_comment
                 idea_repo.commit()
                 idea_repo.refresh(db_idea)
         else:
             # Standard moderation for new ideas (PENDING status)
-            db_idea.status = moderation.status  # type: ignore[assignment]
-            db_idea.admin_comment = moderation.admin_comment  # type: ignore[assignment]
+            db_idea.status = moderation.status
+            db_idea.admin_comment = moderation.admin_comment
 
             if moderation.status == db_models.IdeaStatus.APPROVED:
-                db_idea.validated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+                db_idea.validated_at = datetime.now(timezone.utc)
 
             idea_repo.commit()
             idea_repo.refresh(db_idea)
@@ -692,12 +692,12 @@ class IdeaService:
             # Check if user already voted on target
             existing_vote = vote_repo.get_by_idea_and_user(
                 target_idea_id,
-                int(vote.user_id),  # type: ignore[arg-type]
+                int(vote.user_id),
             )
 
             if not existing_vote:
                 # Move vote to target
-                vote.idea_id = target_idea_id  # type: ignore[assignment]
+                vote.idea_id = target_idea_id
             else:
                 # User already voted on target, delete source vote
                 vote_repo.delete(vote)
@@ -779,8 +779,8 @@ class IdeaService:
             idea_id=idea_id,
             title=str(idea.title),
             status=idea.status.value,
-            created_at=idea.created_at,  # type: ignore[arg-type]
-            validated_at=idea.validated_at,  # type: ignore[arg-type]
+            created_at=idea.created_at,
+            validated_at=idea.validated_at,
             upvotes=upvotes,
             downvotes=downvotes,
             score=upvotes - downvotes,
@@ -998,13 +998,13 @@ class IdeaService:
         if not is_global_admin:
             admin_roles = AdminRoleService.get_user_admin_roles(
                 db,
-                int(user.id),  # type: ignore[arg-type]
+                int(user.id),
             )
             if not admin_roles:
                 raise InsufficientPermissionsException("Not enough permissions")
 
         repo = IdeaRepository(db)
-        user_id: int = user.id  # type: ignore[assignment]
+        user_id: int = user.id
         # Include both PENDING and PENDING_EDIT statuses for admin moderation queue
         pending_ideas = repo.get_ideas_with_scores(
             status_filter=[
@@ -1020,12 +1020,12 @@ class IdeaService:
         if not is_global_admin:
             admin_roles = AdminRoleService.get_user_admin_roles(
                 db,
-                int(user.id),  # type: ignore[arg-type]
+                int(user.id),
             )
             admin_category_ids: list[int] = [
-                role.category_id  # type: ignore[misc]
+                role.category_id
                 for role in admin_roles
-                if role.category_id is not None  # type: ignore[truthy-bool]
+                if role.category_id is not None
             ]
             pending_ideas = [
                 idea for idea in pending_ideas if idea.category_id in admin_category_ids
@@ -1068,15 +1068,15 @@ class IdeaService:
         # Category admin sees only their categories
         admin_roles = AdminRoleService.get_user_admin_roles(
             db,
-            int(user.id),  # type: ignore[arg-type]
+            int(user.id),
         )
         if not admin_roles:
             raise InsufficientPermissionsException("Not enough permissions")
 
         category_ids: list[int] = [
-            role.category_id  # type: ignore[misc]
+            role.category_id
             for role in admin_roles
-            if role.category_id is not None  # type: ignore[truthy-bool]
+            if role.category_id is not None
         ]
         return repo.count_pending_ideas(category_ids)
 
@@ -1112,7 +1112,7 @@ class IdeaService:
 
         # Check admin permissions for this category
         category_id = (
-            int(idea.category_id) if idea.category_id else None  # type: ignore[arg-type]
+            int(idea.category_id) if idea.category_id else None
         )
 
         if not bool(user.is_global_admin):
@@ -1124,7 +1124,7 @@ class IdeaService:
             is_category_admin = AdminRoleService.is_category_admin(
                 db,
                 int(user.id),
-                category_id,  # type: ignore[arg-type]
+                category_id,
             )
             if not is_category_admin:
                 raise InsufficientPermissionsException(
