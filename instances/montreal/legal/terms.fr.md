@@ -1,6 +1,7 @@
 ---
-version: "1.0"
-lastUpdated: "2025-01-01"
+version: "2.0"
+lastUpdated: "2026-01-11"
+changelog: "Ajout des exigences d'age et du consentement parental (Loi 25)"
 ---
 
 # Conditions d'Utilisation
@@ -29,7 +30,38 @@ Pour utiliser certaines fonctionnalités, vous devez créer un compte. Vous vous
 - Être responsable de toutes les activités effectuées sous votre compte
 - Nous informer immédiatement de toute utilisation non autorisée
 
-## 4. Règles de conduite
+## 4. Exigences d'age et mineurs
+
+### Age minimum
+
+Conformément à la Loi 25 du Québec sur la protection des renseignements personnels :
+
+- Les utilisateurs de **14 ans et plus** peuvent créer un compte sans consentement parental.
+- Les utilisateurs de **10 à 13 ans** peuvent créer un compte avec le consentement vérifié d'un parent ou tuteur légal.
+- Les utilisateurs de **moins de 10 ans** ne sont pas autorisés à utiliser cette plateforme.
+
+### Consentement parental
+
+Pour les utilisateurs de moins de 14 ans, le processus de consentement parental comprend :
+
+1. L'utilisateur mineur fournit l'adresse courriel de son parent/tuteur lors de l'inscription
+2. Un courriel de vérification est envoyé au parent/tuteur contenant les informations sur les données collectées
+3. Le parent/tuteur doit autoriser ou refuser la création du compte dans un délai de 7 jours
+4. Le compte reste inactif jusqu'à l'approbation parentale
+5. En cas de refus ou d'absence de réponse, le compte sera supprimé après un délai de grâce de 30 jours
+
+### Droits des parents
+
+Les parents ou tuteurs légaux d'utilisateurs mineurs ont le droit de :
+
+- **Accéder** aux données de leur enfant via le compte ou par demande d'exportation
+- **Rectifier** les informations inexactes
+- **Supprimer** le compte de leur enfant à tout moment
+- **Retirer** leur consentement, ce qui entraîne la suppression du compte
+
+Pour exercer ces droits, contactez-nous à {{contactEmail}}.
+
+## 5. Règles de conduite
 
 En utilisant la plateforme, vous vous engagez à :
 
@@ -41,7 +73,7 @@ En utilisant la plateforme, vous vous engagez à :
 - Ne pas tenter de compromettre la sécurité de la plateforme
 - Respecter les droits de propriété intellectuelle
 
-## 5. Contenu des utilisateurs
+## 6. Contenu des utilisateurs
 
 En soumettant du contenu (idées, commentaires), vous :
 
@@ -50,7 +82,7 @@ En soumettant du contenu (idées, commentaires), vous :
 - Garantissez que votre contenu ne viole pas les droits de tiers
 - Acceptez que votre contenu soit visible publiquement
 
-## 6. Modération
+## 7. Modération
 
 Nous nous réservons le droit de modérer le contenu et les comptes utilisateurs. Cela inclut :
 
@@ -59,11 +91,11 @@ Nous nous réservons le droit de modérer le contenu et les comptes utilisateurs
 - La suspension ou la suppression de comptes en cas de violation des règles
 - L'émission d'avertissements ou de sanctions
 
-## 7. Propriété intellectuelle
+## 8. Propriété intellectuelle
 
 La plateforme {{instanceName}}, son design, son logo et son code sont protégés par le droit d'auteur. Vous ne pouvez pas copier, modifier ou distribuer ces éléments sans autorisation.
 
-## 8. Limitation de responsabilité
+## 9. Limitation de responsabilité
 
 La plateforme est fournie « telle quelle ». Nous ne garantissons pas :
 
@@ -73,18 +105,18 @@ La plateforme est fournie « telle quelle ». Nous ne garantissons pas :
 
 Nous ne sommes pas responsables des dommages indirects résultant de l'utilisation de la plateforme.
 
-## 9. Modifications des conditions
+## 10. Modifications des conditions
 
 Nous pouvons modifier ces conditions à tout moment. Les modifications entreront en vigueur dès leur publication sur la plateforme. Votre utilisation continue après modification constitue une acceptation des nouvelles conditions.
 
-## 10. Résiliation
+## 11. Résiliation
 
 Vous pouvez supprimer votre compte à tout moment. Nous pouvons également suspendre ou supprimer votre compte en cas de violation de ces conditions.
 
-## 11. Droit applicable
+## 12. Droit applicable
 
 Ces conditions sont régies par les lois de {{jurisdiction}}. Tout litige sera soumis aux {{courts}}.
 
-## 12. Contact
+## 13. Contact
 
 Pour toute question concernant ces conditions, veuillez nous contacter à {{contactEmail}}.

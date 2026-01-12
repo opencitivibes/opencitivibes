@@ -1,6 +1,7 @@
 ---
-version: "1.0"
-lastUpdated: "2025-01-01"
+version: "2.0"
+lastUpdated: "2026-01-11"
+changelog: "Added age requirements and parental consent (Law 25)"
 ---
 
 # Terms of Service
@@ -29,7 +30,38 @@ To use certain features, you must create an account. You agree to:
 - Be responsible for all activities under your account
 - Notify us immediately of any unauthorized use
 
-## 4. Code of Conduct
+## 4. Age Requirements and Minors
+
+### Minimum Age
+
+In accordance with Quebec's Law 25 on the protection of personal information:
+
+- Users **14 years and older** may create an account without parental consent.
+- Users **aged 10 to 13** may create an account with verified consent from a parent or legal guardian.
+- Users **under 10 years old** are not permitted to use this platform.
+
+### Parental Consent
+
+For users under 14, the parental consent process includes:
+
+1. The minor user provides their parent/guardian's email address during registration
+2. A verification email is sent to the parent/guardian containing information about the data collected
+3. The parent/guardian must authorize or deny account creation within 7 days
+4. The account remains inactive until parental approval
+5. If denied or no response, the account will be deleted after a 30-day grace period
+
+### Parental Rights
+
+Parents or legal guardians of minor users have the right to:
+
+- **Access** their child's data via the account or by requesting an export
+- **Rectify** inaccurate information
+- **Delete** their child's account at any time
+- **Withdraw** their consent, which results in account deletion
+
+To exercise these rights, contact us at {{contactEmail}}.
+
+## 5. Code of Conduct
 
 When using the platform, you agree to:
 
@@ -41,7 +73,7 @@ When using the platform, you agree to:
 - Not attempt to compromise the security of the platform
 - Respect intellectual property rights
 
-## 5. User Content
+## 6. User Content
 
 By submitting content (ideas, comments), you:
 
@@ -50,7 +82,7 @@ By submitting content (ideas, comments), you:
 - Warrant that your content does not infringe on third-party rights
 - Accept that your content will be publicly visible
 
-## 6. Moderation
+## 7. Moderation
 
 We reserve the right to moderate content and user accounts. This includes:
 
@@ -59,11 +91,11 @@ We reserve the right to moderate content and user accounts. This includes:
 - Suspending or deleting accounts for rule violations
 - Issuing warnings or penalties
 
-## 7. Intellectual Property
+## 8. Intellectual Property
 
 The {{instanceName}} platform, its design, logo, and code are protected by copyright. You may not copy, modify, or distribute these elements without authorization.
 
-## 8. Limitation of Liability
+## 9. Limitation of Liability
 
 The platform is provided "as is." We do not guarantee:
 
@@ -73,18 +105,18 @@ The platform is provided "as is." We do not guarantee:
 
 We are not responsible for indirect damages resulting from the use of the platform.
 
-## 9. Modifications to Terms
+## 10. Modifications to Terms
 
 We may modify these terms at any time. Changes will take effect upon publication on the platform. Your continued use after modification constitutes acceptance of the new terms.
 
-## 10. Termination
+## 11. Termination
 
 You may delete your account at any time. We may also suspend or delete your account for violation of these terms.
 
-## 11. Governing Law
+## 12. Governing Law
 
 These terms are governed by the laws of {{jurisdiction}}. Any dispute will be submitted to the {{courts}}.
 
-## 12. Contact
+## 13. Contact
 
 For any questions regarding these terms, please contact us at {{contactEmail}}.

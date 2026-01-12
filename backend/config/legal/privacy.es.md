@@ -1,6 +1,7 @@
 ---
-version: "1.1"
-lastUpdated: "2026-01-08"
+version: "2.0"
+lastUpdated: "2026-01-11"
+changelog: "Agregada seccion sobre recopilacion de datos de menores (Ley 25)"
 ---
 
 # Politica de Privacidad
@@ -15,12 +16,55 @@ lastUpdated: "2026-01-08"
 
 Recopilamos la siguiente informacion:
 
-- **Datos de registro**: nombre de usuario, direccion de correo electronico, nombre visible
+- **Datos de registro**: nombre de usuario, direccion de correo electronico, nombre visible, fecha de nacimiento
 - **Datos de perfil**: avatar (opcional)
 - **Contenido generado por el usuario**: ideas enviadas, comentarios, votos
 - **Datos tecnicos**: direccion IP, tipo de navegador, paginas visitadas
 
-## 3. Finalidades del Tratamiento
+## 3. Recopilacion de Datos de Menores
+
+### Aplicabilidad
+
+Esta seccion se aplica a usuarios menores de 14 anos en el momento del registro, de acuerdo con la Ley 25 de Quebec sobre la proteccion de informacion personal.
+
+### Datos Recopilados de Menores
+
+Recopilamos las mismas categorias de datos para usuarios menores que para adultos, ademas de:
+
+- **Direccion de correo electronico del padre/tutor**: para el proceso de consentimiento
+- **Prueba de consentimiento parental**: marca de tiempo, direccion IP, ID de consentimiento
+- **Historial de acciones de consentimiento**: solicitudes enviadas, aprobaciones, denegaciones
+
+### Proceso de Consentimiento Parental
+
+1. El menor proporciona la direccion de correo electronico de su padre/tutor durante el registro
+2. Se envia un correo electronico al padre que contiene:
+   - La informacion del nino (nombre de usuario, correo electronico, edad)
+   - La lista de datos recopilados
+   - El proposito de la recopilacion
+   - El periodo de retencion
+   - Los derechos del padre
+3. El padre debe autorizar o denegar dentro de 7 dias
+4. La cuenta permanece inactiva hasta la aprobacion
+
+### Retencion de Datos de Menores
+
+- Los datos se conservan durante la vida de la cuenta mas 30 dias despues de la eliminacion
+- Las cuentas denegadas por un padre se eliminan despues de un periodo de gracia de 30 dias
+- Las solicitudes de consentimiento expiradas resultan en la eliminacion de la cuenta despues de 30 dias
+
+### Derechos de los Padres
+
+Los padres o tutores de usuarios menores pueden en cualquier momento:
+
+- **Acceder** a los datos de su hijo a traves de la cuenta o solicitando una exportacion (formato JSON)
+- **Rectificar** informacion inexacta
+- **Eliminar** la cuenta de su hijo
+- **Retirar** su consentimiento, lo que resulta en la eliminacion de la cuenta
+
+Para ejercer estos derechos, contactenos en {{contactEmail}}.
+
+## 4. Finalidades del Tratamiento
 
 Sus datos se utilizan para:
 
@@ -31,7 +75,7 @@ Sus datos se utilizan para:
 - Mejorar nuestros servicios y la experiencia del usuario
 - Comunicarnos con usted sobre su cuenta
 
-## 4. Base Legal
+## 5. Base Legal
 
 El tratamiento de sus datos se basa en:
 
@@ -40,11 +84,11 @@ El tratamiento de sus datos se basa en:
 - Nuestros intereses legitimos (seguridad, mejora del servicio)
 - Nuestras obligaciones legales
 
-## 5. Conservacion de Datos
+## 6. Conservacion de Datos
 
 Sus datos personales se conservan mientras su cuenta este activa. Al eliminar su cuenta, sus datos seran borrados en un plazo de 30 dias, salvo que existan requisitos legales de conservacion.
 
-## 6. Sus Derechos
+## 7. Sus Derechos
 
 Segun las leyes aplicables, usted tiene los siguientes derechos:
 
@@ -57,11 +101,11 @@ Segun las leyes aplicables, usted tiene los siguientes derechos:
 
 Para ejercer estos derechos, contactenos en {{contactEmail}}. Responderemos en un plazo de 30 dias.
 
-## 7. Seguridad de los Datos
+## 8. Seguridad de los Datos
 
 Implementamos medidas de seguridad tecnicas y organizativas apropiadas para proteger sus datos contra el acceso no autorizado, la modificacion, la divulgacion o la destruccion.
 
-## 8. Comparticion de Datos
+## 9. Comparticion de Datos
 
 No vendemos sus datos personales. Sus datos solo pueden ser compartidos:
 
@@ -69,11 +113,11 @@ No vendemos sus datos personales. Sus datos solo pueden ser compartidos:
 - Para cumplir con obligaciones legales
 - Con nuestros proveedores de servicios (alojamiento, seguridad) bajo contratos estrictos
 
-## 9. Cookies
+## 10. Cookies
 
 Utilizamos cookies esenciales para la funcionalidad del sitio (autenticacion, preferencias de idioma). No utilizamos cookies publicitarias ni de rastreo.
 
-## 10. Dispositivo de Confianza (Recordar Dispositivo 2FA)
+## 11. Dispositivo de Confianza (Recordar Dispositivo 2FA)
 
 Si habilita la autenticacion de dos factores (2FA), puede elegir confiar en un dispositivo para omitir la entrada del codigo TOTP en futuros inicios de sesion.
 
@@ -110,6 +154,6 @@ Cuando confia en un dispositivo, recibe una notificacion por correo electronico 
 
 Visite Configuracion > Seguridad > Dispositivos de Confianza, o contactenos en {{contactEmail}}.
 
-## 11. Contacto y Reclamaciones
+## 12. Contacto y Reclamaciones
 
 Para cualquier pregunta o reclamacion sobre sus datos personales, contactenos en {{contactEmail}}. Tambien tiene derecho a presentar una reclamacion ante {{privacyAuthority}}.
